@@ -92,15 +92,15 @@ thing a person does with Stage and until now there was no way to do it. See
 | ID | Story | Req | State |
 |---|---|---|---|
 | STG-145 | **Type a presentation of plain slides and present it**: a title, three notices, a sermon outline | ST2.16 | Resolved |
-| STG-146 | Hold a presentation's kind, so a song, a reading, plain slides and a media item are one list | ST2.16 | New |
-| STG-147 | Dragging to reorder, duplicating a slide, moving one between presentations, and the per-slide note | ST2.16, ST2.19 | New |
+| STG-146 | Hold a presentation's kind, so a song, a reading, plain slides and a media item are one list | ST2.16 | Resolved |
+| STG-147 | Duplicating a slide, moving one between presentations, and the per-slide note | ST2.16, ST2.19 | New |
 | STG-148 | Apply a theme to a presentation, and change it without touching the content | ST8.1 | New |
 | STG-149 | First run: one line saying what to do, and three ways in | ST1.2 | New |
 | STG-6 | Build the local library store: songs, sections, arrangements, durable and backed up on write | ST2.1, ST19.5 | Resolved |
 | STG-7 | Type a song in: title, the copyright fields, and lyrics as labelled sections | ST2.1, ST2.2 | New |
 | STG-8 | Offer a section split when a plain lyric block is pasted, confirmed by the operator | ST2.2 | New |
 | STG-9 | Create arrangements with a key, a tempo and a sequence, one of them default | ST2.3 | New |
-| STG-10 | Ship a public-domain sample song set, and offer it on first run | ST1.2 | New |
+| STG-10 | Ship a public-domain sample song set, and offer it on first run. The two bundled hymns already land in an empty library, from STG-146 | ST1.2 | New |
 
 ### SF1. The Electron shell
 
@@ -471,8 +471,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** typing slides and presenting them. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-146**, holding a presentation's kind so a song and a set of typed slides are one list, then STG-147 dragging and duplicating, STG-148 themes and STG-149 first run. Then the measurements STG-28 and STG-29. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-7**, typing a song in, because the one list now shows songs and a song row opens read only. Then STG-147 duplicating and per-slide notes, STG-148 themes, STG-149 first run, and the measurements STG-28 and STG-29. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -893,3 +893,47 @@ In the window:
 **Two things that moved.** Presenting a presentation replaces whatever service is open, because set
 lists are STG-146 and STG-147. And the save button is gone: the window stores itself when a box
 loses focus, when a slide is added, removed or moved, and a second after typing stops.
+
+---
+
+## STG-146, how to test it
+
+One list. A song and a set of typed slides are the same kind of thing to the person looking for one,
+and two lists would mean knowing which one a thing is in before looking for it. Nobody knows that
+about the notices.
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+- Press **Slides**. The left column now holds **Amazing Grace** and **Holy, Holy, Holy** beside
+  anything you typed, each row tagged **Song** or **Slides** in its own hue.
+- The **Search** box at the top filters across both. Type `grace`, then `notice`.
+- Click a song. It opens as the sections it is made of, read only, and the footer says so. Typing a
+  song in is STG-7, and a row that cannot be opened at all would be worse than this.
+- Click back to a presentation. The boxes are yours again and **Add slide** comes back.
+- A song row counts **sections**. A slides row counts **slides**.
+- Archive is still the rule: nothing in this list can be deleted.
+
+The two hymns arrive on their own the first time, and only into a library with nothing at all in it.
+They are public domain. Offering the fuller sample set with a choice is still STG-10.
+
+### The card controls, reworked
+
+- Drag a slide by the **grip** on the left of its header. A line shows where it lands.
+- **Up**, **down** and **remove** are icons now, each carrying its name for a screen reader and a
+  tooltip for everyone else. Up and down stay because WCAG 2.2 requires a way round dragging for
+  anybody who cannot drag.
+- The label field now says **For the operator**, which is the only thing anybody needs to know about
+  it: it shows in the deck list during the service and never reaches the wall.
+
+**Eleven new tests.** What they defend:
+
+1. **One query, one order.** The list is sorted across both tables rather than two lists stitched
+   together in the renderer, so paging stays in the right place once a library has two hundred rows.
+2. **The count means what the row holds**: sections on a song, slides on a presentation.
+3. **Archiving works on both halves** and an archived row leaves the one list.
+4. **A song cannot be written through the slide editor.** Opening one and saving is refused at the
+   boundary rather than written, because writing it would put a song and a presentation in the
+   library under one id. This was a real defect the test found.
+5. **Opening a presentation after a song replaces the boxes**, which is the serial doing its job.

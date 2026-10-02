@@ -10,6 +10,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { newPresentation, parseSlides, type Presentation } from "@hearth/songs";
+import { amazingGrace } from "@hearth/songs/fixtures";
 import { LibraryError, openLibrary, type OpenLibrary } from "../src/index";
 
 const OUTLINE = `[Point 1]
@@ -155,5 +156,49 @@ describe("presentations and songs in one file", () => {
     opened.library.savePresentation(outline());
     expect(opened.library.count()).toBe(0);
     expect(opened.library.countPresentations()).toBe(1);
+  });
+});
+
+describe("the library as one list", () => {
+  beforeEach(() => {
+    opened.library.save(amazingGrace);
+    opened.library.savePresentation(outline("p1", "Sermon outline"));
+    opened.library.savePresentation(outline("p2", "Notices"));
+  });
+
+  it("holds songs and typed slides together, each saying which it is", () => {
+    const items = opened.library.items();
+    expect(items.map((item) => [item.kind, item.title])).toEqual([
+      ["song", "Amazing Grace"],
+      ["plain", "Notices"],
+      ["plain", "Sermon outline"],
+    ]);
+  });
+
+  it("counts sections on a song and slides on a presentation", () => {
+    const items = opened.library.items();
+    expect(items.find((item) => item.kind === "song")?.count).toBe(amazingGrace.sections.length);
+    expect(items.find((item) => item.title === "Notices")?.count).toBe(3);
+  });
+
+  it("carries the author on a song, for the second line of the row", () => {
+    expect(opened.library.items()[0]?.subtitle).toBe("John Newton");
+    expect(opened.library.items()[1]?.subtitle).toBeNull();
+  });
+
+  it("sorts by title across both, so the list reads as one", () => {
+    opened.library.savePresentation(outline("p3", "Aaron"));
+    expect(opened.library.items()[0]?.title).toBe("Aaron");
+  });
+
+  it("leaves archived rows out of both halves", () => {
+    opened.library.archive(amazingGrace.song.id);
+    opened.library.archivePresentation("p1");
+    expect(opened.library.items().map((item) => item.title)).toEqual(["Notices"]);
+    expect(opened.library.items({ includeArchived: true })).toHaveLength(3);
+  });
+
+  it("carries the origin, which is who may write the row", () => {
+    expect(opened.library.items().every((item) => item.origin === "local")).toBe(true);
   });
 });

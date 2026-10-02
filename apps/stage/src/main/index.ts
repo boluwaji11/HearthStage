@@ -64,9 +64,28 @@ function sqliteBinding(): string | undefined {
 const store = openLibrary(join(app.getPath("userData"), "library.db"), {
   nativeBinding: sqliteBinding(),
 });
+
+/**
+ * A library that has never been opened gets the bundled hymns (STG-146).
+ *
+ * Only when there is nothing at all in it, which is a church starting cold.
+ * They are public domain, they are archivable like anything else, and without
+ * them the one list has one kind of thing in it and the list is a claim rather
+ * than a screen. Offering the fuller sample set on first run is STG-10.
+ */
+function seed(): void {
+  if (store.library.count({ includeArchived: true }) > 0) return;
+  if (store.library.countPresentations({ includeArchived: true }) > 0) return;
+  for (const whole of sampleLibrary) store.library.save(whole);
+}
+
+seed();
+
 const presentations = new Presentations(store.library);
 
-const songs = lookupFrom(sampleLibrary);
+// Compiled from the library on disk rather than from the fixtures, so what the
+// list shows and what the service presents are the same records.
+const songs = lookupFrom(store.library.all());
 const session = new Session(
   compileDeck(sampleService, songs, { presentations: presentations.lookup() }),
   sampleService,
@@ -172,7 +191,7 @@ app.whenReady().then(() => {
         if (presentNow(payload.presentationId)) broadcast();
         return;
       case "newPresentation":
-      case "editPresentation":
+      case "openItem":
       case "savePresentation":
         if (presentations.apply(payload)) broadcast();
         return;

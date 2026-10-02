@@ -19,28 +19,19 @@ import {
   validatePresentation,
   type Presentation,
   type PresentationLookup,
+  type WholeSong,
 } from "@hearth/songs";
-import type {
-  EditorState,
-  Intent,
-  PresentationSummary,
-  SlideDraft,
-} from "@hearth/stage-protocol";
+import type { LibraryItem as StoredItem } from "@hearth/stage-store";
+import type { EditorState, Intent, LibraryItem, SlideDraft } from "@hearth/stage-protocol";
 
 /** What this needs from the library. `Library` from the store satisfies it. */
 export interface PresentationLibrary {
   savePresentation(presentation: Presentation): void;
   getPresentation(presentationId: string): Presentation | null;
-  listPresentations(): {
-    id: string;
-    title: string;
-    kind: string;
-    origin: "local" | "hearth";
-    slideCount: number;
-    archivedAt: string | null;
-    updatedAt: string;
-  }[];
   allPresentations(): Presentation[];
+  /** Songs and presentations as one list (STG-146). */
+  items(): StoredItem[];
+  get(songId: string): WholeSong | null;
 }
 
 export interface PresentationsOptions {
@@ -67,7 +58,7 @@ export class Presentations {
   /** True after "New", before the first save, when there is no row yet. */
   private drafting = false;
   /**
-   * Bumped when a different presentation is opened, and never on a save.
+   * Bumped when a different presentation is opened. A save leaves it alone.
    *
    * The window replaces its boxes when this changes, so storing what somebody
    * typed cannot reach in and rewrite what they are still typing.
@@ -96,9 +87,14 @@ export class Presentations {
         this.revision += 1;
         return true;
 
-      case "editPresentation": {
-        if (this.library.getPresentation(intent.presentationId) === null) return false;
-        this.editingId = intent.presentationId;
+      case "openItem": {
+        // One list, so the window asks for a row rather than for a kind. Which
+        // table it came from is this side's business.
+        const found =
+          this.library.getPresentation(intent.itemId) !== null ||
+          this.library.get(intent.itemId) !== null;
+        if (!found) return false;
+        this.editingId = intent.itemId;
         this.drafting = false;
         this.problems = [];
         this.serial += 1;
@@ -127,6 +123,12 @@ export class Presentations {
     // Null means create. The window sends the open presentation's id when there
     // is one, so "save" and "save a copy" cannot be confused here.
     const id = presentationId ?? this.nextId();
+
+    // A song opens in this window read only, so a save naming one is a window
+    // with a defect in it. Refused here rather than written, because writing it
+    // would put a presentation and a song in the library under one id.
+    if (this.library.get(id) !== null) return false;
+
     const existing = this.library.getPresentation(id);
 
     const presentation: Presentation = {
@@ -159,38 +161,74 @@ export class Presentations {
 
   /** What the editor window paints. */
   state(presentingId: string | null = null): EditorState {
-    const open = this.editingId === null ? null : this.library.getPresentation(this.editingId);
-
     return {
       revision: this.revision,
-      library: this.library.listPresentations().map(
-        (row): PresentationSummary => ({
+      library: this.library.items().map(
+        (row): LibraryItem => ({
           id: row.id,
-          title: row.title,
           kind: row.kind,
-          slideCount: row.slideCount,
+          title: row.title,
+          subtitle: row.subtitle,
+          count: row.count,
           origin: row.origin,
-          updatedAt: row.updatedAt,
-          archivedAt: row.archivedAt,
         }),
       ),
-      editing:
-        open !== null
-          ? {
-              id: open.id,
-              serial: this.serial,
-              title: open.title,
-              slides: slideInputs(open),
-              // A synced presentation belongs to the platform, so the laptop
-              // shows it and does not write it.
-              readOnly: open.origin !== "local",
-            }
-          : this.drafting || this.problems.length > 0
-            ? { id: this.editingId, serial: this.serial, title: "", slides: [], readOnly: false }
-            : null,
+      editing: this.open(),
       problems: this.problems,
       presentingId,
     };
+  }
+
+  /**
+   * What is in the boxes.
+   *
+   * A song opens here too, as the sections it is made of, and it opens read
+   * only. Typing a song in is STG-7, and until it exists this is still better
+   * than a row in the list that cannot be opened at all.
+   */
+  private open(): EditorState["editing"] {
+    if (this.editingId !== null) {
+      const presentation = this.library.getPresentation(this.editingId);
+      if (presentation !== null) {
+        return {
+          id: presentation.id,
+          kind: presentation.kind,
+          serial: this.serial,
+          title: presentation.title,
+          slides: slideInputs(presentation),
+          // A synced presentation belongs to the platform, so the laptop shows
+          // it and does not write it.
+          readOnly: presentation.origin !== "local",
+        };
+      }
+
+      const song = this.library.get(this.editingId);
+      if (song !== null) {
+        return {
+          id: song.song.id,
+          kind: "song",
+          serial: this.serial,
+          title: song.song.title,
+          slides: [...song.sections]
+            .sort((left, right) => left.sortOrder - right.sortOrder)
+            .map((section) => ({ label: section.label, body: section.lines.join("\n") })),
+          readOnly: true,
+        };
+      }
+    }
+
+    if (this.drafting || this.problems.length > 0) {
+      return {
+        id: this.editingId,
+        kind: "plain",
+        serial: this.serial,
+        title: "",
+        slides: [],
+        readOnly: false,
+      };
+    }
+
+    return null;
   }
 
   editing(): string | null {

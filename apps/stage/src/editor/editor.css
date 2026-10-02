@@ -104,15 +104,26 @@ button.primary {
   color: oklch(0.142 0.008 75);
 }
 
-button.small {
-  font-size: 0.75rem;
-  padding: 2px var(--space-2);
+button.icon {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
   background: transparent;
+  border-color: transparent;
   color: var(--quiet);
 }
 
-button.small:hover:not([disabled]) {
+button.icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+button.icon:hover:not([disabled]) {
   color: var(--text);
+  background: var(--sunk);
+  border-color: var(--line);
 }
 
 button[disabled] {
@@ -128,9 +139,16 @@ main {
 
 .library {
   min-height: 0;
-  overflow-y: auto;
   padding: var(--space-3);
   border-right: 1px solid var(--line);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--space-3);
+}
+
+.library ol {
+  min-height: 0;
+  overflow-y: auto;
 }
 
 ol {
@@ -161,8 +179,47 @@ ol {
   border-color: var(--ember-500);
 }
 
+.row-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
 .row-title {
   font-weight: 500;
+}
+
+/*
+ * The kind, as a word. Hue carries meaning rather than decoration
+ * (docs/design-system.md section 3), so a song and a set of slides are told
+ * apart before either title is read.
+ */
+.row-kind {
+  flex: none;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px var(--space-1);
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  color: var(--quiet);
+}
+
+.row-kind[data-kind="song"] {
+  color: oklch(0.76 0.1 250);
+}
+
+.row-kind[data-kind="plain"] {
+  color: oklch(0.78 0.1 140);
+}
+
+.row-kind[data-kind="reading"] {
+  color: oklch(0.8 0.1 90);
+}
+
+.row-kind[data-kind="media"] {
+  color: oklch(0.78 0.1 330);
 }
 
 .row-facts {
@@ -210,6 +267,11 @@ textarea {
   font-weight: 500;
 }
 
+#search {
+  font-size: 0.8125rem;
+  padding: var(--space-1) var(--space-2);
+}
+
 input:read-only,
 textarea:read-only {
   color: var(--quiet);
@@ -235,6 +297,41 @@ textarea:read-only {
   border-color: var(--stone-700);
 }
 
+.card.dragging {
+  opacity: 0.4;
+}
+
+/* Where the slide lands, drawn on the edge it would land against. */
+.card[data-drop="above"] {
+  box-shadow: 0 -3px 0 -1px var(--ember-500);
+}
+
+.card[data-drop="below"] {
+  box-shadow: 0 3px 0 -1px var(--ember-500);
+}
+
+.card-grip {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.5rem;
+  color: var(--stone-700);
+  cursor: grab;
+}
+
+.card-grip svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.card-grip:hover {
+  color: var(--quiet);
+}
+
+.card.dragging .card-grip {
+  cursor: grabbing;
+}
+
 .card-head {
   display: flex;
   align-items: center;
@@ -246,11 +343,12 @@ textarea:read-only {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--quiet);
-  min-width: 1.25rem;
+  min-width: 1rem;
 }
 
 .card-label-name {
   margin-left: var(--space-2);
+  white-space: nowrap;
 }
 
 .card-label {
@@ -262,7 +360,7 @@ textarea:read-only {
 .card-buttons {
   margin-left: auto;
   display: flex;
-  gap: var(--space-1);
+  gap: 2px;
 }
 
 .card-body {

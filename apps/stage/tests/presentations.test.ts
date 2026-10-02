@@ -10,6 +10,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { compileDeck, lookupFrom, presentationPlan } from "@hearth/songs";
+import { amazingGrace } from "@hearth/songs/fixtures";
 import { openLibrary, type OpenLibrary } from "@hearth/stage-store";
 import { Presentations } from "../src/main/presentations";
 import { Session } from "../src/main/session";
@@ -50,6 +51,7 @@ describe("the first ten minutes", () => {
     const state = presentations.state();
     expect(state.editing).toEqual({
       id: null,
+      kind: "plain",
       serial: state.editing?.serial,
       title: "",
       slides: [],
@@ -69,7 +71,7 @@ describe("the first ten minutes", () => {
     const state = presentations.state();
     expect(state.library).toHaveLength(1);
     expect(state.library[0]?.title).toBe("Notices");
-    expect(state.library[0]?.slideCount).toBe(3);
+    expect(state.library[0]?.count).toBe(3);
     expect(state.editing?.id).toBe("pres_1");
     expect(state.problems).toEqual([]);
   });
@@ -91,7 +93,7 @@ describe("the first ten minutes", () => {
       title: "Notices",
       slides: [...NOTICES, { label: null, body: "   " }],
     });
-    expect(presentations.state().library[0]?.slideCount).toBe(3);
+    expect(presentations.state().library[0]?.count).toBe(3);
     expect(presentations.state().editing?.slides).toHaveLength(3);
   });
 
@@ -107,7 +109,7 @@ describe("the first ten minutes", () => {
     const state = presentations.state();
     expect(state.problems).toEqual([]);
     expect(state.library).toHaveLength(1);
-    expect(state.library[0]?.slideCount).toBe(0);
+    expect(state.library[0]?.count).toBe(0);
     expect(state.editing?.id).toBe("pres_1");
   });
 
@@ -139,7 +141,7 @@ describe("the first ten minutes", () => {
 
     const state = presentations.state();
     expect(state.library).toHaveLength(1);
-    expect(state.library[0]?.slideCount).toBe(4);
+    expect(state.library[0]?.count).toBe(4);
   });
 
   it("bumps the revision on every change, which is what reloads the box", () => {
@@ -199,8 +201,8 @@ describe("a save that cannot happen", () => {
     expect(presentations.state().library).toHaveLength(1);
   });
 
-  it("refuses to open one the library does not have", () => {
-    expect(presentations.apply({ type: "editPresentation", presentationId: "nope" })).toBe(false);
+  it("refuses to open a row the library does not have", () => {
+    expect(presentations.apply({ type: "openItem", itemId: "nope" })).toBe(false);
   });
 
   it("ignores an intent that belongs to the session", () => {
@@ -225,14 +227,14 @@ describe("opening one from the library", () => {
   });
 
   it("puts that one in the box", () => {
-    presentations.apply({ type: "editPresentation", presentationId: "pres_1" });
+    presentations.apply({ type: "openItem", itemId: "pres_1" });
     const state = presentations.state();
     expect(state.editing?.title).toBe("Notices");
     expect(state.editing?.slides).toEqual(NOTICES);
   });
 
   it("bumps the serial when a different one is opened, and never on a save", () => {
-    presentations.apply({ type: "editPresentation", presentationId: "pres_1" });
+    presentations.apply({ type: "openItem", itemId: "pres_1" });
     const opened = presentations.state().editing?.serial;
 
     presentations.apply({
@@ -243,7 +245,7 @@ describe("opening one from the library", () => {
     });
     expect(presentations.state().editing?.serial).toBe(opened);
 
-    presentations.apply({ type: "editPresentation", presentationId: "pres_2" });
+    presentations.apply({ type: "openItem", itemId: "pres_2" });
     expect(presentations.state().editing?.serial).not.toBe(opened);
   });
 
@@ -315,5 +317,63 @@ describe("presenting it", () => {
     const plan = presentationPlan(presentations.lookup()("pres_1")!);
     const deck = compileDeck(plan, lookupFrom([]), { presentations: presentations.lookup() });
     expect(deck.cues).toHaveLength(4);
+  });
+});
+
+describe("one list, songs and slides together", () => {
+  beforeEach(() => {
+    opened.library.save(amazingGrace);
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: null,
+      title: "Notices",
+      slides: NOTICES,
+    });
+  });
+
+  it("shows both in the editor's list, each saying which it is", () => {
+    const rows = presentations.state().library;
+    expect(rows.map((row) => [row.kind, row.title])).toEqual([
+      ["song", "Amazing Grace"],
+      ["plain", "Notices"],
+    ]);
+  });
+
+  it("opens a song as the sections it is made of, read only", () => {
+    expect(presentations.apply({ type: "openItem", itemId: "song-amazing-grace" })).toBe(true);
+    const editing = presentations.state().editing;
+
+    expect(editing?.kind).toBe("song");
+    expect(editing?.readOnly).toBe(true);
+    expect(editing?.title).toBe("Amazing Grace");
+    expect(editing?.slides[0]?.label).toBe("V1");
+    expect(editing?.slides[0]?.body.split("\n")[0]).toBe("Amazing grace! how sweet the sound");
+  });
+
+  it("refuses to write a song through the slide editor", () => {
+    presentations.apply({ type: "openItem", itemId: "song-amazing-grace" });
+    const saved = presentations.apply({
+      type: "savePresentation",
+      presentationId: "song-amazing-grace",
+      title: "Amazing Grace",
+      slides: NOTICES,
+    });
+
+    // The song is untouched, and nothing new turned up in the list.
+    expect(saved).toBe(false);
+    expect(opened.library.get("song-amazing-grace")?.sections).toHaveLength(
+      amazingGrace.sections.length,
+    );
+    expect(presentations.state().library).toHaveLength(2);
+  });
+
+  it("opens a presentation after a song without keeping the song's boxes", () => {
+    presentations.apply({ type: "openItem", itemId: "song-amazing-grace" });
+    presentations.apply({ type: "openItem", itemId: "pres_1" });
+
+    const editing = presentations.state().editing;
+    expect(editing?.kind).toBe("plain");
+    expect(editing?.readOnly).toBe(false);
+    expect(editing?.slides).toEqual(NOTICES);
   });
 });

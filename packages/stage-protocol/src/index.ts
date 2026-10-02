@@ -146,16 +146,26 @@ export interface ControlState {
   problems: { code: string; detail: string }[];
 }
 
-/** One presentation, as the editor's list shows it (STG-145). */
-export interface PresentationSummary {
+/**
+ * What the library holds, as one list (STG-146).
+ *
+ * A song and a set of typed slides are the same kind of thing to the person
+ * looking for one: something to put on the screen. The kind says which, so the
+ * list can be read at a glance and a search crosses both.
+ */
+export const LIBRARY_KINDS = ["song", "plain", "reading", "media"] as const;
+
+export type LibraryKind = (typeof LIBRARY_KINDS)[number];
+
+export interface LibraryItem {
   id: string;
+  kind: LibraryKind;
   title: string;
-  kind: string;
-  /** How many slides the room will see, which is not the number typed. */
-  slideCount: number;
+  /** The author on a song. Null where there is nothing worth a second line. */
+  subtitle: string | null;
+  /** Sections on a song, slides on a presentation. */
+  count: number;
   origin: "local" | "hearth";
-  updatedAt: string;
-  archivedAt: string | null;
 }
 
 /** One slide as a person has it on screen: a label, and a box of text. */
@@ -175,11 +185,12 @@ export interface SlideDraft {
  */
 export interface EditorState {
   revision: number;
-  library: PresentationSummary[];
-  /** The presentation open in the editor. Null before anything is chosen. */
+  library: LibraryItem[];
+  /** What is open in the editor. Null before anything is chosen. */
   editing: {
     /** Null until the first save, which is when the library gets a row. */
     id: string | null;
+    kind: LibraryKind;
     /**
      * Bumped when a different presentation is opened or a new one is started.
      *
@@ -208,7 +219,7 @@ export type Intent =
   | { type: "reload" }
   | { type: "openEditor" }
   | { type: "newPresentation" }
-  | { type: "editPresentation"; presentationId: string }
+  | { type: "openItem"; itemId: string }
   | {
       type: "savePresentation";
       /** Null creates one. Main allocates the id, so a renderer cannot. */
@@ -269,6 +280,7 @@ export function isIntent(value: unknown): value is Intent {
     cueId?: unknown;
     blank?: unknown;
     presentationId?: unknown;
+    itemId?: unknown;
     title?: unknown;
     slides?: unknown;
   };
@@ -280,9 +292,10 @@ export function isIntent(value: unknown): value is Intent {
     case "openEditor":
     case "newPresentation":
       return true;
-    case "editPresentation":
     case "presentNow":
       return typeof candidate.presentationId === "string" && candidate.presentationId.length > 0;
+    case "openItem":
+      return typeof candidate.itemId === "string" && candidate.itemId.length > 0;
     case "savePresentation":
       return (
         (candidate.presentationId === null ||

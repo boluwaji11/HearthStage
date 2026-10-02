@@ -231,6 +231,24 @@ export interface PresentationSummary {
   lastUsedAt: string | null;
 }
 
+/** What the library holds, as one list. A song and a set of slides are rows. */
+export const LIBRARY_KINDS = ["song", "plain", "reading", "media"] as const;
+
+export type LibraryKind = (typeof LIBRARY_KINDS)[number];
+
+export interface LibraryItem {
+  id: string;
+  kind: LibraryKind;
+  title: string;
+  /** The author on a song. Null where there is nothing worth a second line. */
+  subtitle: string | null;
+  /** Sections on a song, slides on a presentation. */
+  count: number;
+  origin: "local" | "hearth";
+  archivedAt: string | null;
+  updatedAt: string;
+}
+
 export class Library {
   private readonly db: Db;
   private readonly now: () => string;
@@ -665,6 +683,72 @@ export class Library {
       .run(this.now(), presentationId);
     if (result.changes > 0) this.afterWrite?.();
     return result.changes > 0;
+  }
+
+  /**
+   * The library as one list (STG-146, ST2.16).
+   *
+   * A song and a set of typed slides are the same kind of thing to the person
+   * looking for them: something to put on the screen. Two lists would mean
+   * knowing which one a thing is in before looking for it, and nobody knows
+   * that about the notices.
+   *
+   * One query across both tables, because sorting two lists in the renderer
+   * would put the paging in the wrong place once a library has two hundred
+   * rows.
+   */
+  items(options: ListOptions = {}): LibraryItem[] {
+    const all = options.includeArchived === true;
+    const rows = this.db
+      .prepare(
+        `SELECT id, kind, title, subtitle, count, origin, archived_at, updated_at FROM (
+           SELECT s.id         AS id,
+                  'song'       AS kind,
+                  s.title      AS title,
+                  s.author     AS subtitle,
+                  (SELECT COUNT(*) FROM song_sections c WHERE c.song_id = s.id) AS count,
+                  s.origin     AS origin,
+                  s.archived_at AS archived_at,
+                  s.updated_at AS updated_at
+             FROM songs s
+           UNION ALL
+           SELECT p.id         AS id,
+                  p.kind       AS kind,
+                  p.title      AS title,
+                  NULL         AS subtitle,
+                  (SELECT COUNT(*) FROM presentation_slides d WHERE d.presentation_id = p.id) AS count,
+                  p.origin     AS origin,
+                  p.archived_at AS archived_at,
+                  p.updated_at AS updated_at
+             FROM presentations p
+         )
+         ${all ? "" : "WHERE archived_at IS NULL"}
+         ORDER BY title COLLATE NOCASE
+         LIMIT ? OFFSET ?`,
+      )
+      .all(options.limit ?? 500, options.offset ?? 0) as {
+      id: string;
+      kind: string;
+      title: string;
+      subtitle: string | null;
+      count: number;
+      origin: string;
+      archived_at: string | null;
+      updated_at: string;
+    }[];
+
+    return rows.map((row) => ({
+      id: row.id,
+      kind: (LIBRARY_KINDS as readonly string[]).includes(row.kind)
+        ? (row.kind as LibraryKind)
+        : "plain",
+      title: row.title,
+      subtitle: row.subtitle,
+      count: row.count,
+      origin: row.origin === "hearth" ? "hearth" : "local",
+      archivedAt: row.archived_at,
+      updatedAt: row.updated_at,
+    }));
   }
 
   /** Every presentation whole, for the deck compiler's lookup. */

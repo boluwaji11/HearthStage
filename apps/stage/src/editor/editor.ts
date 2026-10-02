@@ -21,13 +21,15 @@
  */
 
 import { parseSlides } from "@hearth/songs";
-import type { EditorState, Intent, SlideDraft } from "@hearth/stage-protocol";
+import type { EditorState, Intent, LibraryKind, SlideDraft } from "@hearth/stage-protocol";
+import { icon } from "./icons";
 
 const bridge = window.hearth;
 
 const el = {
   library: document.getElementById("library") as HTMLOListElement,
   libraryEmpty: document.getElementById("library-empty") as HTMLParagraphElement,
+  search: document.getElementById("search") as HTMLInputElement,
   title: document.getElementById("title") as HTMLInputElement,
   slides: document.getElementById("slides") as HTMLOListElement,
   add: document.getElementById("add") as HTMLButtonElement,
@@ -43,6 +45,7 @@ const el = {
 interface Draft {
   id: string | null;
   serial: number;
+  kind: LibraryKind;
   title: string;
   slides: SlideDraft[];
   readOnly: boolean;
@@ -53,6 +56,10 @@ let draft: Draft | null = null;
 let removed: { slides: SlideDraft[]; what: string } | null = null;
 let timer: number | undefined;
 let saving = false;
+let latest: EditorState | null = null;
+/** The slide being dragged, and where it would land. */
+let dragging: number | null = null;
+let dropAt: number | null = null;
 
 function send(intent: Intent): void {
   bridge?.send(intent);
@@ -116,16 +123,26 @@ function removeSlide(index: number): void {
   schedule();
 }
 
-function moveSlide(index: number, by: number): void {
+function moveSlide(index: number, to: number): void {
   if (draft === null || draft.readOnly) return;
-  const to = index + by;
-  if (to < 0 || to >= draft.slides.length) return;
+  if (to < 0 || to >= draft.slides.length || to === index) return;
   const [slide] = draft.slides.splice(index, 1);
   if (slide === undefined) return;
   draft.slides.splice(to, 0, slide);
   removed = null;
   renderSlides(to);
   schedule();
+}
+
+/**
+ * Where a slide lands when it is dropped.
+ *
+ * `before` is a gap rather than a slide, so dropping below the last card gives
+ * a gap one past the end. Taking the slide out first shifts every gap after it
+ * down by one, which is the only arithmetic here.
+ */
+function dropInto(from: number, before: number): void {
+  moveSlide(from, before > from ? before - 1 : before);
 }
 
 function undoRemoval(): void {
@@ -137,6 +154,12 @@ function undoRemoval(): void {
 }
 
 // Painting
+
+function clearDropMarks(): void {
+  for (const card of el.slides.querySelectorAll<HTMLElement>("[data-drop]")) {
+    delete card.dataset["drop"];
+  }
+}
 
 function renderSlides(focus?: number): void {
   el.slides.replaceChildren();
@@ -152,6 +175,17 @@ function renderSlides(focus?: number): void {
     const head = document.createElement("div");
     head.className = "card-head";
 
+    const grip = document.createElement("span");
+    grip.className = "card-grip";
+    grip.append(icon("grip"));
+    grip.title = "Drag to move";
+    // The row becomes draggable only while the grip is held, so a pointer in
+    // the text below selects words the way it does anywhere else.
+    grip.addEventListener("mousedown", () => {
+      if (draft?.readOnly !== true) item.draggable = true;
+    });
+    head.append(grip);
+
     const number = document.createElement("span");
     number.className = "card-number";
     number.textContent = String(index + 1);
@@ -160,7 +194,9 @@ function renderSlides(focus?: number): void {
     const labelFor = document.createElement("label");
     labelFor.className = "card-label-name";
     labelFor.htmlFor = `label-${index}`;
-    labelFor.textContent = "Label";
+    // The field says where it shows up, because that is the only thing anybody
+    // needs to know about it.
+    labelFor.textContent = "For the operator";
     head.append(labelFor);
 
     const label = document.createElement("input");
@@ -180,23 +216,62 @@ function renderSlides(focus?: number): void {
 
     const buttons = document.createElement("span");
     buttons.className = "card-buttons";
-    // Named rather than drawn. An icon-only button is refused
-    // (docs/design-system.md section 12).
-    for (const [text, action, usable] of [
-      ["Up", () => moveSlide(index, -1), index > 0],
-      ["Down", () => moveSlide(index, 1), index < draft!.slides.length - 1],
-      ["Remove", () => removeSlide(index), true],
-    ] as [string, () => void, boolean][]) {
+    // Drawn rather than named, and every one carries the name anyway, because
+    // an icon with nothing behind it is refused (docs/design-system.md
+    // section 12). Up and down stay because dragging needs a way round it for
+    // anybody who cannot drag (WCAG 2.2, 2.5.7).
+    for (const [name, mark, action, usable] of [
+      ["Move up", "chevron-up", () => moveSlide(index, index - 1), index > 0],
+      [
+        "Move down",
+        "chevron-down",
+        () => moveSlide(index, index + 1),
+        index < (draft?.slides.length ?? 0) - 1,
+      ],
+      ["Remove", "trash", () => removeSlide(index), true],
+    ] as [string, Parameters<typeof icon>[0], () => void, boolean][]) {
       const button = document.createElement("button");
       button.type = "button";
-      button.className = "small";
-      button.textContent = text;
+      button.className = "icon";
+      button.setAttribute("aria-label", name);
+      button.title = name;
+      button.append(icon(mark));
       button.disabled = !usable || (draft?.readOnly ?? false);
       button.addEventListener("click", action);
       buttons.append(button);
     }
     head.append(buttons);
     item.append(head);
+
+    item.addEventListener("dragstart", (event) => {
+      dragging = index;
+      item.classList.add("dragging");
+      event.dataTransfer?.setData("text/plain", String(index));
+      if (event.dataTransfer !== null) event.dataTransfer.effectAllowed = "move";
+    });
+    item.addEventListener("dragend", () => {
+      item.draggable = false;
+      dragging = null;
+      dropAt = null;
+      clearDropMarks();
+    });
+    item.addEventListener("dragover", (event) => {
+      if (dragging === null) return;
+      event.preventDefault();
+      if (event.dataTransfer !== null) event.dataTransfer.dropEffect = "move";
+      const box = item.getBoundingClientRect();
+      const above = event.clientY < box.top + box.height / 2;
+      dropAt = above ? index : index + 1;
+      clearDropMarks();
+      item.dataset["drop"] = above ? "above" : "below";
+    });
+    item.addEventListener("drop", (event) => {
+      event.preventDefault();
+      if (dragging !== null && dropAt !== null) dropInto(dragging, dropAt);
+      dragging = null;
+      dropAt = null;
+      clearDropMarks();
+    });
 
     const body = document.createElement("textarea");
     body.className = "card-body";
@@ -313,6 +388,7 @@ function paintStatus(): void {
   }
 
   if (draft === null) parts.length = 0;
+  else if (draft.kind === "song") parts.push("a song, read only");
   else if (draft.readOnly) parts.push("from Hearth, read only");
   else if (draft.title.trim() === "") parts.push("needs a title");
   else if (saving) parts.push("saving");
@@ -328,6 +404,84 @@ function paintStatus(): void {
   el.undoneWhat.textContent = removed === null ? "" : `${removed.what} removed`;
 }
 
+/** What each kind is called in the list (STG-146). */
+const KINDS: Record<LibraryKind, string> = {
+  song: "Song",
+  plain: "Slides",
+  reading: "Reading",
+  media: "Media",
+};
+
+/** What the count means, which depends on what the row holds. */
+function countOf(kind: LibraryKind, count: number): string {
+  const noun = kind === "song" ? "section" : "slide";
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+/**
+ * The library as one list (STG-146).
+ *
+ * Songs and typed slides together, each row saying which it is, because the
+ * person looking for the notices does not know or care which table they are in.
+ * Filtered here rather than in main: a search box that waits for a round trip
+ * feels broken, and a church library is a few hundred rows.
+ */
+function renderLibrary(): void {
+  const rows = latest?.library ?? [];
+  const query = el.search.value.trim().toLowerCase();
+  const shown =
+    query === ""
+      ? rows
+      : rows.filter((row) =>
+          `${row.title} ${row.subtitle ?? ""}`.toLowerCase().includes(query),
+        );
+
+  el.library.replaceChildren();
+  for (const row of shown) {
+    const item = document.createElement("li");
+    if (row.id === draft?.id) item.dataset["open"] = "true";
+    if (row.id === latest?.presentingId) item.dataset["live"] = "true";
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.addEventListener("click", () => {
+      commit();
+      send({ type: "openItem", itemId: row.id });
+    });
+
+    const line = document.createElement("span");
+    line.className = "row-line";
+
+    const kind = document.createElement("span");
+    kind.className = "row-kind";
+    kind.dataset["kind"] = row.kind;
+    kind.textContent = KINDS[row.kind];
+    line.append(kind);
+
+    const title = document.createElement("span");
+    title.className = "row-title";
+    title.textContent = row.title;
+    line.append(title);
+    button.append(line);
+
+    const facts = document.createElement("span");
+    facts.className = "row-facts";
+    const detail = [countOf(row.kind, row.count)];
+    if (row.subtitle !== null) detail.push(row.subtitle);
+    if (row.id === latest?.presentingId) detail.push("on screen");
+    if (row.origin === "hearth") detail.push("from Hearth");
+    facts.textContent = detail.join("  ·  ");
+    button.append(facts);
+
+    item.append(button);
+    el.library.append(item);
+  }
+
+  el.libraryEmpty.hidden = shown.length > 0;
+  el.libraryEmpty.textContent =
+    rows.length === 0 ? "Nothing saved yet" : "Nothing matches that";
+}
+
 /** What a problem code says on screen. The codes come from the model. */
 const MESSAGES: Record<string, string> = {
   "title.missing": "Give it a title",
@@ -339,6 +493,7 @@ const MESSAGES: Record<string, string> = {
 
 function paint(next: EditorState): void {
   saving = false;
+  latest = next;
 
   if (next.editing === null) {
     draft = null;
@@ -348,6 +503,7 @@ function paint(next: EditorState): void {
     draft = {
       id: next.editing.id,
       serial: next.editing.serial,
+      kind: next.editing.kind,
       title: next.editing.title,
       slides: next.editing.slides.map((slide) => ({ ...slide })),
       readOnly: next.editing.readOnly,
@@ -359,39 +515,11 @@ function paint(next: EditorState): void {
     // The same presentation coming back from a save. The id is picked up, and
     // everything else on screen is left where the person put it.
     draft.id = next.editing.id;
+    draft.kind = next.editing.kind;
     draft.readOnly = next.editing.readOnly;
   }
 
-  el.library.replaceChildren();
-  for (const row of next.library) {
-    const item = document.createElement("li");
-    if (row.id === draft?.id) item.dataset["open"] = "true";
-    if (row.id === next.presentingId) item.dataset["live"] = "true";
-
-    const button = document.createElement("button");
-    button.type = "button";
-    button.addEventListener("click", () => {
-      commit();
-      send({ type: "editPresentation", presentationId: row.id });
-    });
-
-    const title = document.createElement("span");
-    title.className = "row-title";
-    title.textContent = row.title;
-    button.append(title);
-
-    const facts = document.createElement("span");
-    facts.className = "row-facts";
-    const detail = [`${row.slideCount} slide${row.slideCount === 1 ? "" : "s"}`];
-    if (row.id === next.presentingId) detail.push("on screen");
-    if (row.origin === "hearth") detail.push("from Hearth");
-    facts.textContent = detail.join("  ·  ");
-    button.append(facts);
-
-    item.append(button);
-    el.library.append(item);
-  }
-  el.libraryEmpty.hidden = next.library.length > 0;
+  renderLibrary();
 
   el.problems.replaceChildren();
   for (const problem of next.problems) {
@@ -422,6 +550,7 @@ el.title.addEventListener("keydown", (event) => {
   else first.focus();
 });
 
+el.search.addEventListener("input", renderLibrary);
 el.add.addEventListener("click", () => addSlide());
 el.undo.addEventListener("click", undoRemoval);
 el.newButton.addEventListener("click", () => {
