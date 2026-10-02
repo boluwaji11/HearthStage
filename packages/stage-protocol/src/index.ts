@@ -61,6 +61,19 @@ export type OutputContent =
       fitKey: string;
     }
   | { kind: "scripture"; lines: string[]; reference: string }
+  | {
+      /**
+       * A clock counting down to the start of a service (STG-26, ST5.10).
+       *
+       * The moment it reaches, as epoch milliseconds, rather than the seconds
+       * left. The window counts for itself, so a countdown is one message
+       * rather than one a second through the render path (ST21.1).
+       */
+      kind: "countdown";
+      endsAt: number;
+      /** A line under the clock, where a church wants one. */
+      message: string | null;
+    }
   | { kind: "message"; lines: string[] }
   | { kind: "nothing" };
 
@@ -201,6 +214,8 @@ export interface ControlState {
   problems: { code: string; detail: string }[];
   /** Whether the run is still the order the church planned (STG-24). */
   asPlanned: boolean;
+  /** When the countdown reaches zero, where one is running (STG-26). */
+  countdownEndsAt: number | null;
 }
 
 /**
@@ -332,6 +347,8 @@ export interface EditorState {
     slides: SlideDraft[];
     /** Null takes the service's theme (ST8.1). */
     themeId: string | null;
+    /** Where a reading is from (STG-26). Null on everything else. */
+    reference: string | null;
     /** Present on a song, absent on a presentation (STG-7). */
     song: SongFields | null;
     /** The ways it can be sung (STG-9). Empty on a presentation. */
@@ -394,6 +411,8 @@ export type Intent =
       slides: SlideDraft[];
       /** The look. Null takes the service's theme, and absent leaves it alone. */
       themeId?: string | null;
+      /** Where a reading is from (STG-26). Absent leaves it alone. */
+      reference?: string | null;
     }
   | {
       type: "saveSong";
@@ -428,6 +447,14 @@ export type Intent =
   | { type: "runChange"; entryId: string; change: RunChange }
   /** Back to the order the church planned. */
   | { type: "resetRun" }
+  /**
+   * A clock on the wall before a service starts (STG-26, ST5.10).
+   *
+   * Over the top of whatever is open, including nothing at all, the same way
+   * the covers are. Stopping it gives the slide back untouched.
+   */
+  | { type: "startCountdown"; minutes: number }
+  | { type: "stopCountdown" }
   /** Puts the service away, back to the three ways in (STG-149, ST1.2). */
   | { type: "closeService" }
   | { type: "presentNow"; presentationId: string };
@@ -492,7 +519,9 @@ export function isIntent(value: unknown): value is Intent {
     itemId?: unknown;
     entryId?: unknown;
     change?: unknown;
+    minutes?: unknown;
     name?: unknown;
+    reference?: unknown;
     title?: unknown;
     slides?: unknown;
     sections?: unknown;
@@ -518,7 +547,15 @@ export function isIntent(value: unknown): value is Intent {
     case "chooseLogo":
     case "removeLogo":
     case "resetRun":
+    case "stopCountdown":
       return true;
+    case "startCountdown":
+      return (
+        typeof candidate.minutes === "number" &&
+        Number.isFinite(candidate.minutes) &&
+        candidate.minutes > 0 &&
+        candidate.minutes <= 120
+      );
     case "runChange":
       return (
         typeof candidate.entryId === "string" &&
@@ -548,7 +585,10 @@ export function isIntent(value: unknown): value is Intent {
         isSlideDrafts(candidate.slides) &&
         (candidate.themeId === undefined ||
           candidate.themeId === null ||
-          typeof candidate.themeId === "string")
+          typeof candidate.themeId === "string") &&
+        (candidate.reference === undefined ||
+          candidate.reference === null ||
+          (typeof candidate.reference === "string" && candidate.reference.length <= 200))
       );
     case "goTo":
       return Number.isInteger(candidate.position) && (candidate.position as number) >= 0;

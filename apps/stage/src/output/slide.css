@@ -94,3 +94,19 @@
   max-height: 50%;
   object-fit: contain;
 }
+
+/* The clock before a service (STG-26, ST5.10). */
+
+.countdown {
+  font-size: 2.6em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.countdown-message {
+  margin-top: 0.4em;
+  font-size: 0.6em;
+  opacity: 0.85;
+}

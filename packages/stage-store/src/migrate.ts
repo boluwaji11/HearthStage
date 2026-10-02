@@ -129,6 +129,16 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX presentations_archived ON presentations(archived_at);
     `,
   },
+  {
+    version: 3,
+    name: "reading reference",
+    up: `
+      -- A reading carries where it is from, and Stage puts it on every slide of
+      -- the passage so somebody arriving at slide three knows where they are
+      -- (STG-26, ST7.3). Null on everything else, which is most items.
+      ALTER TABLE presentations ADD COLUMN reference TEXT;
+    `,
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.reduce(

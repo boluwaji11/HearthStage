@@ -60,6 +60,7 @@ describe("the first ten minutes", () => {
       id: null,
       kind: "plain",
       orders: [],
+      reference: null,
       serial: state.editing?.serial,
       title: "",
       slides: [],
@@ -761,5 +762,74 @@ describe("going back to the library", () => {
     const [row] = presentations.state().library;
     expect(row?.preview).toEqual(["Morning Service"]);
     expect(row?.themeId).toBe("hearth-strong");
+  });
+});
+
+/**
+ * STG-26, ST5.10, ST7.3. A reading, with no service open.
+ *
+ * The bundled translations arrive with ST7.1. Until they do, a church puts a
+ * passage up by typing it and saying where it is from, and the thing that makes
+ * it a reading rather than a sheet of slides is that one field.
+ */
+describe("a reading", () => {
+  const PSALM = [
+    { label: null, body: "The first slide of the passage", note: null },
+    { label: null, body: "The second slide of the passage", note: null },
+  ];
+
+  function readingSaved(reference: string | null) {
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: null,
+      title: "Psalm 23",
+      slides: PSALM,
+      reference,
+    });
+    const stored = opened.library.getPresentation("pres_1");
+    if (stored === null) throw new Error("nothing stored");
+    return stored;
+  }
+
+  it("keeps where it is from", () => {
+    expect(readingSaved("Psalm 23:1-6").reference).toBe("Psalm 23:1-6");
+  });
+
+  it("is presented as a reading, with the reference on every slide", () => {
+    const stored = readingSaved("Psalm 23:1-6");
+    const deck = compileDeck(presentationPlan(stored), lookupFrom([]), {
+      presentations: presentations.lookup(),
+    });
+
+    expect(deck.problems).toEqual([]);
+    expect(deck.cues).toHaveLength(2);
+    for (const cue of deck.cues) {
+      expect(cue.kind).toBe("scripture");
+      expect(cue.reference).toBe("Psalm 23:1-6");
+    }
+  });
+
+  it("is a sheet of slides where nobody said where it is from", () => {
+    const stored = readingSaved(null);
+    expect(stored.reference).toBeNull();
+    const deck = compileDeck(presentationPlan(stored), lookupFrom([]), {
+      presentations: presentations.lookup(),
+    });
+    expect(deck.cues.every((cue) => cue.kind === "slide")).toBe(true);
+  });
+
+  it("treats a box somebody left blank as no reference at all", () => {
+    expect(readingSaved("   ").reference).toBeNull();
+  });
+
+  it("keeps the reference through a save that says nothing about it", () => {
+    readingSaved("Psalm 23:1-6");
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: "pres_1",
+      title: "Psalm 23",
+      slides: PSALM,
+    });
+    expect(opened.library.getPresentation("pres_1")?.reference).toBe("Psalm 23:1-6");
   });
 });

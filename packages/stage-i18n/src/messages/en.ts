@@ -77,6 +77,11 @@ export const en = {
   "present.replace.confirm": "Put it on the screen",
   "present.replace.keep": "Keep the service",
 
+  // The clock before a service starts (STG-26)
+  "countdown.label": "Countdown",
+  "countdown.minutes": "{count} min",
+  "countdown.stop": "Stop",
+
   // What is wrong with a service, said so somebody can act on it
   "problem.anItem": "An item",
   "problem.named": "“{item}”",
@@ -124,6 +129,7 @@ export const en = {
   "editor.lookService": "The service's look",
   "editor.present": "Present",
   "editor.title": "Title",
+  "editor.reference": "Reference",
   "editor.author": "Author",
   "editor.year": "Year",
   "editor.ccli": "CCLI number",

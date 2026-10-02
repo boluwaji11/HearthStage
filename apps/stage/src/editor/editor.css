@@ -730,3 +730,14 @@ footer {
   gap: var(--space-2);
   margin-top: var(--space-4);
 }
+
+/* The title and, where a reading says so, where it is from (STG-26). */
+
+.titles {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.titles .field:not(.grow) {
+  width: 11rem;
+}

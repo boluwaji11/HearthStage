@@ -466,11 +466,16 @@ main {
 
 footer {
   flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
   border-top: 1px solid var(--line);
   padding: var(--space-2) var(--space-4);
 }
 
 footer dl {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: baseline;
   gap: var(--space-2);
@@ -562,4 +567,39 @@ footer dd {
 .cue-buttons .icon svg {
   width: 1rem;
   height: 1rem;
+}
+
+/* The clock before a service starts (STG-26). */
+
+.countdown-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.countdown-label {
+  color: var(--quiet);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.countdown-bar button {
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--text);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 2px var(--space-2);
+}
+
+.countdown-bar button:hover {
+  background: var(--sunk);
+}
+
+#countdown-set {
+  display: flex;
+  gap: 2px;
 }

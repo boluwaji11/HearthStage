@@ -70,6 +70,14 @@ export class Session {
   private readonly now: () => number;
   /** The order this run goes in (STG-24). Built from the deck, never into it. */
   private order: RunEntry[];
+  /**
+   * When the countdown reaches zero (STG-26, ST5.10).
+   *
+   * A moment rather than a number of seconds, so the windows count for
+   * themselves and a clock on the wall is one message rather than one a second
+   * through the render path.
+   */
+  private countdownEndsAt: number | null = null;
   /** When the deck last moved on a key, for the repeat guard (STG-23). */
   private movedAt = Number.NEGATIVE_INFINITY;
 
@@ -156,6 +164,18 @@ export class Session {
         this.revision += 1;
         return true;
       }
+      case "startCountdown": {
+        // Over whatever is open, including nothing at all, which is the point
+        // of it: a church puts a clock up before the service has a deck.
+        this.countdownEndsAt = this.now() + intent.minutes * 60_000;
+        this.revision += 1;
+        return true;
+      }
+      case "stopCountdown":
+        if (this.countdownEndsAt === null) return false;
+        this.countdownEndsAt = null;
+        this.revision += 1;
+        return true;
       case "setBlank":
         return this.setBlank(intent.blank);
       case "toggleBlank":
@@ -277,12 +297,25 @@ export class Session {
     return { content: contentOf(cue, this.deck), theme: this.themeAt(position) };
   }
 
+  /** What the live pane shows, which is the clock where one is running. */
+  private liveView(): SlideView | null {
+    const clock = this.countdown();
+    if (clock !== null) return { content: clock, theme: this.themeAt(this.position) };
+    return this.slideView(this.position);
+  }
+
+  /** The clock, where one is running, over whatever else is live. */
+  private countdown(): OutputContent | null {
+    if (this.countdownEndsAt === null) return null;
+    return { kind: "countdown", endsAt: this.countdownEndsAt, message: null };
+  }
+
   outputState(outputId: string): OutputState {
     return {
       outputId,
       revision: this.revision,
       blank: this.blank,
-      content: contentOf(this.cueAt(this.position) ?? null, this.deck),
+      content: this.countdown() ?? contentOf(this.cueAt(this.position) ?? null, this.deck),
       theme: this.liveTheme(),
     };
   }
@@ -290,7 +323,7 @@ export class Session {
   controlState(outputs: OutputView[]): ControlState {
     return {
       revision: this.revision,
-      live: this.slideView(this.position),
+      live: this.liveView(),
       next: this.slideView(this.showingFrom(this.position + 1, 1)),
       service:
         this.plan === null
@@ -341,6 +374,7 @@ export class Session {
       blank: this.blank,
       outputs,
       asPlanned: asPlanned(this.order, this.deck),
+      countdownEndsAt: this.countdownEndsAt,
       problems: this.deck.problems.map((problem) => ({
         code: problem.code,
         // What the item is called, which is the only part of a compile problem

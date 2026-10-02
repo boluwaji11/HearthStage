@@ -60,6 +60,14 @@ export interface Presentation {
   slides: PresentationSlide[];
   /** null takes whatever theme the service is using (ST8.1). */
   themeId: string | null;
+  /**
+   * Where a reading is from, shown on every slide of it (STG-26, ST7.3).
+   *
+   * Null on everything else. An item with one is presented as scripture, which
+   * is the whole of how a church puts a passage up before the bundled
+   * translations arrive with ST7.1.
+   */
+  reference: string | null;
   /** RFC 3339. Maintained from usage rather than typed. */
   lastUsedAt: string | null;
 }
@@ -76,6 +84,7 @@ export function newPresentation(
     title: options.title ?? "",
     slides: [],
     themeId: null,
+    reference: null,
     lastUsedAt: null,
   };
 }

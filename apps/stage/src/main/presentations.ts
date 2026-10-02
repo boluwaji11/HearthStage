@@ -138,7 +138,13 @@ export class Presentations {
       }
 
       case "savePresentation":
-        return this.save(intent.presentationId, intent.title, intent.slides, intent.themeId);
+        return this.save(
+          intent.presentationId,
+          intent.title,
+          intent.slides,
+          intent.themeId,
+          intent.reference,
+        );
 
       case "saveSong":
         return this.saveSong(
@@ -191,6 +197,7 @@ export class Presentations {
     title: string,
     slides: SlideDraft[],
     themeId?: string | null,
+    reference?: string | null,
   ): boolean {
     // Null means create. The window sends the open presentation's id when there
     // is one, so "save" and "save a copy" cannot be confused here.
@@ -218,6 +225,12 @@ export class Presentations {
       title: title.trim(),
       slides: slidesFrom(id, slides),
       themeId: look,
+      reference:
+        reference === undefined
+          ? (existing?.reference ?? null)
+          : reference === null || reference.trim() === ""
+            ? null
+            : reference.trim(),
     };
 
     const found = validatePresentation(presentation);
@@ -346,6 +359,7 @@ export class Presentations {
           title: presentation.title,
           slides: slideInputs(presentation),
           themeId: presentation.themeId,
+          reference: presentation.reference,
           song: null,
           orders: [],
           // A synced presentation belongs to the platform, so the laptop shows
@@ -363,6 +377,7 @@ export class Presentations {
           title: song.song.title,
           slides: sectionDrafts(song),
           themeId: null,
+          reference: null,
           song: fieldsOf(song.song),
           orders: orderDrafts(song),
           // A synced song belongs to the platform, so the laptop shows it and
@@ -380,6 +395,7 @@ export class Presentations {
         title: "",
         slides: [],
         themeId: null,
+        reference: null,
         song: null,
         orders: [],
         readOnly: false,

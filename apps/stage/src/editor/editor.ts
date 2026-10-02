@@ -66,6 +66,8 @@ const el = {
   back: document.getElementById("back") as HTMLButtonElement,
   toService: document.getElementById("to-service") as HTMLButtonElement,
   title: document.getElementById("title") as HTMLInputElement,
+  reference: document.getElementById("reference") as HTMLInputElement,
+  referenceField: document.getElementById("reference-field") as HTMLElement,
   theme: document.getElementById("theme") as HTMLSelectElement,
   credits: document.getElementById("credits") as HTMLElement,
   author: document.getElementById("author") as HTMLInputElement,
@@ -108,6 +110,7 @@ interface Draft {
   title: string;
   slides: SlideDraft[];
   themeId: string | null;
+  reference: string | null;
   song: SongFields | null;
   orders: OrderDraft[];
   readOnly: boolean;
@@ -201,6 +204,7 @@ function commit(): void {
     title: draft.title,
     slides: draft.slides,
     themeId: draft.themeId,
+    reference: draft.reference,
   });
 }
 
@@ -862,6 +866,10 @@ function paintStatus(): void {
   el.paste.disabled = draft === null || draft.readOnly;
   el.present.disabled = draft === null || draft.id === null || slides === 0;
   el.title.readOnly = draft?.readOnly ?? false;
+  // A song says where it is from in its credits, so the box belongs to
+  // everything else: the notices, a title slide, and a reading.
+  el.referenceField.hidden = draft === null || draft.kind === "song";
+  el.reference.readOnly = draft?.readOnly ?? false;
 
   el.undone.hidden = removed === null;
   el.undoneWhat.textContent = removed === null ? "" : t("editor.removed", { what: removed.what });
@@ -1058,6 +1066,7 @@ function paint(next: EditorState): void {
       title: next.editing.title,
       slides: next.editing.slides.map((slide) => ({ ...slide })),
       themeId: next.editing.themeId,
+      reference: next.editing.reference,
       song: next.editing.song,
       orders: next.editing.orders.map((order) => ({ ...order, sequence: [...order.sequence] })),
       readOnly: next.editing.readOnly,
@@ -1065,6 +1074,7 @@ function paint(next: EditorState): void {
     removed = null;
     noteOpen.clear();
     el.title.value = draft.title;
+    el.reference.value = draft.reference ?? "";
     renderCredits();
     renderOrders();
     renderSlides();
@@ -1197,6 +1207,12 @@ el.title.addEventListener("input", () => {
   schedule();
 });
 el.title.addEventListener("blur", commit);
+el.reference.addEventListener("input", () => {
+  if (draft === null) return;
+  draft.reference = el.reference.value.trim() === "" ? null : el.reference.value;
+  schedule();
+});
+el.reference.addEventListener("blur", commit);
 el.title.addEventListener("keydown", (event) => {
   if (event.key !== "Enter") return;
   event.preventDefault();

@@ -12,7 +12,7 @@
 
 import type { OutputState } from "@hearth/stage-protocol";
 import { FitCache } from "./fit";
-import { applyTheme, createRuler, renderSlide, sizeFor, coverInto } from "./slide";
+import { applyTheme, coverInto, createRuler, renderSlide, sizeFor, tickClocks } from "./slide";
 
 const layers = [
   document.getElementById("layer-a") as HTMLDivElement,
@@ -28,6 +28,8 @@ const ruler = createRuler();
 let lastState: OutputState | null = null;
 /** The church's logo, pushed on its own channel (STG-22). */
 let logo: string | null = null;
+/** Running while a clock is on screen, and stopped the moment it is not. */
+let ticking: (() => void) | null = null;
 
 function paint(state: OutputState): void {
   // A revision older than what is on screen is a message that arrived late.
@@ -50,6 +52,10 @@ function paint(state: OutputState): void {
   const fore = layers[front] as HTMLDivElement;
 
   back.replaceChildren(renderSlide(state.content));
+  // One timer, started when there is a clock and stopped when there is not, so
+  // nothing loops behind a service (STG-26, ST21.1).
+  ticking?.();
+  ticking = state.content.kind === "countdown" ? tickClocks() : null;
   back.classList.add("visible");
   fore.classList.remove("visible");
   front = 1 - front;

@@ -104,6 +104,7 @@ interface PresentationRow {
   kind: string;
   title: string;
   theme_id: string | null;
+  reference: string | null;
   last_used_at: string | null;
   archived_at: string | null;
 }
@@ -136,6 +137,7 @@ function toPresentation(row: PresentationRow, slides: PresentationSlide[]): Pres
     title: row.title,
     slides,
     themeId: row.theme_id,
+    reference: row.reference,
     lastUsedAt: row.last_used_at,
   };
 }
@@ -572,9 +574,9 @@ export class Library {
       this.db
         .prepare(
           `INSERT INTO presentations
-             (id, origin, kind, title, theme_id, last_used_at, archived_at, created_at, updated_at)
+             (id, origin, kind, title, theme_id, reference, last_used_at, archived_at, created_at, updated_at)
            VALUES (
-             @id, @origin, @kind, @title, @theme_id, @last_used_at,
+             @id, @origin, @kind, @title, @theme_id, @reference, @last_used_at,
              COALESCE((SELECT archived_at FROM presentations WHERE id = @id), NULL),
              @created_at, @updated_at
            )
@@ -582,6 +584,7 @@ export class Library {
              kind = excluded.kind,
              title = excluded.title,
              theme_id = excluded.theme_id,
+             reference = excluded.reference,
              last_used_at = excluded.last_used_at,
              updated_at = excluded.updated_at`,
         )
@@ -591,6 +594,7 @@ export class Library {
           kind: presentation.kind,
           title: presentation.title,
           theme_id: presentation.themeId,
+          reference: presentation.reference,
           last_used_at: presentation.lastUsedAt,
           created_at: existing?.created_at ?? timestamp,
           updated_at: timestamp,

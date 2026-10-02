@@ -46,6 +46,11 @@ const ALLOWED = new Set([
   "makeSlide",
   "openLibrary",
   "openSample",
+  // A clock over the top of whatever is open, and taking it away again
+  // (STG-26). It writes nothing and the slide underneath is untouched, the
+  // same as the covers.
+  "startCountdown",
+  "stopCountdown",
 ]);
 
 /** Anything that writes, removes or restyles. None of it belongs here. */

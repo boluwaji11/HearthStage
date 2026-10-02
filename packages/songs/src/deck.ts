@@ -401,6 +401,14 @@ function compilePresentation(
     return null;
   }
 
+  // An item that says where it is from is a reading, and it is presented as
+  // one: the reference goes on every slide of the passage, because somebody
+  // arriving at slide three still needs to know where they are (ST7.3). The
+  // bundled translations arrive with ST7.1, and until they do this is how a
+  // church puts a passage up.
+  const reference = presentation.reference?.trim() ?? "";
+  const reading = reference !== "";
+
   const cues: Cue[] = [];
   for (const slide of orderedSlides(presentation)) {
     const parts = slideParts(slide.lines, limits);
@@ -408,7 +416,7 @@ function compilePresentation(
       cues.push({
         id: `${groupId}:slide:${slide.sortOrder}:${part.index}`,
         groupId,
-        kind: "slide",
+        kind: reading ? "scripture" : "slide",
         position: 0,
         lines: part.lines,
         label: slide.label,
@@ -417,7 +425,7 @@ function compilePresentation(
         occurrencesTotal: 1,
         slideIndex: part.index,
         slideCount: part.count,
-        reference: null,
+        reference: reading ? reference : null,
         // Carried onto both halves of a slide that was split, for the same
         // reason the label is: the operator is looking at either one.
         note: slide.notes,

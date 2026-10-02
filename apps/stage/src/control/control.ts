@@ -19,7 +19,7 @@ import type {
   SlideView,
 } from "@hearth/stage-protocol";
 import { FitCache } from "../output/fit";
-import { applyTheme, createRuler, renderSlide, sizeFor, coverInto } from "../output/slide";
+import { applyTheme, coverInto, createRuler, renderSlide, sizeFor, tickClocks } from "../output/slide";
 import { fillText, plural, t, type MessageKey } from "../shared/text";
 import { icon } from "../shared/icons";
 
@@ -37,6 +37,8 @@ const el = {
   notes: document.getElementById("notes") as HTMLUListElement,
   keys: document.getElementById("keys") as HTMLElement,
   resetRun: document.getElementById("reset-run") as HTMLButtonElement,
+  countdownSet: document.getElementById("countdown-set") as HTMLElement,
+  countdownStop: document.getElementById("countdown-stop") as HTMLButtonElement,
   slides: document.getElementById("slides") as HTMLButtonElement,
   home: document.getElementById("home") as HTMLButtonElement,
   problems: document.getElementById("problems") as HTMLUListElement,
@@ -103,6 +105,11 @@ function send(intent: Intent): void {
 let logo: string | null = null;
 /** The last state painted, so a logo arriving later can be drawn into it. */
 let latest: ControlState | null = null;
+/** Running while a clock is on screen, and stopped the moment it is not. */
+let ticking: (() => void) | null = null;
+
+/** How long a church puts a clock up for. Three presses, no typing (ST5.10). */
+const COUNTDOWNS = [5, 10, 15];
 
 const fitCache = new FitCache();
 const ruler = createRuler();
@@ -389,6 +396,12 @@ function paint(state: ControlState): void {
   // changed nothing has nothing extra on the screen.
   el.resetRun.hidden = state.asPlanned;
 
+  // One timer in this window, started when there is a clock and stopped when
+  // there is not, so nothing runs a loop through a service.
+  el.countdownStop.hidden = state.countdownEndsAt === null;
+  ticking?.();
+  ticking = state.countdownEndsAt === null ? null : tickClocks();
+
   const liveElement = el.deck.querySelector('[data-live="true"]');
   liveElement?.scrollIntoView({ block: "nearest" });
 }
@@ -498,6 +511,15 @@ function onKey(event: KeyboardEvent): void {
 // The words, before anything paints over them (STG-13).
 fillText();
 brief();
+
+for (const minutes of COUNTDOWNS) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = t("countdown.minutes", { count: minutes });
+  button.addEventListener("click", () => send({ type: "startCountdown", minutes }));
+  el.countdownSet.append(button);
+}
+el.countdownStop.addEventListener("click", () => send({ type: "stopCountdown" }));
 // The one thing on this surface that is not an advance. It opens a window and
 // changes nothing on the wall, so it is safe to have in reach (ST12.3).
 el.slides.addEventListener("click", () => send({ type: "openEditor" }));

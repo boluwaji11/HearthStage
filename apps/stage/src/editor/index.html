@@ -66,9 +66,16 @@
       </header>
 
       <div class="edit-body">
-        <div class="field">
-          <label for="title" data-t="editor.title"></label>
-          <input id="title" type="text" autocomplete="off" spellcheck="false" />
+        <div class="titles">
+          <div class="field grow">
+            <label for="title" data-t="editor.title"></label>
+            <input id="title" type="text" autocomplete="off" spellcheck="false" />
+          </div>
+          <!-- Fill this in and the item is a reading (STG-26, ST7.3). -->
+          <div id="reference-field" class="field">
+            <label for="reference" data-t="editor.reference"></label>
+            <input id="reference" type="text" autocomplete="off" spellcheck="false" />
+          </div>
         </div>
 
         <div id="credits" class="credits" hidden>

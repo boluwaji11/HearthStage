@@ -48,6 +48,22 @@ export function renderSlide(content: OutputContent): HTMLElement {
 
   if (content.kind === "nothing") return slide;
 
+  if (content.kind === "countdown") {
+    const clock = document.createElement("p");
+    clock.className = "countdown";
+    clock.dataset["endsAt"] = String(content.endsAt);
+    clock.textContent = remaining(content.endsAt);
+    slide.append(clock);
+
+    if (content.message !== null) {
+      const under = document.createElement("p");
+      under.className = "countdown-message";
+      under.textContent = content.message;
+      slide.append(under);
+    }
+    return slide;
+  }
+
   const body = document.createElement("div");
   body.className = content.kind === "scripture" ? "lines scripture" : "lines";
   for (const line of content.lines) {
@@ -171,4 +187,41 @@ export function coverInto(cover: HTMLElement, blank: Blank, logo: string | null)
   mark.src = logo;
   mark.alt = "";
   cover.append(mark);
+}
+
+/**
+ * The time left on a countdown, as a room reads a clock (STG-26, ST5.10).
+ *
+ * Minutes and seconds, and hours only once there is an hour to show, because
+ * `00:04:59` on a wall is three characters nobody needs. It stops at zero
+ * rather than counting upwards: a service that has started does not need a
+ * clock saying how late it is, in front of the people who are late.
+ */
+export function remaining(endsAt: number, now: number = Date.now()): string {
+  const left = Math.max(0, Math.ceil((endsAt - now) / 1000));
+  const hours = Math.floor(left / 3600);
+  const minutes = Math.floor((left % 3600) / 60);
+  const seconds = left % 60;
+  const pad = (value: number): string => String(value).padStart(2, "0");
+  return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
+}
+
+/**
+ * Keeps every clock in a window on the right second.
+ *
+ * One timer per window rather than one per element, and it reads the moment off
+ * the element it is updating, so a control pane and an output window never
+ * disagree and nothing counts in main.
+ */
+export function tickClocks(root: ParentNode = document): () => void {
+  const update = (): void => {
+    for (const clock of root.querySelectorAll<HTMLElement>(".countdown[data-ends-at]")) {
+      const endsAt = Number(clock.dataset["endsAt"]);
+      if (Number.isFinite(endsAt)) clock.textContent = remaining(endsAt);
+    }
+  };
+
+  update();
+  const timer = window.setInterval(update, 250);
+  return () => window.clearInterval(timer);
 }

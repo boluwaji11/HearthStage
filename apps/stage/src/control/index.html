@@ -61,6 +61,12 @@
 
     <footer>
       <dl id="keys"></dl>
+      <!-- A clock on the wall before a service starts (STG-26, ST5.10). -->
+      <div class="countdown-bar">
+        <span class="countdown-label" data-t="countdown.label"></span>
+        <span id="countdown-set"></span>
+        <button id="countdown-stop" type="button" hidden data-t="countdown.stop"></button>
+      </div>
     </footer>
 
     <script type="module" src="./control.ts"></script>

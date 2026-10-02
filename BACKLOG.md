@@ -132,7 +132,7 @@ thing a person does with Stage and until now there was no way to do it. See
 | STG-23 | Make advance idempotent under key repeat, in the window and again in the session | ST12.4 | Resolved |
 | STG-24 | Reorder, skip and repeat a cue for this run, leaving the set list untouched | ST5.7 | Resolved |
 | STG-25 | Keep the library, import and theme editing out of the live surface, enforced by a test, and ask before replacing a running service | ST12.3, ST2.15 | Resolved |
-| STG-26 | Present a song, a scripture and a countdown with no set list open | ST5.10 | New |
+| STG-26 | Present a song, a reading and a countdown with no service open | ST5.10 | Resolved |
 | STG-27 | Write the operator brief: one screen saying what the four keys do | ST12.10 | New |
 
 ### SF21. The measurements
@@ -472,8 +472,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-26**, presenting a song, a scripture and a countdown with no set list open. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do, **STG-26** the clock and the reading. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-27**, the operator brief: one screen saying what the keys do. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1640,3 +1640,39 @@ pnpm --filter @hearth/stage dev
 - Press **Home**, then **Present** on a hymn. No question, because no service is running.
 
 **Six new tests.**
+
+## STG-26, how to test it
+
+Three things on a screen with no service open. A song already worked. The other two did not.
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+**The clock.** A room fills up at twenty to, nothing is open yet, and the screen should say how long is
+left.
+
+- Along the bottom right: **Countdown**, then **5 min**, **10 min**, **15 min**.
+- Press **10 min** with nothing open at all. The wall shows a clock counting down, and the Live pane
+  shows the same clock on the same second.
+- Press **Try a service**, then press **5 min**. The clock sits over the slide. Press **Stop** and the
+  slide is exactly where it was. Nothing moved underneath it, the same as the covers.
+- Let it run to zero. It stops at 0:00 rather than counting upwards, because a service that has
+  started does not need a clock saying how late it is in front of the people who are late.
+
+**It is one message, not one a second.** Main sends the moment the clock reaches and the windows count
+for themselves, so a countdown puts nothing on the wire behind a keypress. Each window runs one timer,
+started when there is a clock on screen and stopped the moment there is not.
+
+**The reading.** The bundled translations are ST7.1, in a later release. Until then a church puts a
+passage up by typing it.
+
+- Press **Library**, **New**, title it, and fill in **Reference** beside the title with something like
+  `Psalm 23:1-6`.
+- Type the passage across a few slides and press **Present**. Every slide carries the reference
+  underneath, because somebody arriving at slide three still needs to know where they are (ST7.3).
+- Clear the Reference box. It is a sheet of slides again, with nothing underneath. That one field is
+  the whole of what makes an item a reading, so there is no kind to choose and no mode to be in.
+
+**Fifteen new tests**, and a schema step: `presentations` gained a `reference` column. It ran against
+your library on the way up, which now reads schema 3 with both items and all 185 songs untouched.
