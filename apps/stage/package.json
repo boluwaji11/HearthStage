@@ -1,6 +1,7 @@
 {
   "name": "@hearth/stage",
   "version": "0.0.0",
+  "productName": "Hearth Stage",
   "private": true,
   "main": "out/main/index.js",
   "scripts": {

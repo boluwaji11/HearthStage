@@ -66,6 +66,18 @@ body {
   overflow: hidden;
 }
 
+/*
+ * `hidden` beats any layout rule.
+ *
+ * `.start` sets `display: grid`, which has the same specificity as `[hidden]`
+ * and comes later in the file, so the start panel went on showing over a
+ * running service. The attribute means hidden, so it is enforced rather than
+ * left to the order rules fall in.
+ */
+[hidden] {
+  display: none !important;
+}
+
 /* Never removed, on anything (docs/design-system.md section 11). */
 :focus-visible {
   outline: 2px solid var(--ember-500);
@@ -137,7 +149,6 @@ h2 {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--quiet);
-  margin-bottom: var(--space-2);
 }
 
 .quiet {
@@ -338,18 +349,24 @@ main {
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * Live is the thing being decided about, so it gets the room.
+ *
+ * Next is a check rather than a decision, and the notes are a line or two. Three
+ * equal rows spent the window on the two things an operator glances at.
+ */
 .stage {
   display: grid;
-  grid-template-rows: 1fr 1fr auto;
-  gap: var(--space-4);
+  grid-template-rows: minmax(0, 1.8fr) minmax(0, 1fr) auto;
+  gap: var(--space-3);
   padding: var(--space-4);
   min-height: 0;
 }
 
 .pane {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--space-2);
   min-height: 0;
 }
 
@@ -363,9 +380,16 @@ main {
  */
 .screen {
   position: relative;
-  flex: 1;
+  /*
+   * Sized from its height rather than its width. The stage column is wider than
+   * sixteen by nine is tall, so taking the width would make two panes taller
+   * than the window.
+   */
+  height: 100%;
   min-height: 0;
   aspect-ratio: 16 / 9;
+  max-width: 100%;
+  justify-self: center;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background-color: var(--background-colour, var(--stone-950));
@@ -418,7 +442,8 @@ main {
 }
 
 .notes {
-  max-height: 8rem;
+  max-height: 7rem;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .notes ul {

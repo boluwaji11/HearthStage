@@ -96,7 +96,7 @@ thing a person does with Stage and until now there was no way to do it. See
 | STG-147 | Duplicating a slide, moving one between presentations, and the per-slide note | ST2.16, ST2.19 | Resolved |
 | STG-148 | Apply a theme to a presentation, and change it without touching the content | ST8.1 | Resolved |
 | STG-149 | First run: one line saying what to do, and three ways in | ST1.2 | Resolved |
-| STG-168 | Name the application properly, so its data lives in "Hearth Stage" rather than in a folder named after a package, and move an existing library across | ST19.5 | New |
+| STG-168 | Name the application properly, so its data lives in "Hearth Stage" rather than in a folder named after a package, and move an existing library across | ST19.5 | Resolved |
 | STG-6 | Build the local library store: songs, sections, arrangements, durable and backed up on write | ST2.1, ST19.5 | Resolved |
 | STG-7 | Type a song in: title, the copyright fields, and lyrics as labelled sections | ST2.1, ST2.2 | New |
 | STG-8 | Offer a section split when a plain lyric block is pasted, confirmed by the operator | ST2.2 | New |
@@ -472,8 +472,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-168**, the application's name and where it keeps a library, then **STG-7** to **STG-10**, the song side: typing a song in, pasted lyrics, arrangements, and the sample set offered rather than seeded. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-7** to **STG-10**, the song side: typing a song in, pasted lyrics, arrangements, and the sample set offered rather than seeded. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1121,3 +1121,40 @@ with nothing open reports no service, puts nothing on the output and ignores an 
 **What ST1.2 still owes.** It asks for a first run that offers to import an existing library. The
 importers are STG-33 and after, in SF3, so the third way in is the sample service for now and the
 import takes its place when those land.
+
+---
+
+## STG-168, how to test it
+
+The application kept a church's only copy of its library in a folder called `@hearth/stage`, named
+after the package. Nobody can find that, nobody can back it up on purpose, and nobody would recognise
+it in a support call.
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+- The window and the macOS menu bar say **Hearth Stage**.
+- The library is at `~/Library/Application Support/Hearth Stage/library.db`, with its backups beside
+  it.
+- Open **Slides**. Everything that was there is still there.
+
+**Eight tests on the decision, and none of them touch a disk.** For an unpaired church these files
+are the only copy of everything they typed, so moving them is the kind of one-line change that
+quietly loses a library. `relocation` takes what exists and returns what to move, so every refusal is
+a case with a test on it:
+
+1. It moves `library.db`, the write-ahead log and shared memory file SQLite keeps beside it, and the
+   backups.
+2. It carries only what is there, so a missing write-ahead log is no problem.
+3. **It asks about the library rather than about the directory.** The first version asked whether the
+   new directory existed. Chromium creates that directory for its own caches before any of this runs,
+   so the answer was always yes and nothing ever moved. Found by running it and looking at the disk
+   rather than by reading it.
+4. A new directory already holding a library is left alone, because overwriting it would throw away
+   whatever has been typed into it. The old files stay, so a church keeps both.
+5. A fresh install and a second launch both do nothing.
+
+The old directory keeps its browser caches, which are disposable and belong to a profile that no
+longer exists. Clearing those up is not worth the risk of a recursive delete in a path built from a
+name.

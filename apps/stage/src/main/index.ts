@@ -11,7 +11,7 @@
  * the deck compiler does not care which a service came from.
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { app, BrowserWindow, ipcMain } from "electron";
 import {
@@ -26,6 +26,7 @@ import { compileDeck, lookupFrom, presentationPlan, type ServicePlan } from "@he
 import { sampleLibrary, sampleService } from "@hearth/songs/fixtures";
 import { openLibrary } from "@hearth/stage-store";
 import { Presentations } from "./presentations";
+import { APP_NAME, OLD_FOLDER, relocation } from "./userdata";
 import { Session } from "./session";
 import {
   createControlWindow,
@@ -34,6 +35,46 @@ import {
   displays,
   type DisplayChoice,
 } from "./windows";
+
+/**
+ * The product's name, before anything asks where its data goes (STG-168).
+ *
+ * `app.getPath("userData")` is built from the application name, so this has to
+ * run before the first call to it. It also names the menu bar on macOS and the
+ * window the operating system shows in its task switcher.
+ */
+app.setName(APP_NAME);
+
+/**
+ * The library a church typed, moved out of the folder named after the package.
+ *
+ * Done once, on the way up, before anything opens the database. The decision is
+ * in `relocation` with no filesystem in it, so the cases that would lose a
+ * church's only copy are the ones with tests on them.
+ */
+function moveOldLibrary(): void {
+  const from = join(app.getPath("appData"), OLD_FOLDER);
+  const to = app.getPath("userData");
+  const what = relocation({
+    from,
+    to,
+    has: (directory, name) => existsSync(join(directory, name)),
+  });
+  if (what.action === "none") return;
+
+  mkdirSync(to, { recursive: true });
+  for (const name of what.entries) {
+    try {
+      renameSync(join(from, name), join(to, name));
+    } catch (cause) {
+      // A failed move leaves the old file where it is, so the church still has
+      // its library. Worth saying out loud rather than swallowing.
+      console.error(`Could not move ${name} from ${from} to ${to}.`, cause);
+    }
+  }
+}
+
+moveOldLibrary();
 
 /**
  * The better-sqlite3 binding built for Electron.
