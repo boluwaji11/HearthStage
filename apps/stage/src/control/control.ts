@@ -188,6 +188,18 @@ function paint(state: ControlState): void {
   // (ST5.5). Filtering by this operator's own position arrives with the plan.
   el.notes.replaceChildren();
   const group = state.groups.find((candidate) => candidate.id === live?.groupId);
+
+  // The note on this slide comes first, because it is about what is on the
+  // screen right now and an item note is about the whole song (ST2.19).
+  if (live?.note != null && live.note !== "") {
+    const item = document.createElement("li");
+    const where = document.createElement("span");
+    where.className = "note-position";
+    where.textContent = "this slide";
+    item.append(where, document.createTextNode(live.note));
+    el.notes.append(item);
+  }
+
   for (const note of group?.notes ?? []) {
     const item = document.createElement("li");
     if (note.position !== null) {
@@ -199,7 +211,7 @@ function paint(state: ControlState): void {
     item.append(document.createTextNode(note.body));
     el.notes.append(item);
   }
-  if ((group?.notes ?? []).length === 0) {
+  if (el.notes.children.length === 0) {
     const item = document.createElement("li");
     item.className = "quiet";
     item.textContent = "None";

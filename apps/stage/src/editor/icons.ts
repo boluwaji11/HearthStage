@@ -12,7 +12,10 @@
 
 const NS = "http://www.w3.org/2000/svg";
 
-type Shape = { d: string } | { cx: number; cy: number };
+type Shape =
+  | { d: string }
+  | { cx: number; cy: number }
+  | { x: number; y: number; w: number; h: number };
 
 const SHAPES: Record<string, Shape[]> = {
   "chevron-up": [{ d: "M18 15L12 9L6 15" }],
@@ -24,6 +27,15 @@ const SHAPES: Record<string, Shape[]> = {
     { d: "M10 11V17" },
     { d: "M14 11V17" },
   ],
+  copy: [
+    { x: 9, y: 9, w: 13, h: 13 },
+    { d: "M5 15H4A2 2 0 0 1 2 13V4A2 2 0 0 1 4 2H13A2 2 0 0 1 15 4V5" },
+  ],
+  clipboard: [
+    { d: "M16 4H18A2 2 0 0 1 20 6V20A2 2 0 0 1 18 22H6A2 2 0 0 1 4 20V6A2 2 0 0 1 6 4H8" },
+    { x: 8, y: 2, w: 8, h: 4 },
+  ],
+  note: [{ d: "M21 15A2 2 0 0 1 19 17H7L3 21V5A2 2 0 0 1 5 3H19A2 2 0 0 1 21 5Z" }],
   grip: [
     { cx: 9, cy: 5 },
     { cx: 9, cy: 12 },
@@ -52,6 +64,16 @@ export function icon(name: IconName): SVGSVGElement {
       const path = document.createElementNS(NS, "path");
       path.setAttribute("d", shape.d);
       svg.append(path);
+      continue;
+    }
+    if ("x" in shape) {
+      const rect = document.createElementNS(NS, "rect");
+      rect.setAttribute("x", String(shape.x));
+      rect.setAttribute("y", String(shape.y));
+      rect.setAttribute("width", String(shape.w));
+      rect.setAttribute("height", String(shape.h));
+      rect.setAttribute("rx", "2");
+      svg.append(rect);
       continue;
     }
     const dot = document.createElementNS(NS, "circle");

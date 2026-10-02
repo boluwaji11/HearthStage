@@ -55,6 +55,15 @@ export interface Cue {
   /** A scripture cue carries its reference on every slide of the passage (ST7.3). */
   reference: string | null;
   /**
+   * A note attached to this slide, for the operator and the stage display
+   * (ST2.19).
+   *
+   * Separate from the group's notes, which belong to the whole item. "Hold here
+   * until the band comes in" belongs to one slide, and an item note would put
+   * it against the whole song.
+   */
+  note: string | null;
+  /**
    * Which cues share one measured text size (ST6.2).
    *
    * The slides of one song section share a size so the words do not jump
@@ -207,6 +216,7 @@ function compileItem(
           slideIndex: 0,
           slideCount: 1,
           reference: null,
+          note: null,
           fitGroup: `${groupId}:marker`,
         },
       ],
@@ -279,6 +289,7 @@ function compileItem(
         slideIndex: slide.index,
         slideCount: slide.count,
         reference: null,
+        note: null,
         fitGroup: `${groupId}:${entry.label}:${entry.occurrence}`,
       });
     }
@@ -347,6 +358,7 @@ function compileScripture(
     // On every slide of the passage, because a congregation arriving at slide
     // three still needs to know where they are.
     reference,
+    note: null,
     fitGroup: `${groupId}:verse:${group[0]?.number ?? index}`,
   }));
 }
@@ -396,6 +408,9 @@ function compilePresentation(
         slideIndex: part.index,
         slideCount: part.count,
         reference: null,
+        // Carried onto both halves of a slide that was split, for the same
+        // reason the label is: the operator is looking at either one.
+        note: slide.notes,
         fitGroup: `${groupId}:slide:${slide.sortOrder}`,
       });
     }

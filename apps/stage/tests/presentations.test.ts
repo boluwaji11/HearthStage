@@ -17,9 +17,9 @@ import { Session } from "../src/main/session";
 
 /** What somebody types, one box per slide. */
 const NOTICES = [
-  { label: "Title", body: "Morning Service" },
-  { label: null, body: "Church lunch\nThe 12th, after the service" },
-  { label: null, body: "Youth group\nWednesdays, 7pm" },
+  { label: "Title", body: "Morning Service", note: null },
+  { label: null, body: "Church lunch\nThe 12th, after the service", note: null },
+  { label: null, body: "Youth group\nWednesdays, 7pm", note: null },
 ];
 
 let directory: string;
@@ -91,7 +91,7 @@ describe("the first ten minutes", () => {
       type: "savePresentation",
       presentationId: null,
       title: "Notices",
-      slides: [...NOTICES, { label: null, body: "   " }],
+      slides: [...NOTICES, { label: null, body: "   ", note: null }],
     });
     expect(presentations.state().library[0]?.count).toBe(3);
     expect(presentations.state().editing?.slides).toHaveLength(3);
@@ -136,7 +136,7 @@ describe("the first ten minutes", () => {
       type: "savePresentation",
       presentationId: "pres_1",
       title: "Notices",
-      slides: [...NOTICES, { label: null, body: "Giving\nThere is a basket at the back" }],
+      slides: [...NOTICES, { label: null, body: "Giving\nThere is a basket at the back", note: null }],
     });
 
     const state = presentations.state();
@@ -174,7 +174,7 @@ describe("a save that cannot happen", () => {
       type: "savePresentation",
       presentationId: null,
       title: "Notices",
-      slides: [{ label: null, body: "One\nTwo" }],
+      slides: [{ label: null, body: "One\nTwo", note: null }],
     });
     // Split into two lines rather than refused, because splitting the box is
     // this layer's job and the guard is on what reaches the store.
@@ -222,7 +222,7 @@ describe("opening one from the library", () => {
       type: "savePresentation",
       presentationId: null,
       title: "Sermon outline",
-      slides: [{ label: "Point 1", body: "God speaks first" }],
+      slides: [{ label: "Point 1", body: "God speaks first", note: null }],
     });
   });
 
@@ -312,7 +312,7 @@ describe("presenting it", () => {
       type: "savePresentation",
       presentationId: "pres_1",
       title: "Notices",
-      slides: [...NOTICES, { label: null, body: "Giving\nThere is a basket at the back" }],
+      slides: [...NOTICES, { label: null, body: "Giving\nThere is a basket at the back", note: null }],
     });
     const plan = presentationPlan(presentations.lookup()("pres_1")!);
     const deck = compileDeck(plan, lookupFrom([]), { presentations: presentations.lookup() });
@@ -375,5 +375,55 @@ describe("one list, songs and slides together", () => {
     expect(editing?.kind).toBe("plain");
     expect(editing?.readOnly).toBe(false);
     expect(editing?.slides).toEqual(NOTICES);
+  });
+});
+
+describe("a note on a slide", () => {
+  beforeEach(() => {
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: null,
+      title: "Notices",
+      slides: [
+        { label: "Title", body: "Morning Service", note: "Hold here until the band comes in" },
+        { label: null, body: "Church lunch", note: null },
+      ],
+    });
+  });
+
+  it("is stored, and comes back in the box it was typed in", () => {
+    const editing = presentations.state().editing;
+    expect(editing?.slides[0]?.note).toBe("Hold here until the band comes in");
+    expect(editing?.slides[1]?.note).toBeNull();
+  });
+
+  it("reaches the operator and never the wall", () => {
+    const lookup = presentations.lookup();
+    const plan = presentationPlan(lookup("pres_1")!);
+    const session = new Session(compileDeck(plan, lookupFrom([]), { presentations: lookup }), plan);
+
+    expect(session.controlState([]).cues[0]?.note).toBe("Hold here until the band comes in");
+    expect(session.controlState([]).cues[1]?.note).toBeNull();
+
+    // Nothing about the note is in what the output is handed.
+    expect(JSON.stringify(session.outputState("display:1"))).not.toContain("Hold here");
+  });
+
+  it("follows both halves of a slide that was split for the screen", () => {
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: "pres_1",
+      title: "Notices",
+      slides: [{ label: "Title", body: "One\nTwo\nThree\nFour", note: "Read it slowly" }],
+    });
+
+    const lookup = presentations.lookup();
+    const deck = compileDeck(presentationPlan(lookup("pres_1")!), lookupFrom([]), {
+      presentations: lookup,
+      limits: { maxLines: 2 },
+    });
+
+    expect(deck.cues).toHaveLength(2);
+    expect(deck.cues.map((cue) => cue.note)).toEqual(["Read it slowly", "Read it slowly"]);
   });
 });

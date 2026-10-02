@@ -33,6 +33,7 @@ const el = {
   title: document.getElementById("title") as HTMLInputElement,
   slides: document.getElementById("slides") as HTMLOListElement,
   add: document.getElementById("add") as HTMLButtonElement,
+  paste: document.getElementById("paste") as HTMLButtonElement,
   problems: document.getElementById("problems") as HTMLUListElement,
   status: document.getElementById("status") as HTMLParagraphElement,
   undone: document.getElementById("undone") as HTMLParagraphElement,
@@ -60,6 +61,25 @@ let latest: EditorState | null = null;
 /** The slide being dragged, and where it would land. */
 let dragging: number | null = null;
 let dropAt: number | null = null;
+/**
+ * One slide, copied, waiting to be put somewhere (STG-147).
+ *
+ * Held in the window rather than in main. Switching presentations repaints this
+ * window without reloading it, so a copy survives the trip, and a clipboard is
+ * the kind of thing a person expects to lose when they close the window it
+ * belongs to.
+ */
+let copied: SlideDraft | null = null;
+/** Slides whose note box is open although the note is still empty. */
+const noteOpen = new Set<number>();
+
+function toggleNote(index: number): void {
+  if (noteOpen.has(index)) noteOpen.delete(index);
+  else noteOpen.add(index);
+  renderSlides();
+  const field = el.slides.querySelector<HTMLInputElement>(`#note-${index}`);
+  field?.focus();
+}
 
 function send(intent: Intent): void {
   bridge?.send(intent);
@@ -108,9 +128,38 @@ function commit(): void {
 function addSlide(after?: number): void {
   if (draft === null || draft.readOnly) return;
   const at = after === undefined ? draft.slides.length : after + 1;
-  draft.slides.splice(at, 0, { label: null, body: "" });
+  draft.slides.splice(at, 0, { label: null, body: "", note: null });
   removed = null;
+  noteOpen.clear();
   renderSlides(at);
+  schedule();
+}
+
+function duplicateSlide(index: number): void {
+  if (draft === null || draft.readOnly) return;
+  const slide = draft.slides[index];
+  if (slide === undefined) return;
+  draft.slides.splice(index + 1, 0, { ...slide });
+  removed = null;
+  noteOpen.clear();
+  renderSlides(index + 1);
+  schedule();
+}
+
+function copySlide(index: number): void {
+  const slide = draft?.slides[index];
+  if (slide === undefined) return;
+  copied = { ...slide };
+  paintStatus();
+}
+
+/** Puts the copied slide at the end, which is where a person is looking. */
+function pasteSlide(): void {
+  if (draft === null || draft.readOnly || copied === null) return;
+  draft.slides.push({ ...copied });
+  removed = null;
+  noteOpen.clear();
+  renderSlides(draft.slides.length - 1);
   schedule();
 }
 
@@ -119,6 +168,7 @@ function removeSlide(index: number): void {
   // Kept whole rather than by index, so undo puts the list back exactly.
   removed = { slides: draft.slides.map((slide) => ({ ...slide })), what: `Slide ${index + 1}` };
   draft.slides.splice(index, 1);
+  noteOpen.clear();
   renderSlides(Math.max(0, index - 1));
   schedule();
 }
@@ -130,6 +180,7 @@ function moveSlide(index: number, to: number): void {
   if (slide === undefined) return;
   draft.slides.splice(to, 0, slide);
   removed = null;
+  noteOpen.clear();
   renderSlides(to);
   schedule();
 }
@@ -226,6 +277,9 @@ function renderSlides(focus?: number): void {
         () => moveSlide(index, index + 1),
         index < (draft?.slides.length ?? 0) - 1,
       ],
+      ["Duplicate", "copy", () => duplicateSlide(index), !(draft?.readOnly ?? false)],
+      ["Copy", "clipboard", () => copySlide(index), true],
+      ["Note", "note", () => toggleNote(index), !(draft?.readOnly ?? false)],
       ["Remove", "trash", () => removeSlide(index), true],
     ] as [string, Parameters<typeof icon>[0], () => void, boolean][]) {
       const button = document.createElement("button");
@@ -289,6 +343,32 @@ function renderSlides(focus?: number): void {
     body.addEventListener("paste", (event) => onPaste(event, index, body));
     item.append(body);
 
+    // Shown when there is a note, or when somebody asked for one. A box every
+    // slide carries and almost none uses would be most of the card.
+    if ((slide.note ?? "") !== "" || noteOpen.has(index)) {
+      const row = document.createElement("div");
+      row.className = "card-note-field";
+
+      const noteFor = document.createElement("label");
+      noteFor.htmlFor = `note-${index}`;
+      noteFor.textContent = "Note";
+      row.append(noteFor);
+
+      const field = document.createElement("input");
+      field.id = `note-${index}`;
+      field.type = "text";
+      field.autocomplete = "off";
+      field.value = slide.note ?? "";
+      field.readOnly = draft?.readOnly ?? false;
+      field.addEventListener("input", () => {
+        slide.note = field.value === "" ? null : field.value;
+        schedule();
+      });
+      field.addEventListener("blur", commit);
+      row.append(field);
+      item.append(row);
+    }
+
     item.append(note(slide));
     el.slides.append(item);
   });
@@ -325,6 +405,13 @@ function partsOf(body: string): number {
 }
 
 function onSlideKey(event: KeyboardEvent, index: number, body: HTMLTextAreaElement): void {
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "d") {
+    event.preventDefault();
+    commit();
+    duplicateSlide(index);
+    return;
+  }
+
   if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
     event.preventDefault();
     commit();
@@ -385,6 +472,7 @@ function paintStatus(): void {
     if (onScreen !== slides) parts.push(`${onScreen} on screen`);
   }
 
+  if (copied !== null) parts.push("a slide copied");
   if (draft === null) parts.length = 0;
   else if (draft.kind === "song") parts.push("a song, read only");
   else if (draft.readOnly) parts.push("from Hearth, read only");
@@ -395,6 +483,8 @@ function paintStatus(): void {
   el.status.textContent = parts.join("  ·  ");
 
   el.add.disabled = draft === null || draft.readOnly;
+  el.paste.hidden = copied === null;
+  el.paste.disabled = draft === null || draft.readOnly;
   el.present.disabled = draft === null || draft.id === null || slides === 0;
   el.title.readOnly = draft?.readOnly ?? false;
 
@@ -550,6 +640,7 @@ el.title.addEventListener("keydown", (event) => {
 
 el.search.addEventListener("input", renderLibrary);
 el.add.addEventListener("click", () => addSlide());
+el.paste.addEventListener("click", pasteSlide);
 el.undo.addEventListener("click", undoRemoval);
 el.newButton.addEventListener("click", () => {
   commit();

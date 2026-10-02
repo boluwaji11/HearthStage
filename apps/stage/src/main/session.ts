@@ -188,6 +188,7 @@ export class Session {
           slideIndex: cue.slideIndex,
           slideCount: cue.slideCount,
           preview: cue.lines?.[0] ?? null,
+          note: cue.note,
         }),
       ),
       position: this.position,

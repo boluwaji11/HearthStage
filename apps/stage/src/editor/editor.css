@@ -370,6 +370,18 @@ textarea:read-only {
   min-height: 3.5rem;
 }
 
+.card-note-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.card-note-field input {
+  flex: 1;
+  font-size: 0.8125rem;
+  padding: var(--space-1) var(--space-2);
+}
+
 .card-note {
   font-size: 0.75rem;
 }
@@ -380,6 +392,7 @@ textarea:read-only {
 
 .add {
   display: flex;
+  gap: var(--space-2);
 }
 
 .problems {

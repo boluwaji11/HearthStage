@@ -112,6 +112,8 @@ export interface CueView {
   slideCount: number;
   /** First line, for a list. The whole slide goes down in `OutputState`. */
   preview: string | null;
+  /** A note on this slide, for the operator and the stage display (ST2.19). */
+  note: string | null;
 }
 
 export interface GroupView {
@@ -173,6 +175,14 @@ export interface SlideDraft {
   label: string | null;
   /** The box, as typed. Main splits it into lines, because the model decides. */
   body: string;
+  /**
+   * A note for whoever is running the service (ST2.19).
+   *
+   * Absent on almost every slide, so it is optional rather than null
+   * everywhere. It reaches the operator and the stage display, and it has no
+   * path to the wall.
+   */
+  note?: string | null;
 }
 
 /**
@@ -328,9 +338,11 @@ function isSlideDrafts(value: unknown): value is SlideDraft[] {
   if (!Array.isArray(value) || value.length > MOST_SLIDES) return false;
   return value.every((entry) => {
     if (typeof entry !== "object" || entry === null) return false;
-    const slide = entry as { label?: unknown; body?: unknown };
+    const slide = entry as { label?: unknown; body?: unknown; note?: unknown };
     return (
-      (slide.label === null || typeof slide.label === "string") && typeof slide.body === "string"
+      (slide.label === null || typeof slide.label === "string") &&
+      typeof slide.body === "string" &&
+      (slide.note === undefined || slide.note === null || typeof slide.note === "string")
     );
   });
 }

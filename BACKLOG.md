@@ -33,7 +33,7 @@ board. **Resolved is not Closed.** A story sits in Resolved until Boluwaji has u
    two do not count against each other.
 2. **Every story names what to test.**
 3. **Commits reference the story**, in the footer: `Work item: STG-14`.
-4. **Nothing is built that has no story.**
+4. **Everything built has a story.**
 5. **The board is updated in the same commit as the work.**
 6. **A Stage story never changes platform scope.** Where Stage needs something from the platform, it
    becomes a row in the dependency table at the bottom of this file and a story on the platform board,
@@ -93,7 +93,7 @@ thing a person does with Stage and until now there was no way to do it. See
 |---|---|---|---|
 | STG-145 | **Type a presentation of plain slides and present it**: a title, three notices, a sermon outline | ST2.16 | Resolved |
 | STG-146 | Hold a presentation's kind, so a song, a reading, plain slides and a media item are one list | ST2.16 | Resolved |
-| STG-147 | Duplicating a slide, moving one between presentations, and the per-slide note | ST2.16, ST2.19 | New |
+| STG-147 | Duplicating a slide, moving one between presentations, and the per-slide note | ST2.16, ST2.19 | Resolved |
 | STG-148 | Apply a theme to a presentation, and change it without touching the content | ST8.1 | New |
 | STG-149 | First run: one line saying what to do, and three ways in | ST1.2 | New |
 | STG-168 | Name the application properly, so its data lives in "Hearth Stage" rather than in a folder named after a package, and move an existing library across | ST19.5 | New |
@@ -472,7 +472,7 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
 | **Next** | **STG-7**, typing a song in, because the one list now shows songs and a song row opens read only. Then **STG-168**, which found itself: the application's data sits in a folder named `@hearth/stage`, after the package rather than after the product. Then STG-147 duplicating and per-slide notes, STG-148 themes, STG-149 first run, and the measurements STG-28 and STG-29. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
@@ -959,3 +959,44 @@ a strip under the header, visible from the moment the service is opened, which i
 finding them at compile time (ST5.2).
 
 **One piece of copy.** The slide label field said "For the operator". It is now **Slide title**.
+
+---
+
+## STG-147, how to test it
+
+Three things a person wants on the second evening: another slide like this one, that slide from last
+week, and a note to whoever is running it.
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+- Open a presentation and press **Slides**. Each card header now carries four icons. Hover for names.
+- **Duplicate** puts a copy of the slide directly below it. **Cmd and D** inside a box does the same.
+- **Copy** puts a slide on the clipboard. The footer says `a slide copied`, and a **Paste slide**
+  button appears beside Add slide. Open a different presentation and press it: the slide lands at the
+  end, words and title and note together.
+- **Note** opens a one line box under the slide. Type `Hold here until the band comes in`. The box
+  stays open while there is a note in it and folds away when the note is emptied.
+- Press **Present**, then look at the control surface. The **Notes** pane shows the note against the
+  slide that is live, tagged `this slide`, above any note on the item itself. Advance a slide and it
+  goes.
+- Nothing about the note reaches the output window.
+
+**Six new tests**, all on the note, because the note is the part with a path through the model and
+the other two live in the window. What they defend:
+
+1. **A note belongs to a slide.** Separate from an item note, which belongs to the whole song or the
+   whole reading. "Hold here until the band comes in" is about one slide, and an item note would put
+   it against six.
+2. **A note has no path to the wall.** Asserted by looking at everything the output window is handed
+   and failing if the note is anywhere in it.
+3. **A note follows both halves of a slide that was split for the screen**, for the same reason the
+   title does: the operator is looking at either one.
+4. **A note of spaces is no note**, trimmed in the model rather than stored as whitespace.
+5. **It survives the round trip to disk**, in its own column, separate from the words.
+
+**The clipboard lives in the window.** Switching presentations repaints this window without
+reloading it, so a copy survives the trip, and closing the window loses it, which is what a person
+expects of a clipboard. Duplicating and copying are checked by hand rather than by a test, because
+testing a renderer needs the harness in STG-28.

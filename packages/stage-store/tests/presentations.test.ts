@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { newPresentation, parseSlides, type Presentation } from "@hearth/songs";
+import { newPresentation, parseSlides, slidesFrom, type Presentation } from "@hearth/songs";
 import { amazingGrace } from "@hearth/songs/fixtures";
 import { LibraryError, openLibrary, type OpenLibrary } from "../src/index";
 
@@ -200,5 +200,22 @@ describe("the library as one list", () => {
 
   it("carries the origin, which is who may write the row", () => {
     expect(opened.library.items().every((item) => item.origin === "local")).toBe(true);
+  });
+});
+
+describe("a note on a slide", () => {
+  it("survives the round trip to disk, separate from the words", () => {
+    opened.library.savePresentation({
+      ...newPresentation("p9", { title: "Notices" }),
+      slides: slidesFrom("p9", [
+        { label: "Title", body: "Morning Service", note: "Hold here" },
+        { label: null, body: "Church lunch" },
+      ]),
+    });
+
+    const back = opened.library.getPresentation("p9");
+    expect(back?.slides[0]?.notes).toBe("Hold here");
+    expect(back?.slides[0]?.lines).toEqual(["Morning Service"]);
+    expect(back?.slides[1]?.notes).toBeNull();
   });
 });

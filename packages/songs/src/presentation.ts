@@ -85,6 +85,14 @@ export interface SlideInput {
   label: string | null;
   /** The box, as typed. Split into lines here, because the model decides. */
   body: string;
+  /**
+   * A note for whoever is running the service (ST2.19).
+   *
+   * Absent on almost every slide, so it is optional rather than null
+   * everywhere. It reaches the operator and the stage display, and it has no
+   * path to the wall.
+   */
+  note?: string | null;
 }
 
 /**
@@ -113,13 +121,14 @@ export function slidesFrom(presentationId: string, input: SlideInput[]): Present
     if (lines.length === 0) continue;
 
     const label = one.label === null ? "" : one.label.trim();
+    const note = (one.note ?? "").trim();
     slides.push({
       id: `${presentationId}:slide:${slides.length + 1}`,
       presentationId,
       sortOrder: slides.length,
       label: label === "" ? null : label,
       lines,
-      notes: null,
+      notes: note === "" ? null : note,
     });
   }
 
@@ -131,6 +140,7 @@ export function slideInputs(presentation: Presentation): SlideInput[] {
   return orderedSlides(presentation).map((slide) => ({
     label: slide.label,
     body: slide.lines.join("\n"),
+    note: slide.notes,
   }));
 }
 

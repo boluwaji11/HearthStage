@@ -154,8 +154,8 @@ describe("validating a presentation", () => {
 
 describe("slides from the boxes a person has on screen", () => {
   const BOXES = [
-    { label: "Title", body: "Morning Service\nEveryone welcome" },
-    { label: null, body: "Church lunch\nThe 12th, after the service" },
+    { label: "Title", body: "Morning Service\nEveryone welcome", note: null },
+    { label: null, body: "Church lunch\nThe 12th, after the service", note: null },
   ];
 
   it("takes one box as one slide, whatever is in it", () => {
@@ -191,6 +191,18 @@ describe("slides from the boxes a person has on screen", () => {
     for (const slide of slidesFrom("p1", BOXES)) {
       for (const line of slide.lines) expect(line).not.toContain("\n");
     }
+  });
+
+  it("carries a note on a slide, which reaches the operator and never the wall", () => {
+    const slides = slidesFrom("p1", [
+      { label: null, body: "Church lunch", note: "  Hold here until the band comes in  " },
+    ]);
+    expect(slides[0]?.notes).toBe("Hold here until the band comes in");
+    expect(slides[0]?.lines).toEqual(["Church lunch"]);
+  });
+
+  it("treats a note of spaces as no note", () => {
+    expect(slidesFrom("p1", [{ label: null, body: "One", note: "   " }])[0]?.notes).toBeNull();
   });
 
   it("round trips through the boxes the editor shows", () => {
