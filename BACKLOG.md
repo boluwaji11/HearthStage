@@ -1347,6 +1347,20 @@ pnpm --filter @hearth/stage dev
    id an existing one already held, and the store writes arrangements by deleting and inserting.
 6. **A song nobody made an order for still presents**, with every section once.
 
+**Two defects found on the screen after this landed, both fixed here.**
+
+1. **The sample service asked for three orders that were not there.** Saving a sample song in the
+   editor before this story replaced every order it had with one called "As written", so the ids the
+   sample service names (`ag-standard`, `ag-short`, `hhh-standard`) were gone from the library. This
+   story closes the hole going forward, because an order is now carried through the window and
+   matched to its record by name. `src/main/repair.ts` puts back what the old build took, on a
+   signature exact enough to leave a church's own orders alone: one order, called "As written", and
+   none of the ones the song shipped with. The church stays on the order it was on. Seven tests, most
+   of them about what it refuses to touch.
+2. **A service could not be put away.** **Home** sits in the header beside Slides while a service is
+   open, and goes back to the three ways in. Without it a church that opened the sample to look at it
+   was left in it.
+
 **Orders are on a song and not on a sheet of notices.** A song is in the library for years and gets
 reordered weekly. The notices are written for one week, and the cards are dragged into the order they
 are read in. The cards and the editor are the same for both.

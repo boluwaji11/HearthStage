@@ -26,6 +26,7 @@ import { compileDeck, lookupFrom, presentationPlan, songPlan, type ServicePlan }
 import { sampleLibrary, sampleService } from "@hearth/songs/fixtures";
 import { openLibrary } from "@hearth/stage-store";
 import { Presentations } from "./presentations";
+import { restoredOrders } from "./repair";
 import { APP_NAME, OLD_FOLDER, relocation } from "./userdata";
 import { Session } from "./session";
 import {
@@ -126,6 +127,23 @@ function seed(): void {
 }
 
 seed();
+
+/**
+ * The orders an older build wiped, put back (STG-9).
+ *
+ * See `repair.ts` for what it will and will not touch. It goes when the sample
+ * set stops being seeded, with STG-10.
+ */
+function repair(): void {
+  for (const sample of sampleLibrary) {
+    const stored = store.library.get(sample.song.id);
+    if (stored === null) continue;
+    const fixed = restoredOrders(stored, sample);
+    if (fixed !== null) store.library.save(fixed);
+  }
+}
+
+repair();
 
 const presentations = new Presentations(store.library);
 
@@ -302,6 +320,11 @@ app.whenReady().then(() => {
           compileDeck(sampleService, songs(), { presentations: presentations.lookup() }),
           sampleService,
         );
+        presenting = null;
+        broadcast();
+        return;
+      case "closeService":
+        session.open(compileDeck(NOTHING_OPEN, songs()), null);
         presenting = null;
         broadcast();
         return;

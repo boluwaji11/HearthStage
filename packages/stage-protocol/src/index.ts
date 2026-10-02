@@ -370,6 +370,8 @@ export type Intent =
     }
   /** Back to the library, with nothing open (STG-149). */
   | { type: "closeItem" }
+  /** Puts the service away, back to the three ways in (STG-149, ST1.2). */
+  | { type: "closeService" }
   | { type: "presentNow"; presentationId: string };
 
 export type IntentType = Intent["type"];
@@ -443,6 +445,7 @@ export function isIntent(value: unknown): value is Intent {
     case "openLibrary":
     case "openSample":
     case "closeItem":
+    case "closeService":
       return true;
     case "saveSong":
       return (

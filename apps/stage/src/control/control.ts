@@ -28,6 +28,7 @@ const el = {
   notes: document.getElementById("notes") as HTMLUListElement,
   keys: document.getElementById("keys") as HTMLElement,
   slides: document.getElementById("slides") as HTMLButtonElement,
+  home: document.getElementById("home") as HTMLButtonElement,
   problems: document.getElementById("problems") as HTMLUListElement,
   start: document.getElementById("start") as HTMLElement,
   running: document.getElementById("running") as HTMLElement,
@@ -178,6 +179,9 @@ function paint(state: ControlState): void {
   const open = state.service !== null;
   el.start.hidden = open;
   el.running.hidden = !open;
+  // The way back. Without it a church that opened the sample to look at it is
+  // left in it, and the three ways in are the only place the sample lives.
+  el.home.hidden = !open;
 
   el.service.textContent = state.service?.title ?? "Nothing open";
   el.serviceDetail.textContent =
@@ -412,6 +416,7 @@ brief();
 // The one thing on this surface that is not an advance. It opens a window and
 // changes nothing on the wall, so it is safe to have in reach (ST12.3).
 el.slides.addEventListener("click", () => send({ type: "openEditor" }));
+el.home.addEventListener("click", () => send({ type: "closeService" }));
 el.waySlide.addEventListener("click", () => send({ type: "makeSlide" }));
 el.wayLibrary.addEventListener("click", () => send({ type: "openLibrary" }));
 el.waySample.addEventListener("click", () => send({ type: "openSample" }));
