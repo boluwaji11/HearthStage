@@ -85,6 +85,11 @@ const el = {
   undoneWhat: document.getElementById("undone-what") as HTMLSpanElement,
   undo: document.getElementById("undo") as HTMLButtonElement,
   newButton: document.getElementById("new") as HTMLButtonElement,
+  settings: document.getElementById("settings") as HTMLButtonElement,
+  settingsView: document.getElementById("settings-view") as HTMLElement,
+  settingsBack: document.getElementById("settings-back") as HTMLButtonElement,
+  deviceName: document.getElementById("device-name") as HTMLInputElement,
+  devicePlatform: document.getElementById("device-platform") as HTMLParagraphElement,
   present: document.getElementById("present") as HTMLButtonElement,
 };
 
@@ -120,6 +125,8 @@ let dropAt: number | null = null;
 let copied: SlideDraft | null = null;
 /** A pasted block, waiting for somebody to say whether the split is right. */
 let proposal: { index: number; split: SplitProposal; text: string } | null = null;
+/** True while the machine's name is on screen (STG-14). */
+let settingsOpen = false;
 /** Slides whose note box is open although the note is still empty. */
 const noteOpen = new Set<number>();
 
@@ -1055,8 +1062,10 @@ function paint(next: EditorState): void {
 
   // One view at a time. The library is what the window opens on, and opening
   // something fills the window with it.
-  el.libraryView.hidden = draft !== null;
-  el.editView.hidden = draft === null;
+  el.libraryView.hidden = draft !== null || settingsOpen;
+  el.editView.hidden = draft === null || settingsOpen;
+  el.settingsView.hidden = !settingsOpen;
+  renderDevice();
 
   renderThemes();
   renderLibrary();
@@ -1072,6 +1081,48 @@ function paint(next: EditorState): void {
   }
 
   paintStatus();
+}
+
+/**
+ * This machine (STG-14, ST1.9).
+ *
+ * The box is left alone while somebody is typing in it, the same rule the
+ * slide boxes follow: state comes down whole, and what a person is partway
+ * through saying is theirs until they leave the field.
+ */
+function renderDevice(): void {
+  const device = latest?.device;
+  if (device === undefined) return;
+  if (document.activeElement !== el.deviceName) el.deviceName.value = device.name;
+
+  const known: Record<string, MessageKey> = {
+    darwin: "platform.darwin",
+    win32: "platform.win32",
+    linux: "platform.linux",
+  };
+  el.devicePlatform.textContent = t(known[device.platform] ?? "platform.unknown");
+}
+
+function renameMachine(): void {
+  const name = el.deviceName.value;
+  if (name.trim() === "") {
+    // A machine with no name helps nobody in a list of three, so the box goes
+    // back to the name it had.
+    el.deviceName.value = latest?.device.name ?? "";
+    return;
+  }
+  send({ type: "renameDevice", name });
+}
+
+function showSettings(open: boolean): void {
+  settingsOpen = open;
+  el.libraryView.hidden = open || draft !== null;
+  el.editView.hidden = open || draft === null;
+  el.settingsView.hidden = !open;
+  if (open) {
+    renderDevice();
+    el.deviceName.focus();
+  }
 }
 
 // Wiring
@@ -1140,6 +1191,14 @@ el.add.addEventListener("click", () => addSlide());
 el.paste.addEventListener("click", pasteSlide);
 el.addOrder.addEventListener("click", addOrder);
 el.addSamples.addEventListener("click", () => send({ type: "addSamples" }));
+el.settings.addEventListener("click", () => showSettings(true));
+el.settingsBack.addEventListener("click", () => showSettings(false));
+el.deviceName.addEventListener("blur", renameMachine);
+el.deviceName.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  el.deviceName.blur();
+});
 el.undo.addEventListener("click", undoRemoval);
 el.newButton.addEventListener("click", () => {
   commit();

@@ -320,6 +320,14 @@ export interface EditorState {
     readOnly: boolean;
   } | null;
   /**
+   * This laptop (STG-14, ST1.9).
+   *
+   * Stage signs in to nothing, so the machine is the identity. A church with
+   * three laptops renames them to tell them apart, and the name is what the
+   * church's device list shows once pairing arrives.
+   */
+  device: { name: string; platform: string };
+  /**
    * Hymns Stage can put in the library, that are not in it yet (STG-10).
    *
    * A count rather than the hymns, because the window only offers them. Zero
@@ -379,6 +387,8 @@ export type Intent =
   | { type: "closeItem" }
   /** Put the bundled hymns in the library (STG-10, ST1.2). */
   | { type: "addSamples" }
+  /** Rename this machine (STG-14, ST1.9). A blank name is refused. */
+  | { type: "renameDevice"; name: string }
   /** Puts the service away, back to the three ways in (STG-149, ST1.2). */
   | { type: "closeService" }
   | { type: "presentNow"; presentationId: string };
@@ -434,6 +444,7 @@ export function isIntent(value: unknown): value is Intent {
     blank?: unknown;
     presentationId?: unknown;
     itemId?: unknown;
+    name?: unknown;
     title?: unknown;
     slides?: unknown;
     sections?: unknown;
@@ -470,6 +481,8 @@ export function isIntent(value: unknown): value is Intent {
       return typeof candidate.presentationId === "string" && candidate.presentationId.length > 0;
     case "openItem":
       return typeof candidate.itemId === "string" && candidate.itemId.length > 0;
+    case "renameDevice":
+      return typeof candidate.name === "string" && candidate.name.length <= 200;
     case "savePresentation":
       return (
         (candidate.presentationId === null ||

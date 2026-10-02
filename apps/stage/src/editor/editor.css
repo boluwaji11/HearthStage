@@ -658,3 +658,9 @@ footer {
 .order-problem:empty {
   display: none;
 }
+
+/* This machine (STG-14). One field, so it is not given the width of a screen. */
+
+.settings-view .field {
+  max-width: 24rem;
+}

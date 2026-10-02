@@ -81,10 +81,18 @@ export class Presentations {
   private serial = 0;
   private problems: { code: string; detail: string }[] = [];
   private revision = 0;
+  /** This machine (STG-14). Set on the way up, and again on a rename. */
+  private machine: EditorState["device"] = { name: "Stage", platform: process.platform };
 
   constructor(library: PresentationLibrary, options: PresentationsOptions = {}) {
     this.library = library;
     this.makeId = options.id ?? randomId;
+  }
+
+  /** What the window shows as the name of this laptop. */
+  device(machine: EditorState["device"]): void {
+    this.machine = machine;
+    this.revision += 1;
   }
 
   private nextId(prefix: string): string {
@@ -296,6 +304,7 @@ export class Presentations {
         }),
       ),
       editing: this.open(),
+      device: this.machine,
       samples: this.samplesLeft(),
       problems: this.problems,
       presentingId,

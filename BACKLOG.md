@@ -110,7 +110,7 @@ thing a person does with Stage and until now there was no way to do it. See
 | STG-11 | Scaffold `apps/stage`: Electron, sandboxed renderers, context isolation, CSP, a preload channel allowlist | ST21.8 | Resolved |
 | STG-12 | Define `packages/stage-protocol`: `OutputState` down, intents up, typed both ways | ST19.1 | Resolved |
 | STG-13 | `packages/stage-i18n`: every word Stage shows in one catalogue, typed keys, and a test that fails the build on copy written inline | ST17.4, ST21.9 | Resolved |
-| STG-14 | Open Stage with no sign-in, reaching a usable library in under a minute, and name the device after the machine | ST1.1, ST1.9 | New |
+| STG-14 | Open Stage with no sign-in, reaching a usable library in under a minute, and name the device after the machine | ST1.1, ST1.9 | Resolved |
 | STG-15 | Open an output window fullscreen on a display chosen by identity, with the cursor hidden and the display kept awake | ST10.1, ST10.2 | Resolved |
 
 ### SF6. Lyric rendering
@@ -472,8 +472,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-14**, opening Stage with no sign-in and naming the device after the machine. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-22** onward, the live surface: the three blanks on one keypress, and advance under key repeat. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1448,3 +1448,41 @@ names the file and the line:
 and the "Order 2" a blank name becomes. Both are written into the library and read back as data.
 Translating them would rewrite a church's records when they changed language, so they stay where they
 are, and the guard covers the windows rather than the whole application.
+
+## STG-14, how to test it
+
+Stage asks nobody who they are. It never has, and now that is a fact with a test under it rather than
+a thing that happens to be true. What is new is the machine's own name, which a church with three
+laptops needs so they can tell a sound desk from a booth.
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+- Press **Slides**, then **Settings** in the header. The name of this machine is already filled in,
+  taken from the machine itself. Underneath it says which operating system it is.
+- Change it to something a church would say, like Sound Desk, and press Return. Quit and open again.
+  The name is still there.
+- Clear the box and leave the field. It goes back to the name it had, because a blank name in a list
+  of three laptops helps nobody.
+- Press **Slides** at the top left to come back.
+
+It is stored in `device.json`, beside the library rather than inside it. A church that copies
+`library.db` to a second laptop is copying their songs, and the second laptop is still a different
+machine. A name travelling inside the library would give two machines one name on the day somebody
+most needs them told apart.
+
+**Seventeen new tests.** What they defend:
+
+1. **A church's chosen name survives everything.** A restart, a different hostname, a damaged file.
+2. **A damaged file does not stop the application opening.** It holds a name and a platform, both of
+   which the machine can say again, so losing it costs the name somebody typed and nothing else.
+   Refusing to start over it would cost a service.
+3. **The path to a slide on the wall is three presses**, and two for a hymn. Walked against the real
+   library rather than asserted.
+4. **No window has a field that asks who somebody is.** No password box, no email box, no credential
+   autocomplete, anywhere a person can see.
+
+The id in that file is for the church's device list when pairing arrives (ST1.6), and it stays the
+same across runs so a renamed laptop is still the same laptop. The token that proves this machine is
+the church's goes in the keychain with ST1.5, and nothing here is a step towards signing in.

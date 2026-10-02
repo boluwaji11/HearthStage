@@ -29,6 +29,8 @@ import { Presentations } from "./presentations";
 import { restoredOrders } from "./repair";
 import { APP_NAME, OLD_FOLDER, relocation } from "./userdata";
 import { Session } from "./session";
+import { hostname } from "node:os";
+import { openDevice, renameDevice } from "./device";
 import {
   createControlWindow,
   createEditorWindow,
@@ -134,6 +136,18 @@ function repair(): void {
 repair();
 
 const presentations = new Presentations(store.library);
+
+/**
+ * This laptop (STG-14, ST1.1, ST1.9).
+ *
+ * Nothing is signed in to. Stage names itself after the machine, and the name
+ * is a thing a church with three laptops changes.
+ */
+let device = openDevice(app.getPath("userData"), {
+  hostname: hostname(),
+  platform: process.platform,
+});
+presentations.device({ name: device.name, platform: device.platform });
 
 // Compiled from the library on disk rather than from the fixtures, so what the
 // list shows and what the service presents are the same records.
@@ -321,6 +335,14 @@ app.whenReady().then(() => {
         presenting = null;
         broadcast();
         return;
+      case "renameDevice": {
+        const renamed = renameDevice(app.getPath("userData"), device, payload.name);
+        if (renamed === null) return;
+        device = renamed;
+        presentations.device({ name: device.name, platform: device.platform });
+        broadcast();
+        return;
+      }
       case "presentNow":
         if (presentNow(payload.presentationId)) broadcast();
         return;

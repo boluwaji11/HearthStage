@@ -166,6 +166,16 @@ export const en = {
   "save.sections.none": "It has no words yet",
   "save.detail": "{message} ({detail})",
 
+  // This machine
+  "library.settings": "Settings",
+  "settings.title": "This machine",
+  "settings.back": "Slides",
+  "settings.name": "Name",
+  "platform.darwin": "macOS",
+  "platform.win32": "Windows",
+  "platform.linux": "Linux",
+  "platform.unknown": "Unknown",
+
   // The looks
   "theme.hearth": "Hearth",
   "theme.plain": "Plain",
