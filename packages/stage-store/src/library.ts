@@ -140,6 +140,17 @@ function toPresentation(row: PresentationRow, slides: PresentationSlide[]): Pres
   };
 }
 
+/** Lines out of a stored JSON array, forgiving of a row that has none. */
+function linesOf(stored: string | null): string[] {
+  if (stored === null) return [];
+  try {
+    const parsed = JSON.parse(stored) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((line): line is string => typeof line === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 function toSong(row: SongRow): Song {
   return {
     id: row.id,
@@ -244,6 +255,10 @@ export interface LibraryItem {
   subtitle: string | null;
   /** Sections on a song, slides on a presentation. */
   count: number;
+  /** The first slide's words, for a tile that can be recognised at a glance. */
+  preview: string[];
+  /** The look it is presented in. Null takes the service's (ST8.1). */
+  themeId: string | null;
   origin: "local" | "hearth";
   archivedAt: string | null;
   updatedAt: string;
@@ -701,12 +716,15 @@ export class Library {
     const all = options.includeArchived === true;
     const rows = this.db
       .prepare(
-        `SELECT id, kind, title, subtitle, count, origin, archived_at, updated_at FROM (
+        `SELECT id, kind, title, subtitle, count, preview, theme_id, origin, archived_at, updated_at FROM (
            SELECT s.id         AS id,
                   'song'       AS kind,
                   s.title      AS title,
                   s.author     AS subtitle,
                   (SELECT COUNT(*) FROM song_sections c WHERE c.song_id = s.id) AS count,
+                  (SELECT c.lines FROM song_sections c WHERE c.song_id = s.id
+                    ORDER BY c.sort_order LIMIT 1) AS preview,
+                  NULL         AS theme_id,
                   s.origin     AS origin,
                   s.archived_at AS archived_at,
                   s.updated_at AS updated_at
@@ -717,6 +735,9 @@ export class Library {
                   p.title      AS title,
                   NULL         AS subtitle,
                   (SELECT COUNT(*) FROM presentation_slides d WHERE d.presentation_id = p.id) AS count,
+                  (SELECT d.lines FROM presentation_slides d WHERE d.presentation_id = p.id
+                    ORDER BY d.sort_order LIMIT 1) AS preview,
+                  p.theme_id   AS theme_id,
                   p.origin     AS origin,
                   p.archived_at AS archived_at,
                   p.updated_at AS updated_at
@@ -732,6 +753,8 @@ export class Library {
       title: string;
       subtitle: string | null;
       count: number;
+      preview: string | null;
+      theme_id: string | null;
       origin: string;
       archived_at: string | null;
       updated_at: string;
@@ -745,6 +768,8 @@ export class Library {
       title: row.title,
       subtitle: row.subtitle,
       count: row.count,
+      preview: linesOf(row.preview),
+      themeId: row.theme_id,
       origin: row.origin === "hearth" ? "hearth" : "local",
       archivedAt: row.archived_at,
       updatedAt: row.updated_at,

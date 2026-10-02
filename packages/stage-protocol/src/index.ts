@@ -203,6 +203,10 @@ export interface LibraryItem {
   subtitle: string | null;
   /** Sections on a song, slides on a presentation. */
   count: number;
+  /** The first slide's words, so a tile can be recognised without reading it. */
+  preview: string[];
+  /** The look it is presented in. Null takes the service's. */
+  themeId: string | null;
   origin: "local" | "hearth";
 }
 
@@ -211,6 +215,13 @@ export interface SlideDraft {
   label: string | null;
   /** The box, as typed. Main splits it into lines, because the model decides. */
   body: string;
+  /**
+   * What kind of section this is, on a song (STG-7, ST2.1).
+   *
+   * Absent on a presentation, where a slide is a slide. A song's sections carry
+   * a type because an arrangement sequences them and a chord chart prints them.
+   */
+  sectionType?: string;
   /**
    * A note for whoever is running the service (ST2.19).
    *
@@ -236,6 +247,22 @@ export interface ThemeChoice {
   colour: string;
   fontFamily: string;
   textAlign: "left" | "center" | "right";
+}
+
+/**
+ * The fields on a song that are not its words (STG-7, ST2.1).
+ *
+ * Strings rather than numbers, because an empty box is a thing a person leaves
+ * and `0` is a thing they typed. Main turns them into the record.
+ */
+export interface SongFields {
+  author: string;
+  composer: string;
+  copyrightLine: string;
+  ccliNumber: string;
+  year: string;
+  isPublicDomain: boolean;
+  defaultKey: string;
 }
 
 /**
@@ -268,6 +295,8 @@ export interface EditorState {
     slides: SlideDraft[];
     /** Null takes the service's theme (ST8.1). */
     themeId: string | null;
+    /** Present on a song, absent on a presentation (STG-7). */
+    song: SongFields | null;
     readOnly: boolean;
   } | null;
   /** What is wrong with the last save attempt, by code (STG-145). */
@@ -301,6 +330,17 @@ export type Intent =
       /** The look. Null takes the service's theme, and absent leaves it alone. */
       themeId?: string | null;
     }
+  | {
+      type: "saveSong";
+      /** Null creates one. Main allocates the id, so a renderer cannot. */
+      songId: string | null;
+      title: string;
+      fields: SongFields;
+      /** The sections, in order. An empty box is dropped rather than stored. */
+      sections: SlideDraft[];
+    }
+  /** Back to the library, with nothing open (STG-149). */
+  | { type: "closeItem" }
   | { type: "presentNow"; presentationId: string };
 
 export type IntentType = Intent["type"];
@@ -356,6 +396,9 @@ export function isIntent(value: unknown): value is Intent {
     itemId?: unknown;
     title?: unknown;
     slides?: unknown;
+    sections?: unknown;
+    songId?: unknown;
+    fields?: unknown;
     themeId?: unknown;
   };
 
@@ -368,7 +411,16 @@ export function isIntent(value: unknown): value is Intent {
     case "makeSlide":
     case "openLibrary":
     case "openSample":
+    case "closeItem":
       return true;
+    case "saveSong":
+      return (
+        (candidate.songId === null ||
+          (typeof candidate.songId === "string" && candidate.songId.length > 0)) &&
+        typeof candidate.title === "string" &&
+        isSongFields(candidate.fields) &&
+        isSlideDrafts(candidate.sections)
+      );
     case "presentNow":
       return typeof candidate.presentationId === "string" && candidate.presentationId.length > 0;
     case "openItem":
@@ -404,15 +456,30 @@ export function isIntent(value: unknown): value is Intent {
  */
 const MOST_SLIDES = 2000;
 
+function isSongFields(value: unknown): value is SongFields {
+  if (typeof value !== "object" || value === null) return false;
+  const fields = value as Record<string, unknown>;
+  for (const name of ["author", "composer", "copyrightLine", "ccliNumber", "year", "defaultKey"]) {
+    if (typeof fields[name] !== "string") return false;
+  }
+  return typeof fields["isPublicDomain"] === "boolean";
+}
+
 function isSlideDrafts(value: unknown): value is SlideDraft[] {
   if (!Array.isArray(value) || value.length > MOST_SLIDES) return false;
   return value.every((entry) => {
     if (typeof entry !== "object" || entry === null) return false;
-    const slide = entry as { label?: unknown; body?: unknown; note?: unknown };
+    const slide = entry as {
+      label?: unknown;
+      body?: unknown;
+      note?: unknown;
+      sectionType?: unknown;
+    };
     return (
       (slide.label === null || typeof slide.label === "string") &&
       typeof slide.body === "string" &&
-      (slide.note === undefined || slide.note === null || typeof slide.note === "string")
+      (slide.note === undefined || slide.note === null || typeof slide.note === "string") &&
+      (slide.sectionType === undefined || typeof slide.sectionType === "string")
     );
   });
 }

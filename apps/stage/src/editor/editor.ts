@@ -1,5 +1,5 @@
 /**
- * STG-145, ST2.16. Where a person builds a presentation.
+ * STG-145, STG-146, STG-7, ST2.16. Where a person builds what goes on screen.
  *
  * The person here is Daniel on a Tuesday evening with the sermon outline in
  * another window. He names the thing, presses a button, and gets a slide. Then
@@ -15,9 +15,17 @@
  *
  * **The draft is local, the library is main's.** State comes down whole, and
  * the window replaces its boxes only when the serial changes, which happens
- * when a different presentation is opened. A save comes back with the serial
+ * when a different thing is opened. A save comes back with the serial
  * unchanged, so storing what somebody typed never rewrites what they are still
  * typing.
+ *
+ * **Two views, one at a time.** The window opens on the library as tiles, and
+ * opening one fills the window with it. A sidebar beside an editor spends a
+ * third of a laptop screen on a list nobody is reading while they type.
+ *
+ * **A song is a thing with slides.** The cards are identical whichever it is.
+ * A song carries its credits as well, because a licensed song has to show them,
+ * and what kind of section a slide is rides along without being asked about.
  */
 
 import { parseSlides } from "@hearth/songs";
@@ -25,8 +33,10 @@ import {
   gradientCss,
   type EditorState,
   type Intent,
+  type LibraryItem,
   type LibraryKind,
   type SlideDraft,
+  type SongFields,
   type ThemeChoice,
 } from "@hearth/stage-protocol";
 import { icon } from "./icons";
@@ -34,11 +44,20 @@ import { icon } from "./icons";
 const bridge = window.hearth;
 
 const el = {
-  library: document.getElementById("library") as HTMLOListElement,
+  libraryView: document.getElementById("library-view") as HTMLElement,
+  editView: document.getElementById("edit-view") as HTMLElement,
+  tiles: document.getElementById("tiles") as HTMLOListElement,
   libraryEmpty: document.getElementById("library-empty") as HTMLParagraphElement,
   search: document.getElementById("search") as HTMLInputElement,
+  back: document.getElementById("back") as HTMLButtonElement,
   title: document.getElementById("title") as HTMLInputElement,
   theme: document.getElementById("theme") as HTMLSelectElement,
+  credits: document.getElementById("credits") as HTMLElement,
+  author: document.getElementById("author") as HTMLInputElement,
+  year: document.getElementById("year") as HTMLInputElement,
+  ccli: document.getElementById("ccli") as HTMLInputElement,
+  copyright: document.getElementById("copyright") as HTMLInputElement,
+  publicDomain: document.getElementById("public-domain") as HTMLInputElement,
   slides: document.getElementById("slides") as HTMLOListElement,
   add: document.getElementById("add") as HTMLButtonElement,
   paste: document.getElementById("paste") as HTMLButtonElement,
@@ -58,6 +77,7 @@ interface Draft {
   title: string;
   slides: SlideDraft[];
   themeId: string | null;
+  song: SongFields | null;
   readOnly: boolean;
 }
 
@@ -124,6 +144,18 @@ function commit(): void {
   }
   saving = true;
   paintStatus();
+
+  if (draft.song !== null || draft.kind === "song") {
+    send({
+      type: "saveSong",
+      songId: draft.id,
+      title: draft.title,
+      fields: draft.song ?? blankFields(),
+      sections: draft.slides,
+    });
+    return;
+  }
+
   send({
     type: "savePresentation",
     presentationId: draft.id,
@@ -131,6 +163,18 @@ function commit(): void {
     slides: draft.slides,
     themeId: draft.themeId,
   });
+}
+
+function blankFields(): SongFields {
+  return {
+    author: "",
+    composer: "",
+    copyrightLine: "",
+    ccliNumber: "",
+    year: "",
+    isPublicDomain: false,
+    defaultKey: "",
+  };
 }
 
 // The draft
@@ -530,7 +574,8 @@ function renderThemes(): void {
   }
 
   el.theme.value = chosen;
-  el.theme.disabled = draft === null || draft.readOnly;
+  // A song takes the service's look. Giving a song its own is ST8.3.
+  el.theme.disabled = draft === null || draft.readOnly || draft.kind === "song";
 
   // The cards are painted in the look they will be presented in, so the choice
   // is a thing somebody sees rather than a word they have to imagine.
@@ -547,13 +592,28 @@ function renderThemes(): void {
   document.body.dataset["themed"] = live === undefined ? "false" : "true";
 }
 
-/** What each kind is called in the list (STG-146). */
-const KINDS: Record<LibraryKind, string> = {
-  song: "Song",
-  plain: "Slides",
-  reading: "Reading",
-  media: "Media",
-};
+/**
+ * The credits on a song (STG-7, ST2.1).
+ *
+ * Shown on a song and absent on a set of slides, because a licensed song has to
+ * carry its copyright line and its CCLI number and a sheet of notices has
+ * nothing to carry. The slide boxes below are the same either way.
+ */
+function renderCredits(): void {
+  const song = draft?.song ?? null;
+  el.credits.hidden = song === null;
+  if (song === null) return;
+
+  el.author.value = song.author;
+  el.year.value = song.year;
+  el.ccli.value = song.ccliNumber;
+  el.copyright.value = song.copyrightLine;
+  el.publicDomain.checked = song.isPublicDomain;
+
+  const locked = draft?.readOnly ?? false;
+  for (const field of [el.author, el.year, el.ccli, el.copyright]) field.readOnly = locked;
+  el.publicDomain.disabled = locked;
+}
 
 /** What the count means, which depends on what the row holds. */
 function countOf(kind: LibraryKind, count: number): string {
@@ -562,15 +622,18 @@ function countOf(kind: LibraryKind, count: number): string {
 }
 
 /**
- * The library as one list (STG-146).
+ * The library as tiles (STG-146).
  *
- * Songs and typed slides together, each row saying which it is, because the
- * person looking for the notices does not know or care which table they are in.
+ * A tile is the thing it opens: its first slide, in the look it is presented
+ * in. A church recognises the notices by what they look like faster than by
+ * reading a row in a list, and a wall of titles in one font is a filing cabinet.
+ *
  * Filtered here rather than in main: a search box that waits for a round trip
  * feels broken, and a church library is a few hundred rows.
  */
 function renderLibrary(): void {
   const rows = latest?.library ?? [];
+  const themes = latest?.themes ?? [];
   const query = el.search.value.trim().toLowerCase();
   const shown =
     query === ""
@@ -579,50 +642,60 @@ function renderLibrary(): void {
           `${row.title} ${row.subtitle ?? ""}`.toLowerCase().includes(query),
         );
 
-  el.library.replaceChildren();
-  for (const row of shown) {
-    const item = document.createElement("li");
-    if (row.id === draft?.id) item.dataset["open"] = "true";
-    if (row.id === latest?.presentingId) item.dataset["live"] = "true";
-
-    const button = document.createElement("button");
-    button.type = "button";
-    button.addEventListener("click", () => {
-      commit();
-      send({ type: "openItem", itemId: row.id });
-    });
-
-    const line = document.createElement("span");
-    line.className = "row-line";
-
-    const kind = document.createElement("span");
-    kind.className = "row-kind";
-    kind.dataset["kind"] = row.kind;
-    kind.textContent = KINDS[row.kind];
-    line.append(kind);
-
-    const title = document.createElement("span");
-    title.className = "row-title";
-    title.textContent = row.title;
-    line.append(title);
-    button.append(line);
-
-    const facts = document.createElement("span");
-    facts.className = "row-facts";
-    const detail = [countOf(row.kind, row.count)];
-    if (row.subtitle !== null) detail.push(row.subtitle);
-    if (row.id === latest?.presentingId) detail.push("on screen");
-    if (row.origin === "hearth") detail.push("from Hearth");
-    facts.textContent = detail.join("  ·  ");
-    button.append(facts);
-
-    item.append(button);
-    el.library.append(item);
-  }
+  el.tiles.replaceChildren();
+  for (const row of shown) el.tiles.append(tileFor(row, themes));
 
   el.libraryEmpty.hidden = shown.length > 0;
   el.libraryEmpty.textContent =
     rows.length === 0 ? "Nothing saved yet" : "Nothing matches that";
+}
+
+function tileFor(row: LibraryItem, themes: ThemeChoice[]): HTMLLIElement {
+  const item = document.createElement("li");
+  if (row.id === latest?.presentingId) item.dataset["live"] = "true";
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "tile";
+  button.addEventListener("click", () => send({ type: "openItem", itemId: row.id }));
+
+  // The first slide, in the look it is presented in. A thumbnail rather than a
+  // rendering: the measured fit belongs on a screen somebody is reading from,
+  // and running it for two hundred tiles would cost a second of layout.
+  const look = themes.find((theme) => theme.id === row.themeId) ?? themes[0];
+  const screen = document.createElement("span");
+  screen.className = "tile-screen";
+  if (look !== undefined) {
+    screen.style.backgroundColor = look.background;
+    screen.style.backgroundImage = gradientCss(look.gradient, look.background);
+    screen.style.color = look.colour;
+    screen.style.fontFamily = look.fontFamily;
+    screen.style.textAlign = look.textAlign;
+  }
+  for (const line of row.preview.slice(0, 4)) {
+    const paragraph = document.createElement("span");
+    paragraph.className = "tile-line";
+    paragraph.textContent = line;
+    screen.append(paragraph);
+  }
+  button.append(screen);
+
+  const title = document.createElement("span");
+  title.className = "tile-title";
+  title.textContent = row.title;
+  button.append(title);
+
+  const facts = document.createElement("span");
+  facts.className = "tile-facts";
+  const detail = [countOf(row.kind, row.count)];
+  if (row.subtitle !== null) detail.push(row.subtitle);
+  if (row.id === latest?.presentingId) detail.push("on screen");
+  if (row.origin === "hearth") detail.push("from Hearth");
+  facts.textContent = detail.join("  \u00b7  ");
+  button.append(facts);
+
+  item.append(button);
+  return item;
 }
 
 /** What a problem code says on screen. The codes come from the model. */
@@ -650,11 +723,13 @@ function paint(next: EditorState): void {
       title: next.editing.title,
       slides: next.editing.slides.map((slide) => ({ ...slide })),
       themeId: next.editing.themeId,
+      song: next.editing.song,
       readOnly: next.editing.readOnly,
     };
     removed = null;
     noteOpen.clear();
     el.title.value = draft.title;
+    renderCredits();
     renderSlides();
   } else {
     // The same presentation coming back from a save. The id is picked up, and
@@ -663,6 +738,11 @@ function paint(next: EditorState): void {
     draft.kind = next.editing.kind;
     draft.readOnly = next.editing.readOnly;
   }
+
+  // One view at a time. The library is what the window opens on, and opening
+  // something fills the window with it.
+  el.libraryView.hidden = draft !== null;
+  el.editView.hidden = draft === null;
 
   renderThemes();
   renderLibrary();
@@ -694,6 +774,33 @@ el.title.addEventListener("keydown", (event) => {
   const first = el.slides.querySelector<HTMLTextAreaElement>("#body-0");
   if (first === null) el.add.focus();
   else first.focus();
+});
+
+type TextField = "author" | "year" | "ccliNumber" | "copyrightLine";
+
+for (const [field, name] of [
+  [el.author, "author"],
+  [el.year, "year"],
+  [el.ccli, "ccliNumber"],
+  [el.copyright, "copyrightLine"],
+] as [HTMLInputElement, TextField][]) {
+  field.addEventListener("input", () => {
+    if (draft?.song == null) return;
+    draft.song[name] = field.value;
+    schedule();
+  });
+  field.addEventListener("blur", commit);
+}
+
+el.publicDomain.addEventListener("change", () => {
+  if (draft?.song == null) return;
+  draft.song.isPublicDomain = el.publicDomain.checked;
+  commit();
+});
+
+el.back.addEventListener("click", () => {
+  commit();
+  send({ type: "closeItem" });
 });
 
 el.theme.addEventListener("change", () => {

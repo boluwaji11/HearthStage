@@ -270,7 +270,9 @@ app.whenReady().then(() => {
         return;
       case "newPresentation":
       case "openItem":
+      case "closeItem":
       case "savePresentation":
+      case "saveSong":
         if (presentations.apply(payload)) broadcast();
         return;
       default:

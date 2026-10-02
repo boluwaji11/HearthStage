@@ -31,7 +31,7 @@ beforeEach(() => {
   directory = mkdtempSync(join(tmpdir(), "hearth-editor-"));
   opened = openLibrary(join(directory, "library.db"), { backups: false });
   let next = 0;
-  presentations = new Presentations(opened.library, { id: () => `pres_${++next}` });
+  presentations = new Presentations(opened.library, { id: (prefix) => `${prefix}_${++next}` });
 });
 
 afterEach(() => {
@@ -57,6 +57,7 @@ describe("the first ten minutes", () => {
       title: "",
       slides: [],
       themeId: null,
+      song: null,
       readOnly: false,
     });
   });
@@ -341,18 +342,20 @@ describe("one list, songs and slides together", () => {
     ]);
   });
 
-  it("opens a song as the sections it is made of, read only", () => {
+  it("opens a song as the sections it is made of", () => {
     expect(presentations.apply({ type: "openItem", itemId: "song-amazing-grace" })).toBe(true);
     const editing = presentations.state().editing;
 
     expect(editing?.kind).toBe("song");
-    expect(editing?.readOnly).toBe(true);
+    // A song of the church's own is theirs to edit (STG-7). A synced one is the
+    // platform's and stays read only.
+    expect(editing?.readOnly).toBe(false);
     expect(editing?.title).toBe("Amazing Grace");
     expect(editing?.slides[0]?.label).toBe("V1");
     expect(editing?.slides[0]?.body.split("\n")[0]).toBe("Amazing grace! how sweet the sound");
   });
 
-  it("refuses to write a song through the slide editor", () => {
+  it("refuses to write a song through the presentation path", () => {
     presentations.apply({ type: "openItem", itemId: "song-amazing-grace" });
     const saved = presentations.apply({
       type: "savePresentation",
@@ -523,5 +526,143 @@ describe("the look, and the words", () => {
     const session = new Session(compileDeck(plan, lookupFrom([]), { presentations: lookup }), plan);
 
     expect(session.outputState("display:1").theme.id).toBe(DEFAULT_THEME.id);
+  });
+});
+
+describe("typing a song in, through the editor", () => {
+  const FIELDS = {
+    author: "John Newton",
+    composer: "",
+    copyrightLine: "Public Domain",
+    ccliNumber: "22025",
+    year: "1779",
+    isPublicDomain: true,
+    defaultKey: "G",
+  };
+
+  it("saves it, and the library gains a song", () => {
+    expect(
+      presentations.apply({
+        type: "saveSong",
+        songId: null,
+        title: "Be Thou My Vision",
+        fields: FIELDS,
+        sections: [{ label: null, body: "Be Thou my vision, O Lord of my heart" }],
+      }),
+    ).toBe(true);
+
+    const rows = presentations.state().library;
+    expect(rows.map((row) => [row.kind, row.title])).toEqual([["song", "Be Thou My Vision"]]);
+    expect(presentations.state().editing?.song?.author).toBe("John Newton");
+  });
+
+  it("presents straight away, because it was given an arrangement", () => {
+    presentations.apply({
+      type: "saveSong",
+      songId: null,
+      title: "Be Thou My Vision",
+      fields: FIELDS,
+      sections: [
+        { label: null, body: "Be Thou my vision" },
+        { label: null, body: "Be Thou my wisdom" },
+      ],
+    });
+
+    const whole = opened.library.get("song_1");
+    expect(whole?.arrangements[0]?.sequence).toEqual(["V1", "V2"]);
+  });
+
+  it("reports a song with no title, and keeps nothing", () => {
+    presentations.apply({
+      type: "saveSong",
+      songId: null,
+      title: "  ",
+      fields: FIELDS,
+      sections: [{ label: null, body: "Be Thou my vision" }],
+    });
+
+    expect(presentations.state().problems.map((problem) => problem.code)).toContain(
+      "title.missing",
+    );
+    expect(presentations.state().library).toEqual([]);
+  });
+
+  it("reports a song with no words, and keeps nothing", () => {
+    presentations.apply({
+      type: "saveSong",
+      songId: null,
+      title: "Be Thou My Vision",
+      fields: FIELDS,
+      sections: [],
+    });
+
+    expect(presentations.state().problems.map((problem) => problem.code)).toContain(
+      "sections.none",
+    );
+    expect(presentations.state().library).toEqual([]);
+  });
+
+  it("opens a song of the church's own for editing", () => {
+    opened.library.save(amazingGrace);
+    presentations.apply({ type: "openItem", itemId: "song-amazing-grace" });
+
+    const editing = presentations.state().editing;
+    expect(editing?.kind).toBe("song");
+    expect(editing?.readOnly).toBe(false);
+    expect(editing?.song?.author).toBe("John Newton");
+    expect(editing?.slides[0]?.label).toBe("V1");
+  });
+
+  it("refuses to write a song over a presentation's id", () => {
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: null,
+      title: "Notices",
+      slides: NOTICES,
+    });
+    expect(
+      presentations.apply({
+        type: "saveSong",
+        songId: "pres_1",
+        title: "Notices",
+        fields: FIELDS,
+        sections: [{ label: null, body: "One" }],
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("going back to the library", () => {
+  it("closes what is open", () => {
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: null,
+      title: "Notices",
+      slides: NOTICES,
+    });
+    expect(presentations.state().editing).not.toBeNull();
+
+    expect(presentations.apply({ type: "closeItem" })).toBe(true);
+    expect(presentations.state().editing).toBeNull();
+    // The row is still there, which is what the tiles are drawn from.
+    expect(presentations.state().library).toHaveLength(1);
+  });
+
+  it("does nothing when the library is already what is showing", () => {
+    expect(presentations.apply({ type: "closeItem" })).toBe(false);
+  });
+
+  it("gives every tile the words to draw and the look to draw them in", () => {
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: null,
+      title: "Notices",
+      slides: NOTICES,
+      themeId: "hearth-strong",
+    });
+
+    const [row] = presentations.state().library;
+    expect(row?.preview).toEqual(["Morning Service"]);
+    expect(row?.themeId).toBe("hearth-strong");
   });
 });

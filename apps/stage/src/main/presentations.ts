@@ -22,14 +22,17 @@ import {
   type WholeSong,
 } from "@hearth/songs";
 import type { LibraryItem as StoredItem } from "@hearth/stage-store";
+import { hasErrors, validateWholeSong } from "@hearth/songs";
 import type {
   EditorState,
   Intent,
   LibraryItem,
   SlideDraft,
+  SongFields,
   ThemeChoice,
 } from "@hearth/stage-protocol";
 import { BUILT_IN_THEMES, hasTheme } from "./themes";
+import { fieldsOf, sectionDrafts, songFrom } from "./songs";
 
 /** What this needs from the library. `Library` from the store satisfies it. */
 export interface PresentationLibrary {
@@ -39,11 +42,12 @@ export interface PresentationLibrary {
   /** Songs and presentations as one list (STG-146). */
   items(): StoredItem[];
   get(songId: string): WholeSong | null;
+  save(whole: WholeSong): void;
 }
 
 export interface PresentationsOptions {
   /** Overridden in a test, so saved ids are predictable. */
-  id?: () => string;
+  id?: (prefix: string) => string;
 }
 
 /**
@@ -52,15 +56,15 @@ export interface PresentationsOptions {
  * Time ordered and random at the end, so two laptops that later pair cannot
  * collide and the library sorts roughly by age without a second column.
  */
-function randomId(): string {
+function randomId(prefix: string): string {
   const stamp = Date.now().toString(36);
   const noise = Math.random().toString(36).slice(2, 10);
-  return `pres_${stamp}${noise}`;
+  return `${prefix}_${stamp}${noise}`;
 }
 
 export class Presentations {
   private readonly library: PresentationLibrary;
-  private readonly nextId: () => string;
+  private readonly makeId: (prefix: string) => string;
   private editingId: string | null = null;
   /** True after "New", before the first save, when there is no row yet. */
   private drafting = false;
@@ -76,7 +80,11 @@ export class Presentations {
 
   constructor(library: PresentationLibrary, options: PresentationsOptions = {}) {
     this.library = library;
-    this.nextId = options.id ?? randomId;
+    this.makeId = options.id ?? randomId;
+  }
+
+  private nextId(prefix: string): string {
+    return this.makeId(prefix);
   }
 
   /** The lookup the deck compiler takes. Read fresh, so a save shows up. */
@@ -112,6 +120,18 @@ export class Presentations {
       case "savePresentation":
         return this.save(intent.presentationId, intent.title, intent.slides, intent.themeId);
 
+      case "saveSong":
+        return this.saveSong(intent.songId, intent.title, intent.fields, intent.sections);
+
+      case "closeItem":
+        if (this.editingId === null && !this.drafting && this.problems.length === 0) return false;
+        this.editingId = null;
+        this.drafting = false;
+        this.problems = [];
+        this.serial += 1;
+        this.revision += 1;
+        return true;
+
       default:
         return false;
     }
@@ -134,7 +154,7 @@ export class Presentations {
   ): boolean {
     // Null means create. The window sends the open presentation's id when there
     // is one, so "save" and "save a copy" cannot be confused here.
-    const id = presentationId ?? this.nextId();
+    const id = presentationId ?? this.nextId("pres");
 
     // A song opens in this window read only, so a save naming one is a window
     // with a defect in it. Refused here rather than written, because writing it
@@ -181,6 +201,48 @@ export class Presentations {
     return true;
   }
 
+  /**
+   * Writes a song somebody typed (STG-7, ST2.1).
+   *
+   * The same shape as saving a presentation: the window sends boxes, the model
+   * turns them into records, and the store validates. Problems come back on the
+   * state, because a person who left the title empty should see the reason
+   * beside the field rather than lose what they typed.
+   */
+  private saveSong(
+    songId: string | null,
+    title: string,
+    fields: SongFields,
+    sections: SlideDraft[],
+  ): boolean {
+    const id = songId ?? this.nextId("song");
+
+    // A presentation under this id would mean two rows in the library sharing a
+    // key, so a save naming one is a window with a defect in it.
+    if (this.library.getPresentation(id) !== null) return false;
+
+    const existing = this.library.get(id);
+    if (existing !== null && existing.song.origin !== "local") return false;
+
+    const whole = songFrom({ id, title, fields, sections, existing });
+    const found = validateWholeSong(whole);
+    if (hasErrors(found)) {
+      this.problems = found
+        .filter((problem) => problem.severity === "error")
+        .map((problem) => ({ code: problem.code, detail: detailOf(problem) }));
+      this.editingId = existing === null ? null : id;
+      this.revision += 1;
+      return true;
+    }
+
+    this.library.save(whole);
+    this.editingId = id;
+    this.drafting = false;
+    this.problems = [];
+    this.revision += 1;
+    return true;
+  }
+
   /** What the editor window paints. */
   state(presentingId: string | null = null): EditorState {
     return {
@@ -203,6 +265,8 @@ export class Presentations {
           title: row.title,
           subtitle: row.subtitle,
           count: row.count,
+          preview: row.preview,
+          themeId: row.themeId,
           origin: row.origin,
         }),
       ),
@@ -230,6 +294,7 @@ export class Presentations {
           title: presentation.title,
           slides: slideInputs(presentation),
           themeId: presentation.themeId,
+          song: null,
           // A synced presentation belongs to the platform, so the laptop shows
           // it and does not write it.
           readOnly: presentation.origin !== "local",
@@ -243,11 +308,12 @@ export class Presentations {
           kind: "song",
           serial: this.serial,
           title: song.song.title,
-          slides: [...song.sections]
-            .sort((left, right) => left.sortOrder - right.sortOrder)
-            .map((section) => ({ label: section.label, body: section.lines.join("\n") })),
+          slides: sectionDrafts(song),
           themeId: null,
-          readOnly: true,
+          song: fieldsOf(song.song),
+          // A synced song belongs to the platform, so the laptop shows it and
+          // does not write it (PRD section 2, the two-writer rule).
+          readOnly: song.song.origin !== "local",
         };
       }
     }
@@ -260,6 +326,7 @@ export class Presentations {
         title: "",
         slides: [],
         themeId: null,
+        song: null,
         readOnly: false,
       };
     }

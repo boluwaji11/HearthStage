@@ -10,34 +10,60 @@
     <link rel="stylesheet" href="./editor.css" />
   </head>
   <body>
-    <header>
-      <h1>Slides</h1>
-      <div class="actions">
-        <button id="new" type="button">New</button>
-        <button id="present" type="button">Present</button>
-      </div>
-    </header>
-
-    <main>
-      <section class="library" aria-label="Library">
-        <div class="field">
+    <!-- The library. What the window opens on. -->
+    <section id="library-view" class="view library-view" aria-label="Library">
+      <header>
+        <h1>Slides</h1>
+        <div class="field search-field">
           <label for="search">Search</label>
           <input id="search" type="search" autocomplete="off" />
         </div>
-        <ol id="library"></ol>
-        <p id="library-empty" class="quiet">Nothing saved yet</p>
-      </section>
+        <button id="new" type="button" class="primary">New</button>
+      </header>
+      <div class="tiles-wrap">
+        <ol id="tiles" class="tiles"></ol>
+        <p id="library-empty" class="quiet empty">Nothing saved yet</p>
+      </div>
+    </section>
 
-      <section class="edit" aria-label="Edit">
-        <div class="heading">
-          <div class="field grow">
-            <label for="title">Title</label>
-            <input id="title" type="text" autocomplete="off" spellcheck="false" />
+    <!-- One thing, open. -->
+    <section id="edit-view" class="view edit-view" aria-label="Edit" hidden>
+      <header>
+        <button id="back" type="button" class="back">All slides</button>
+        <div class="field">
+          <label for="theme">Look</label>
+          <select id="theme"></select>
+        </div>
+        <button id="present" type="button">Present</button>
+      </header>
+
+      <div class="edit-body">
+        <div class="field">
+          <label for="title">Title</label>
+          <input id="title" type="text" autocomplete="off" spellcheck="false" />
+        </div>
+
+        <div id="credits" class="credits" hidden>
+          <div class="field">
+            <label for="author">Author</label>
+            <input id="author" type="text" autocomplete="off" />
           </div>
           <div class="field">
-            <label for="theme">Look</label>
-            <select id="theme"></select>
+            <label for="year">Year</label>
+            <input id="year" type="text" inputmode="numeric" autocomplete="off" />
           </div>
+          <div class="field">
+            <label for="ccli">CCLI number</label>
+            <input id="ccli" type="text" inputmode="numeric" autocomplete="off" />
+          </div>
+          <div class="field grow">
+            <label for="copyright">Copyright line</label>
+            <input id="copyright" type="text" autocomplete="off" />
+          </div>
+          <label class="check" for="public-domain">
+            <input id="public-domain" type="checkbox" />
+            Public domain
+          </label>
         </div>
 
         <ol id="slides" class="slides"></ol>
@@ -48,17 +74,17 @@
         </div>
 
         <ul id="problems" class="problems"></ul>
-      </section>
-    </main>
+      </div>
 
-    <footer>
-      <p id="status" class="quiet"></p>
-      <p id="undone" class="undone" hidden>
-        <span id="undone-what"></span>
-        <button id="undo" type="button">Undo</button>
-      </p>
-      <p class="quiet keys">Cmd and Return adds a slide</p>
-    </footer>
+      <footer>
+        <p id="status" class="quiet"></p>
+        <p id="undone" class="undone" hidden>
+          <span id="undone-what"></span>
+          <button id="undo" type="button">Undo</button>
+        </p>
+        <p class="quiet keys">Cmd and Return adds a slide</p>
+      </footer>
+    </section>
 
     <script type="module" src="./editor.ts"></script>
   </body>

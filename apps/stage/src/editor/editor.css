@@ -49,12 +49,21 @@
 
 body {
   height: 100vh;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
   background: var(--canvas);
   color: var(--text);
   font-size: 0.875rem;
   overflow: hidden;
+}
+
+/* `hidden` beats any layout rule, whatever order the rules fall in. */
+[hidden] {
+  display: none !important;
+}
+
+.view {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 :focus-visible {
@@ -131,62 +140,96 @@ button[disabled] {
   cursor: default;
 }
 
-main {
-  display: grid;
-  grid-template-columns: 17rem 1fr;
-  min-height: 0;
-}
-
-.library {
-  min-height: 0;
-  padding: var(--space-3);
-  border-right: 1px solid var(--line);
-  display: grid;
-  grid-template-rows: auto 1fr;
-  gap: var(--space-3);
-}
-
-.library ol {
-  min-height: 0;
-  overflow-y: auto;
-}
-
 ol {
   list-style: none;
 }
 
-.library ol {
+header .search-field {
+  flex: 1;
+  max-width: 24rem;
+}
+
+#search {
+  font-size: 0.875rem;
+}
+
+.tiles-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+
+/*
+ * The library as tiles (STG-146).
+ *
+ * A tile is the thing it opens: its first slide, in the look it is presented
+ * in. A church recognises the notices by what they look like faster than by
+ * reading a row in a list.
+ */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: var(--space-4);
+}
+
+.tile {
+  width: 100%;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+  background: transparent;
+  border: 0;
+  text-align: left;
+}
+
+.tile-screen {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  justify-content: center;
+  gap: 0.15em;
+  aspect-ratio: 16 / 9;
+  padding: 8%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  font-size: 0.6875rem;
+  line-height: 1.25;
 }
 
-.library button {
-  width: 100%;
-  text-align: left;
-  display: grid;
-  gap: 2px;
-  background: transparent;
-  border-color: transparent;
+.tiles li[data-live="true"] .tile-screen {
+  border-color: var(--ember-500);
+  box-shadow: 0 0 0 2px var(--ember-500);
 }
 
-.library li[data-open="true"] button {
-  background: var(--raised);
+.tile:hover .tile-screen {
   border-color: var(--stone-700);
 }
 
-.library li[data-live="true"] button {
-  border-color: var(--ember-500);
+.tile:focus-visible .tile-screen {
+  outline: 2px solid var(--ember-500);
+  outline-offset: 2px;
 }
 
-.row-line {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
+.tile-line {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.row-title {
+.tile-title {
+  margin-top: var(--space-1);
   font-weight: 500;
+}
+
+.tile-facts {
+  color: var(--quiet);
+  font-size: 0.75rem;
+}
+
+.empty {
+  padding: var(--space-4) 0;
 }
 
 /*
@@ -228,7 +271,8 @@ ol {
   font-variant-numeric: tabular-nums;
 }
 
-.edit {
+.edit-body {
+  flex: 1;
   min-height: 0;
   overflow-y: auto;
   padding: var(--space-4);
@@ -236,8 +280,43 @@ ol {
   flex-direction: column;
   gap: var(--space-4);
   /* A slide is short. A line length a person can read beats a full width box. */
-  max-width: 46rem;
+  max-width: 48rem;
   width: 100%;
+  margin: 0 auto;
+}
+
+.back::before {
+  content: "\2190";
+  margin-right: var(--space-2);
+}
+
+.credits {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.credits .field {
+  width: 9rem;
+}
+
+.credits .field.grow {
+  flex: 1;
+  min-width: 14rem;
+  width: auto;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text);
+  font-size: 0.8125rem;
+  font-weight: 400;
 }
 
 .field {
@@ -248,12 +327,6 @@ ol {
 
 .field.grow {
   flex: 1;
-}
-
-.heading {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-3);
 }
 
 select {

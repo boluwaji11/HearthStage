@@ -98,7 +98,7 @@ thing a person does with Stage and until now there was no way to do it. See
 | STG-149 | First run: one line saying what to do, and three ways in | ST1.2 | Resolved |
 | STG-168 | Name the application properly, so its data lives in "Hearth Stage" rather than in a folder named after a package, and move an existing library across | ST19.5 | Resolved |
 | STG-6 | Build the local library store: songs, sections, arrangements, durable and backed up on write | ST2.1, ST19.5 | Resolved |
-| STG-7 | Type a song in: title, the copyright fields, and lyrics as labelled sections | ST2.1, ST2.2 | New |
+| STG-7 | Type a song in: title, the copyright fields, and lyrics as labelled sections | ST2.1, ST2.2 | Resolved |
 | STG-8 | Offer a section split when a plain lyric block is pasted, confirmed by the operator | ST2.2 | New |
 | STG-9 | Create arrangements with a key, a tempo and a sequence, one of them default | ST2.3 | New |
 | STG-10 | Ship a public-domain sample song set, and offer it on first run. The two bundled hymns already land in an empty library, from STG-146 | ST1.2 | New |
@@ -472,8 +472,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-7** to **STG-10**, the song side: typing a song in, pasted lyrics, arrangements, and the sample set offered rather than seeded. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-8**, offering a split when a block of lyrics is pasted, then STG-9 arrangements and STG-10 the sample set offered rather than seeded. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1158,3 +1158,66 @@ a case with a test on it:
 The old directory keeps its browser caches, which are disposable and belong to a profile that no
 longer exists. Clearing those up is not worth the risk of a recursive delete in a path built from a
 name.
+
+---
+
+## The Slides window, rebuilt, and STG-7
+
+Two pieces of testing feedback and one story, in one pass.
+
+### The window opens on the library
+
+A sidebar beside an editor spent a third of a laptop screen on a list nobody reads while they type.
+It is two views now, one at a time.
+
+- **The library.** Search at the top, **New** at the top right, and the saved work as tiles.
+- **One thing, open.** Pressing a tile or **New** fills the window with it, and **All slides** goes
+  back.
+
+A tile is the thing it opens: its first slide, in the look it is presented in. A church recognises
+the notices by what they look like faster than by reading a row in a list, and a wall of titles in
+one font is a filing cabinet. The tile is a thumbnail rather than a rendering, because the measured
+fit belongs on a screen somebody is reading from and running it for two hundred tiles would cost a
+second of layout.
+
+### A song is a thing with slides
+
+The cards are identical whichever it is. There is no control asking what kind of section a slide is,
+because a volunteer typing their first song has never heard of a pre-chorus and does not need to.
+
+What that costs is handled rather than dropped:
+
+- **A label is generated.** A label is what an arrangement's sequence refers to, so a song must have
+  them. Sections get `V1`, `V2`, `C`, `B` from their kind and their order, and the **Slide title**
+  field overwrites them for anybody who cares. A label somebody typed is kept, and a generated one
+  moves along rather than clashing with it.
+- **The kind rides along.** It goes to the window on the draft, is never shown, and comes back
+  untouched, so editing the words of an imported song leaves its choruses as choruses. A section
+  nobody has typed a kind for is a verse. Setting kinds is part of arrangements, STG-9.
+- **A song gets an arrangement nobody asked for.** A song without one cannot present, and the obvious
+  one is every section once in the order they were typed. Making, naming and reordering them is
+  STG-9.
+
+A song also carries the credits a licensed song has to show: author, year, CCLI number, copyright
+line and whether it is public domain. Those appear on a song and not on a sheet of notices, because
+a sheet of notices has nothing to carry.
+
+### STG-7, how to test it
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+- Press **Slides**. The window opens on tiles, with search at the top and **New** at the top right.
+- Press **New**. The window clears to one empty slide, ready to type.
+- Press **All slides** to go back.
+- Press the **Amazing Grace** tile. It opens for editing like anything else: the same cards, the same
+  **Add slide**, the same drag and the same icons. Above them are the credits.
+- Change a word in a verse and press **All slides**. Open it again: the change is there.
+- Add a verse. It is given the next label without being asked for one.
+- Press **Present** on it. It presents, because it has an arrangement whether or not anybody made one.
+- Type a song with no title and the problem says so, and nothing is written.
+
+**Thirty-three new tests.** The two that matter most: a section always ends up with a label, because a
+sequence refers to labels, and a song always ends up with an arrangement, because a song without one
+cannot present. Both would cost a church a rewrite if they were wrong.
