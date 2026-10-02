@@ -190,8 +190,10 @@ export class Presentations {
           id: entry.theme.id,
           name: entry.name,
           background: entry.theme.background,
+          gradient: entry.theme.gradient,
           colour: entry.theme.colour,
           fontFamily: entry.theme.fontFamily,
+          textAlign: entry.theme.textAlign,
         }),
       ),
       library: this.library.items().map(

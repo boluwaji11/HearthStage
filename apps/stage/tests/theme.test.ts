@@ -18,10 +18,24 @@ function ratio(a: string, b: string): number {
 }
 
 describe.each(BUILT_IN_THEMES)("the $name theme", ({ theme }) => {
-  it("clears 7:1 against its own background", () => {
+  it("clears 7:1 against its own ground", () => {
     // The station floor from docs/design-system.md, which is the right bar for
     // an output: a sign read from the back of a dark room.
     expect(ratio(theme.colour, theme.background)).toBeGreaterThanOrEqual(7);
+  });
+
+  it("clears 7:1 against every stop of its gradient", () => {
+    // The part a gradient makes easy to get wrong. A light patch halfway down a
+    // dark ground is where the words stop being readable, and the flat colour
+    // says nothing about it.
+    for (const stop of theme.gradient?.stops ?? []) {
+      expect(ratio(theme.colour, stop), stop).toBeGreaterThanOrEqual(7);
+    }
+  });
+
+  it("names at least two stops where it has a gradient", () => {
+    if (theme.gradient === null) return;
+    expect(theme.gradient.stops.length).toBeGreaterThanOrEqual(2);
   });
 
   it("has cap height at or above 4% of output height", () => {

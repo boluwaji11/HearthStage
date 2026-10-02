@@ -1031,7 +1031,7 @@ pnpm --filter @hearth/stage dev
 | Daylight | Dark words on a light ground, for a lobby screen or an overflow room read in daylight. A dark slide in a lit room is a mirror. |
 | Strong | A projector that has lost its contrast. Bigger, heavier, white on black. A church with a fifteen year old projector and no budget has this problem, and the answer every other product gives is to buy a projector. |
 
-**Thirty-four new tests.** What they defend:
+**Forty-two new tests.** What they defend:
 
 1. **Every look clears 7:1 against its own background**, checked with the platform's own OKLCH
    contrast maths rather than by eye. The next person to add a theme will be choosing colours they
@@ -1048,7 +1048,26 @@ pnpm --filter @hearth/stage dev
 6. **A save that does not mention the look leaves it alone**, which is what lets the editor save on
    every keystroke pause without touching the theme.
 
-**Still to come on themes.** Separate looks per content kind (ST8.3) and previewing at the real
-output resolution (ST8.4) are S0.3. Editing a theme inside Stage with a contrast check that refuses
-to save below 7:1 is ST8.6, in S1.0. Daylight carries no text shadow, which is right on a solid
-background and will need revisiting when video backgrounds arrive in ST9.x.
+### What testing changed, 2 October 2026
+
+**The key brief sat in the middle of the window.** The problems strip from the previous fix gave the
+control surface four named grid rows and only three of them exist on a service that compiles
+cleanly, so the deck took an `auto` row and the footer took the `1fr`. It is a flex column now, which
+cannot be wrong about how many children there are.
+
+**The looks were flat.** Four solid fills behind twelve words reads as a document rather than as a
+slide, and on a nine foot screen that is the difference between church software and free church
+software. STG-20 had already built gradient grounds and no theme used one. They do now: a warm glow
+behind Hearth, a cool raked ground behind Plain, warm paper for Daylight, and Strong stays flat on
+purpose because a gradient spends the contrast that theme exists to keep. Plain also ranges left and
+drops the serif, because "Church lunch, the 12th" set centred in a serif reads as a hymn.
+
+A gradient is held as stops rather than as a CSS string, so **the 7:1 floor is checked against every
+stop**. A light patch halfway down a dark ground is exactly where words stop being readable, and the
+flat colour says nothing about it. Measured: the closest any theme comes to the floor is 13.8:1.
+
+**Still to come on themes.** The thing actually missing is a church's own photographs and video
+behind the words, and that is the media library: **STG-151** and **STG-67**, in S0.2 and S0.3. These
+gradients stand in for that rather than compete with it. Separate looks per content kind (ST8.3) and
+previewing at the real output resolution (ST8.4) are S0.3. Editing a theme inside Stage with a
+contrast check that refuses to save below 7:1 is ST8.6, in S1.0.

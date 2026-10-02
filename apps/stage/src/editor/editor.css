@@ -396,9 +396,11 @@ textarea:read-only {
  * this properly, at the real output resolution).
  */
 body[data-themed="true"] .card-body {
-  background: var(--slide-background);
+  background-color: var(--slide-background);
+  background-image: var(--slide-image, none);
   color: var(--slide-colour);
   font-family: var(--slide-font);
+  text-align: var(--slide-align, left);
   border-color: transparent;
 }
 

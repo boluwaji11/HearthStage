@@ -21,12 +21,13 @@
  */
 
 import { parseSlides } from "@hearth/songs";
-import type {
-  EditorState,
-  Intent,
-  LibraryKind,
-  SlideDraft,
-  ThemeChoice,
+import {
+  gradientCss,
+  type EditorState,
+  type Intent,
+  type LibraryKind,
+  type SlideDraft,
+  type ThemeChoice,
 } from "@hearth/stage-protocol";
 import { icon } from "./icons";
 
@@ -536,8 +537,13 @@ function renderThemes(): void {
   const live = themes.find((theme) => theme.id === draft?.themeId);
   const root = document.documentElement;
   root.style.setProperty("--slide-background", live?.background ?? "");
+  root.style.setProperty(
+    "--slide-image",
+    live === undefined ? "none" : gradientCss(live.gradient, live.background),
+  );
   root.style.setProperty("--slide-colour", live?.colour ?? "");
   root.style.setProperty("--slide-font", live?.fontFamily ?? "");
+  root.style.setProperty("--slide-align", live?.textAlign ?? "left");
   document.body.dataset["themed"] = live === undefined ? "false" : "true";
 }
 

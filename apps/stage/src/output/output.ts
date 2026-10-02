@@ -11,7 +11,7 @@
  * size, arrives with STG-18.
  */
 
-import type { OutputContent, OutputState, ThemeState } from "@hearth/stage-protocol";
+import { gradientCss, type OutputContent, type OutputState, type ThemeState } from "@hearth/stage-protocol";
 import { FitCache, safeBox, type Box } from "./fit";
 
 const layers = [
@@ -92,7 +92,10 @@ function applyTheme(theme: ThemeState): void {
   root.style.setProperty("--text-size", `${theme.textSize * 100}vh`);
   root.style.setProperty("--line-height", String(theme.lineHeight));
   root.style.setProperty("--colour", theme.colour);
-  root.style.setProperty("--background", theme.background);
+  // The flat colour stays as the fallback, so a layer that cannot take an
+  // image still has the right ground under it.
+  root.style.setProperty("--background-colour", theme.background);
+  root.style.setProperty("--background", gradientCss(theme.gradient, theme.background));
   root.style.setProperty("--text-align", theme.textAlign);
   root.style.setProperty(
     "--justify",

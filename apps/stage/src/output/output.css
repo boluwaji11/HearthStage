@@ -18,7 +18,8 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: var(--background, #000);
+  background-color: var(--background-colour, #000);
+  background-image: var(--background, none);
   cursor: none;
 }
 
@@ -98,12 +99,14 @@ body {
 }
 
 .cover[data-blank="clear"] {
-  background: var(--background, #000);
+  background-color: var(--background-colour, #000);
+  background-image: var(--background, none);
   opacity: 1;
 }
 
 .cover[data-blank="logo"] {
-  background: var(--background, #000);
+  background-color: var(--background-colour, #000);
+  background-image: var(--background, none);
   opacity: 1;
 }
 

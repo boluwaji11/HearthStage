@@ -70,6 +70,22 @@ export type OutputContent =
  * Sizes are a proportion of output height rather than pixels, so one theme is
  * right on a 1080p projector and on a 4K foyer screen (ST8.2).
  */
+/**
+ * A ground with some depth in it (ST9.1, STG-20).
+ *
+ * Stops rather than a CSS string, for two reasons. A renderer builds the string
+ * it needs, so a theme carries no syntax from a platform it may not be running
+ * on. And the legibility floor is checked against every stop, so a gradient
+ * cannot sneak a light patch under light words.
+ */
+export interface Gradient {
+  kind: "linear" | "radial";
+  /** Degrees, for a linear one. A radial one glows from a point. */
+  angle: number;
+  /** Two or more colours, in order. */
+  stops: string[];
+}
+
 export interface ThemeState {
   id: string;
   fontFamily: string;
@@ -78,7 +94,10 @@ export interface ThemeState {
   textSize: number;
   lineHeight: number;
   colour: string;
+  /** The flat ground, and what a gradient falls back to. */
   background: string;
+  /** Depth behind the words. Null leaves the ground flat (ST9.1). */
+  gradient: Gradient | null;
   textAlign: "left" | "center" | "right";
   verticalAlign: "top" | "middle" | "bottom";
   /** Safe area inset as a fraction of the shorter edge. */
@@ -196,8 +215,10 @@ export interface ThemeChoice {
   id: string;
   name: string;
   background: string;
+  gradient: Gradient | null;
   colour: string;
   fontFamily: string;
+  textAlign: "left" | "center" | "right";
 }
 
 /**
@@ -370,6 +391,20 @@ function isSlideDrafts(value: unknown): value is SlideDraft[] {
       (slide.note === undefined || slide.note === null || typeof slide.note === "string")
     );
   });
+}
+
+/**
+ * A gradient as CSS.
+ *
+ * Here rather than in each renderer, so the output window and the editor's
+ * preview cannot draw the same theme two ways.
+ */
+export function gradientCss(gradient: Gradient | null, fallback: string): string {
+  if (gradient === null || gradient.stops.length < 2) return fallback;
+  const stops = gradient.stops.join(", ");
+  return gradient.kind === "radial"
+    ? `radial-gradient(circle at 50% 42%, ${stops})`
+    : `linear-gradient(${gradient.angle}deg, ${stops})`;
 }
 
 /** The API preload puts on the window. Typed here so both sides agree. */
