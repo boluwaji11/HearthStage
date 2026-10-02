@@ -82,10 +82,20 @@ comes before everything, because the deck compiler is what a window renders.
 | STG-4 | Compile a set list into a deck of cue groups, deterministically, with golden fixtures | ST5.1, ST5.4 | Resolved |
 | STG-5 | Parse ChordPro and transpose to any key, verified against the fifty-chart fixture set | ST2.6, ST11.3 | Resolved |
 
-### SF2. The local library, first pass
+### SF2. Presentations and the library, first pass
+
+**Reordered after the parity inventory, 1 October 2026.** STG-145 comes first in
+this feature, ahead of the song stories, because typing a slide is the first
+thing a person does with Stage and until now there was no way to do it. See
+[docs/parity.md](docs/parity.md).
 
 | ID | Story | Req | State |
 |---|---|---|---|
+| STG-145 | **Type a presentation of plain slides and present it**: a title, three notices, a sermon outline | ST2.16 | New |
+| STG-146 | Hold a presentation's kind, so a song, a reading, plain slides and a media item are one list | ST2.16 | New |
+| STG-147 | Edit, reorder and delete the slides in a presentation | ST2.16 | New |
+| STG-148 | Apply a theme to a presentation, and change it without touching the content | ST8.1 | New |
+| STG-149 | First run: one line saying what to do, and three ways in | ST1.2 | New |
 | STG-6 | Build the local library store: songs, sections, arrangements, durable and backed up on write | ST2.1, ST19.5 | Resolved |
 | STG-7 | Type a song in: title, the copyright fields, and lyrics as labelled sections | ST2.1, ST2.2 | New |
 | STG-8 | Offer a section split when a plain lyric block is pasted, confirmed by the operator | ST2.2 | New |
@@ -171,6 +181,12 @@ The release a church with a 300 song ProPresenter library can actually adopt. No
 | STG-52 | **Log usage when a song is actually shown**, with date, set list, arrangement and key | ST2.10, ST18.7 | New |
 | STG-53 | **Export a CCLI usage report** for a period, validated against the same fixture as the platform's R12.10 | ST2.11, ST18.7 | New |
 | STG-54 | Export the whole library as OpenLyrics and as a Hearth-schema bundle, ungated | ST2.12 | New |
+| STG-150 | Collections in the library, so two hundred presentations are findable | ST2.18 | New |
+| STG-151 | **A media library**: images, video and audio added once and reusable anywhere | ST9.10 | New |
+| STG-152 | Reference media by content hash, so reorganising folders does not break last year's playlists | ST9.11 | New |
+| STG-153 | Pick media from the library when building a playlist or a theme | ST9.10 | New |
+| STG-154 | A playlist item that is media, a header or a timer, as well as a presentation | ST2.17 | New |
+| STG-155 | A note on a slide, shown to the operator and the stage display | ST2.19 | New |
 
 ### SF7. Scripture
 
@@ -246,6 +262,12 @@ Sundays with ProPresenter uninstalled.
 | STG-85 | Respect the operating system's reduced motion setting on the control surface | ST20.5 | New |
 | STG-86 | Soak test three hours with video backgrounds, asserting no memory growth | ST21.6, ST21.7 | New |
 | STG-87 | Measure cold start to the first slide, under ten seconds on reference hardware | ST21.2 | New |
+| STG-156 | **Clear one layer at a time**: the words come off and the background stays | ST10.9 | New |
+| STG-157 | A transition set per slide as well as per theme | ST12.12 | New |
+| STG-159 | **Messages**: live text over whatever is on screen, with named fields | ST12.11 | New |
+| STG-160 | **A look per output**: which of background, media, slide, props and foreground is on | ST10.10 | New |
+| STG-161 | Assign a look to each output, and see at a glance what each one is showing | ST10.10 | New |
+| STG-162 | Build the layer stack in the output renderer, composited rather than swapped | ST10.10 | New |
 
 ---
 
@@ -332,6 +354,8 @@ Everything that happens once more than one person is involved. **STG-125 needs a
 | STG-123 | Mix stills, video and slides in one announcement rotation | ST13.6 | New |
 | STG-124 | Snapshot the run as it happened, so the second service reopens it | ST5.12 | New |
 | STG-125 | Push run telemetry to a paired platform for the plan's revision history | ST18.5 | New |
+| STG-158 | Text revealed a line at a time, and nothing more elaborate than that | ST12.13 | New |
+| STG-163 | A named look applied to every output at once, so "pre-service" is one keypress | ST10.11 | New |
 
 ---
 
@@ -446,7 +470,9 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 |---|---|
 | **Active** | Nothing |
 | **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography. `pnpm --filter @hearth/stage dev` opens it. |
-| **Next** | **STG-28** the render harness and **STG-29** advance latency by frame capture, which are the two measurements that make the typography and the performance claims checkable. Then STG-21 to STG-27 the control surface proper, then song entry. |
+| **Next** | **STG-145**, typing a presentation of plain slides, which is the gap the parity inventory found and the first thing a person does with Stage. Then STG-146 to STG-149, then the measurements STG-28 and STG-29. |
+| **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
+| **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Blocked** | **SE4** only, on the six platform deliverables above. Fifty-two stories sit in front of it. |
 | **Branch** | Stage work is on the `stage` branch, in a git worktree at `../hearth-stage`, so the two windows no longer share a HEAD. Everything up to `da167d8` is on `main`. |
 | **Watch** | `packages/songs` is read by the platform's song library screens in 0.4, and `packages/song-import` by its R20.10 importers. The schema in PRD section 9.4 is the contract, and a change to it is a platform story. |
@@ -694,7 +720,7 @@ Then use it without touching the trackpad:
 
 1. **Space or the right arrow advances.** Watch the output cross-dissolve rather
    than cut. The live row in the deck moves and scrolls itself into view.
-2. **Hold the advance key down.** It moves one cue, not four. Key repeat is
+2. **Hold the advance key down.** It moves exactly one cue. Key repeat is
    ignored (ST12.4).
 3. **B blacks the output.** Press it again and the exact slide comes back. The
    deck has not moved, and the chip at the top right says Black while it is on

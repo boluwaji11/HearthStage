@@ -20,6 +20,7 @@ because no other presenter's maker also runs the church's database.
 | **Specification** | [PRD.md](PRD.md), 21 domains with `ST` requirement IDs |
 | **Board** | [BACKLOG.md](BACKLOG.md), every deliverable and its state |
 | **What people do** | [docs/journeys.md](docs/journeys.md) |
+| **What a presenter has** | [docs/parity.md](docs/parity.md), the inventory against ProPresenter and the others |
 | **How it is built** | [docs/architecture.md](docs/architecture.md) |
 | **Pairing with Hearth** | [docs/hearth-sync-contract.md](docs/hearth-sync-contract.md) |
 | **Licence** | AGPL-3.0 |

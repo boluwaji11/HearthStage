@@ -156,8 +156,17 @@ must not require them, and must not insult them when they show up.
 ### Non-goals, stated so they stop coming back
 
 Audio mixing. Lighting control. Video switching. Ableton and MultiTracks session playback. Internet
-song search. Slide design as a creative tool. A theme marketplace. Stage as a church's song database
-of record once it is paired.
+song search. A theme marketplace. Stage as a church's song database of record once it is paired.
+
+**A slide editor as a design tool.** Typing a slide and choosing a theme is in (ST2.16). Dragging text
+boxes around a canvas is out: it is how a free presenter ends up with a bad Keynote inside it, and how
+every church's slides end up looking different from every other church's.
+
+**Recording or streaming the output.** OBS is free, is better at it, and is already on the desk in
+every church that streams. Stage's job is to be a well-behaved source into it (ST16.1, ST16.2).
+
+**Masks and edge blending.** A church with a curved screen has a projector that does this in
+hardware.
 
 Those are separate products with separate hardware and separate audiences, and pretending otherwise is
 how Stage never ships. A church that needs them already owns a mixer, a lighting desk, and a switcher,
@@ -275,9 +284,21 @@ people, giving, and check-in, and every call outside the scope above is refused.
 
 ---
 
-## 7. Domain 2. The song library in Stage
+## 7. Domain 2. The library: presentations, songs and media
 
 Stage's own library, which is what makes it a presenter rather than a viewer.
+
+**Corrected, 1 October 2026.** This domain treated a song as the central object.
+In every presenter a church actually uses, the central object is a
+**presentation**: an ordered set of slides, of which a song is one kind. So is a
+sermon outline, a notice, a title card, a reading and a video. A model that holds
+only songs can present about a third of a Sunday, which is why ST2.16 exists and
+why it sits in S0.1 ahead of everything else in this domain.
+
+A song stays special, because its labelled sections and its arrangement sequence
+are what let a paired church's plan become slides with no import step. It is
+special **as a kind of presentation**. See [docs/parity.md](docs/parity.md) for
+the inventory this correction came out of.
 
 | ID | Rel | Requirement |
 |---|---|---|
@@ -296,6 +317,10 @@ Stage's own library, which is what makes it a presenter rather than a viewer.
 | ST2.13 | S0.4 | Song origin is `local` or `hearth`, shown in the library, with `hearth` songs read-only in Stage (section 2). |
 | ST2.14 | S0.4 | **Promote a `local` song into a paired church's Hearth library**, on the operator's action, one way, with a duplicate check against CCLI number and title first. |
 | ST2.15 | S0.1 | Nothing in the library is reachable from the live presentation surface (ST12.3). |
+| ST2.16 | S0.1 | **A presentation of plain slides.** A person types slides and they present: a title, three notices, a sermon outline, a blank. Each slide carries text and takes its look from a theme. This is the first thing somebody does with Stage, before any song exists. |
+| ST2.17 | S0.2 | **A playlist item can be a presentation, a piece of media, a header, or a timer.** A service is not only songs and readings. |
+| ST2.18 | S0.2 | Collections in the library, so two hundred presentations are findable by more than a search box. |
+| ST2.19 | S0.2 | A note on a slide, separate from a note on an item, shown to the operator and to the stage display. |
 
 *Accept ST2.2:* a song typed in with three verses, a chorus and a bridge, then exported and reimported,
 comes back with the same section types, labels, and line breaks.
@@ -477,6 +502,8 @@ all four bundled video loops, measured on the rendered frame rather than on toke
 | ST9.7 | S0.5 | Audio ducking is out of scope. Stage sets output device and level, and the sound desk owns the rest. |
 | ST9.8 | S1.0 | Live camera input as a background layer, with device selection and a frozen fallback if the device disappears. |
 | ST9.9 | S0.3 | A media file that is missing, corrupt, or in an undecodable codec fails to the theme colour. The control surface says what happened, and the output stays clean. |
+| ST9.10 | S0.2 | **A media library.** Images, video loops and audio, added once, organised, and reusable from any presentation or playlist. Specified as a property of a theme beforehand, which meant finding the same file on disk every time somebody wanted it. |
+| ST9.11 | S0.3 | Media is referenced by content hash, so a church reorganising its folders does not break last year's playlists. |
 
 *Accept ST9.3:* a 30 second 1080p H.264 loop plays for three hours with no visible seam at the loop
 point, no drift in memory use, and no dropped frames during a slide dissolve, on ST21.5 hardware.
@@ -497,6 +524,9 @@ point, no drift in memory use, and no dropped frames during a slide dissolve, on
 | ST10.6 | S0.3 | Resolution, scaling and aspect handled explicitly, with letterboxing by choice. |
 | ST10.7 | S0.3 | A test pattern per output showing safe areas, resolution and a contrast ramp, which is how an operator finds out the projector is clipping the edges before the service. |
 | ST10.8 | S0.5 | Output groups: name a set of outputs and address them together. |
+| ST10.9 | S0.3 | **Clear one layer at a time.** The words come off and the background stays. A prop comes off and the slide stays. One blank state cannot express how a presenter is operated. |
+| ST10.10 | S0.3 | **A look per output**: which of background, media, slide, props and foreground is on. The projector runs lyrics over a background while the foyer runs the notices and the platform screen runs the stage display, each from its own look. |
+| ST10.11 | S0.4 | A named look applied to every output at once, so "pre-service" and "during the sermon" are one keypress each. |
 
 *Accept ST10.4:* unplugging the projector, restarting Stage, and plugging it back in restores the same
 output to the same display with no reconfiguration.
@@ -539,6 +569,9 @@ The operator is sixteen and untrained. This domain is where that is either respe
 | ST12.8 | S0.5 | Hotkey customisation, with the defaults printable on one side of a card. |
 | ST12.9 | S0.5 | Macros: one trigger firing several actions, for example black the main output, show the lower third, start the timer. |
 | ST12.10 | S0.1 | **Operator brief**: a one-screen card inside Stage saying what the four keys do. It is what the sixteen year old reads at 10:28. |
+| ST12.11 | S0.3 | **Messages.** Live text typed and shown over whatever is on screen, with named fields for the things a church sends twice a year. It is how somebody is told their car is being towed, and it never touches the deck. |
+| ST12.12 | S0.3 | A transition set per slide as well as per theme, because a title card and a verse want different ones. |
+| ST12.13 | S0.5 | Text revealed a line at a time, limited to that. Motion clarifies, and a lyric that flies in from the left does not. |
 
 *Accept ST12.1:* a full service is run with the trackpad physically disconnected.
 
