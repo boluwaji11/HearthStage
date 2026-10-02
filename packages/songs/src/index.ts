@@ -91,6 +91,8 @@ export {
 
 export { labelsFor, type Labelled } from "./labels";
 
+export { bundledHymns, BUNDLED_HYMN_COUNT, type BundledHymn } from "./hymns";
+
 export {
   proposeSplit,
   headingOf,

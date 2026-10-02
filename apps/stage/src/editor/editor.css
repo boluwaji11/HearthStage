@@ -233,6 +233,10 @@ header .search-field {
 }
 
 .empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
   padding: var(--space-4) 0;
 }
 

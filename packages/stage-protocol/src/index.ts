@@ -319,6 +319,13 @@ export interface EditorState {
     orders: OrderDraft[];
     readOnly: boolean;
   } | null;
+  /**
+   * Hymns Stage can put in the library, that are not in it yet (STG-10).
+   *
+   * A count rather than the hymns, because the window only offers them. Zero
+   * means a church that already has them, and the offer goes.
+   */
+  samples: number;
   /** What is wrong with the last save attempt, by code (STG-145). */
   problems: { code: string; detail: string }[];
   /** Which presentation is live on the output, where one is. */
@@ -370,6 +377,8 @@ export type Intent =
     }
   /** Back to the library, with nothing open (STG-149). */
   | { type: "closeItem" }
+  /** Put the bundled hymns in the library (STG-10, ST1.2). */
+  | { type: "addSamples" }
   /** Puts the service away, back to the three ways in (STG-149, ST1.2). */
   | { type: "closeService" }
   | { type: "presentNow"; presentationId: string };
@@ -446,6 +455,7 @@ export function isIntent(value: unknown): value is Intent {
     case "openSample":
     case "closeItem":
     case "closeService":
+    case "addSamples":
       return true;
     case "saveSong":
       return (

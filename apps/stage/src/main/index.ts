@@ -108,25 +108,13 @@ const store = openLibrary(join(app.getPath("userData"), "library.db"), {
 });
 
 /**
- * The bundled hymns, for a library that does not have them (STG-146).
+ * STG-10, ST1.2. Nothing is written into a church's library on the way up.
  *
- * Checked one song at a time rather than by asking whether the library is
- * empty. A church that has typed a set of slides and no songs has a library
- * that is not empty and still has nothing to present from, which is how the
- * sample service came up with three missing songs during testing.
- *
- * An archived song still exists, so a church that puts one away keeps it away.
- * They are public domain. Offering the fuller sample set with a choice on first
- * run is STG-10, and this goes when that arrives.
+ * Stage carries the hymns and offers them, in Slides, where a church with an
+ * empty library is looking for something to put on a screen. The sample service
+ * brings its own two songs when somebody opens it. Landing a church in a library
+ * they did not ask for is a product deciding what a church owns.
  */
-function seed(): void {
-  for (const whole of sampleLibrary) {
-    if (store.library.get(whole.song.id) !== null) continue;
-    store.library.save(whole);
-  }
-}
-
-seed();
 
 /**
  * The orders an older build wiped, put back (STG-9).
@@ -316,6 +304,11 @@ app.whenReady().then(() => {
         broadcast();
         return;
       case "openSample":
+        // The service is made of two songs, so pressing it is what puts them
+        // in the library. Nothing arrives before somebody asks for something.
+        for (const whole of sampleLibrary) {
+          if (store.library.get(whole.song.id) === null) store.library.save(whole);
+        }
         session.open(
           compileDeck(sampleService, songs(), { presentations: presentations.lookup() }),
           sampleService,
@@ -334,6 +327,7 @@ app.whenReady().then(() => {
       case "newPresentation":
       case "openItem":
       case "closeItem":
+      case "addSamples":
       case "savePresentation":
       case "saveSong":
         if (presentations.apply(payload)) broadcast();

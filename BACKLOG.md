@@ -101,7 +101,7 @@ thing a person does with Stage and until now there was no way to do it. See
 | STG-7 | Type a song in: title, the copyright fields, and lyrics as labelled sections | ST2.1, ST2.2 | Resolved |
 | STG-8 | Offer a section split when a plain lyric block is pasted, confirmed by the operator | ST2.2 | Resolved |
 | STG-9 | Orders on a song: named sequences of slide titles, one of them default. The key and the tempo an order can hold are deferred to STG-44, where something transposes | ST2.3 | Resolved |
-| STG-10 | Ship a public-domain sample song set, and offer it on first run. The two bundled hymns already land in an empty library, from STG-146 | ST1.2 | New |
+| STG-10 | Ship a public-domain hymn set, and offer it rather than installing it. 183 hymns, built from the Open Hymnal Project by a script run by hand | ST1.2 | Resolved |
 
 ### SF1. The Electron shell
 
@@ -472,8 +472,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-10**, the sample set offered rather than seeded, then STG-11 onward. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-11** onward, the Electron shell. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1364,3 +1364,49 @@ pnpm --filter @hearth/stage dev
 **Orders are on a song and not on a sheet of notices.** A song is in the library for years and gets
 reordered weekly. The notices are written for one week, and the cards are dragged into the order they
 are read in. The cards and the editor are the same for both.
+
+## STG-10, how to test it
+
+Stage now carries 183 hymns and writes none of them anywhere until somebody presses a button. Before
+this, two landed in every library on the way up, which is a product deciding what a church owns.
+
+**Where the words come from.** The [Open Hymnal Project](http://openhymnal.org/) publishes around 300
+hymns as ABC source, and every file states the copyright of its words, its music, its translation and
+its setting separately. `packages/songs/scripts/import-open-hymnal.ts` reads the archive, keeps only
+the hymns whose **words** are in the public domain, rebuilds the verses from the syllables under the
+music, and writes `packages/songs/src/hymns.json`. It is run by hand and its output is committed, so
+the application reaches nothing at runtime and a church with no connection gets the same library.
+Stage ships no licensed lyrics, which is a requirement rather than a convenience: lyrics are the
+church's CCLI responsibility, and bundling any would make them ours.
+
+**Why 183 of 306.** 113 are left out because their words are under copyright, and ten more because
+the hymn would not come back cleanly. The lyrics sit under the music one syllable at a time, and they
+are put back together using the hymn's own metre, so `8 6 8 6` means four lines of eight, six, eight
+and six syllables. Where the syllables and the metre disagree the hymn is left out, because a hymn
+broken in the wrong place is worse on a wall than a hymn that is not there.
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+Your library already has songs in it, so the offer stays out of your way. To see it, open the built
+application against an empty data folder:
+
+```
+pnpm --filter @hearth/stage build
+cd apps/stage && npx electron . --user-data-dir=/tmp/hearth-trial
+```
+
+- The library is empty. **Add 183 hymns** sits under "Nothing saved yet".
+- Press it. The tiles fill, the button goes, and every row is a song.
+- Open one. It has its verses as slides, its author and year, "Public Domain" on the copyright line,
+  and an order called **As written**.
+- Press **Present**. It goes on the wall.
+- Search for a word in a title. The list narrows as you type.
+- Press **Try a service** on the start screen of a fresh folder. It brings its own two songs and
+  nothing else, so the sample is a thing somebody asked for.
+
+**Twelve new tests.** The ones that matter: every one of the 183 validates, every one compiles to a
+deck with no problems, every one is marked public domain, no two share an id, and no verse has an
+empty line. A church presses one button, so a hymn nobody typed has to be as sound as one somebody
+did.

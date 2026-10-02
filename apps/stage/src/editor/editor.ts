@@ -59,7 +59,8 @@ const el = {
   libraryView: document.getElementById("library-view") as HTMLElement,
   editView: document.getElementById("edit-view") as HTMLElement,
   tiles: document.getElementById("tiles") as HTMLOListElement,
-  libraryEmpty: document.getElementById("library-empty") as HTMLParagraphElement,
+  libraryEmpty: document.getElementById("library-empty") as HTMLElement,
+  addSamples: document.getElementById("add-samples") as HTMLButtonElement,
   search: document.getElementById("search") as HTMLInputElement,
   back: document.getElementById("back") as HTMLButtonElement,
   toService: document.getElementById("to-service") as HTMLButtonElement,
@@ -948,9 +949,19 @@ function renderLibrary(): void {
   el.tiles.replaceChildren();
   for (const row of shown) el.tiles.append(tileFor(row, themes));
 
-  el.libraryEmpty.hidden = shown.length > 0;
-  el.libraryEmpty.textContent =
-    rows.length === 0 ? "Nothing saved yet" : "Nothing matches that";
+  const words = el.libraryEmpty.querySelector("p");
+  if (words !== null) {
+    words.textContent = rows.length === 0 ? "Nothing saved yet" : "Nothing matches that";
+  }
+
+  // The hymns Stage carries, offered where a church feels the absence of them
+  // (STG-10, ST1.2). Nothing is written until this is pressed. A church with a
+  // sheet of notices and no songs still has nothing to sing from, so it is the
+  // absence of songs that brings the offer rather than an empty library.
+  const samples = latest?.samples ?? 0;
+  el.addSamples.hidden = samples === 0 || rows.some((row) => row.kind === "song");
+  el.addSamples.textContent = `Add ${samples} hymns`;
+  el.libraryEmpty.hidden = shown.length > 0 && el.addSamples.hidden;
 }
 
 function tileFor(row: LibraryItem, themes: ThemeChoice[]): HTMLLIElement {
@@ -1125,6 +1136,7 @@ el.search.addEventListener("input", renderLibrary);
 el.add.addEventListener("click", () => addSlide());
 el.paste.addEventListener("click", pasteSlide);
 el.addOrder.addEventListener("click", addOrder);
+el.addSamples.addEventListener("click", () => send({ type: "addSamples" }));
 el.undo.addEventListener("click", undoRemoval);
 el.newButton.addEventListener("click", () => {
   commit();

@@ -12,6 +12,8 @@
  */
 
 import {
+  BUNDLED_HYMN_COUNT,
+  bundledHymns,
   newPresentation,
   presentationsFrom,
   slideInputs,
@@ -129,6 +131,20 @@ export class Presentations {
           intent.sections,
           intent.orders,
         );
+
+      case "addSamples": {
+        // Written one at a time, skipping any the church already has, so
+        // pressing it twice cannot put a hymn in twice or undo an edit.
+        let added = 0;
+        for (const hymn of bundledHymns()) {
+          if (this.library.get(hymn.song.id) !== null) continue;
+          this.library.save(hymn);
+          added += 1;
+        }
+        if (added === 0) return false;
+        this.revision += 1;
+        return true;
+      }
 
       case "closeItem":
         if (this.editingId === null && !this.drafting && this.problems.length === 0) return false;
@@ -279,9 +295,17 @@ export class Presentations {
         }),
       ),
       editing: this.open(),
+      samples: this.samplesLeft(),
       problems: this.problems,
       presentingId,
     };
+  }
+
+  /** How many of the bundled hymns the library does not have (STG-10). */
+  private samplesLeft(): number {
+    const held = new Set(this.library.items().map((row) => row.id));
+    if (held.size === 0) return BUNDLED_HYMN_COUNT;
+    return bundledHymns().filter((hymn) => !held.has(hymn.song.id)).length;
   }
 
   /**

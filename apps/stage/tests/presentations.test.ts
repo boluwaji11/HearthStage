@@ -9,7 +9,13 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { compileDeck, lookupFrom, presentationPlan } from "@hearth/songs";
+import {
+  BUNDLED_HYMN_COUNT,
+  compileDeck,
+  lookupFrom,
+  presentationPlan,
+  songPlan,
+} from "@hearth/songs";
 import { amazingGrace } from "@hearth/songs/fixtures";
 import { openLibrary, type OpenLibrary } from "@hearth/stage-store";
 import { Presentations } from "../src/main/presentations";
@@ -668,6 +674,58 @@ describe("typing a song in, through the editor", () => {
         sections: [{ label: null, body: "One" }],
       }),
     ).toBe(false);
+  });
+});
+
+/**
+ * STG-10, ST1.2. The hymns Stage carries, offered rather than installed.
+ *
+ * The point of the story is the thing that does not happen: a church opening
+ * Stage for the first time gets an empty library and a button, so what is in it
+ * is what they put in it.
+ */
+describe("the hymns on offer", () => {
+  it("writes nothing into a library nobody has asked about", () => {
+    const state = presentations.state();
+    expect(state.library).toEqual([]);
+    expect(state.samples).toBeGreaterThan(100);
+  });
+
+  it("puts them in when somebody presses it", () => {
+    expect(presentations.apply({ type: "addSamples" })).toBe(true);
+    const state = presentations.state();
+    expect(state.library.length).toBe(BUNDLED_HYMN_COUNT);
+    expect(state.library.every((row) => row.kind === "song")).toBe(true);
+    expect(state.samples).toBe(0);
+  });
+
+  it("does nothing the second time, so a church cannot end up with two of each", () => {
+    presentations.apply({ type: "addSamples" });
+    expect(presentations.apply({ type: "addSamples" })).toBe(false);
+    expect(presentations.state().library.length).toBe(BUNDLED_HYMN_COUNT);
+  });
+
+  it("opens one, and it presents", () => {
+    presentations.apply({ type: "addSamples" });
+    const first = presentations.state().library[0];
+    if (first === undefined) throw new Error("nothing in the library");
+
+    presentations.apply({ type: "openItem", itemId: first.id });
+    const editing = presentations.state().editing;
+    expect(editing?.kind).toBe("song");
+    expect(editing?.slides.length).toBeGreaterThan(0);
+    expect(editing?.orders[0]?.sequence.length).toBeGreaterThan(0);
+
+    const whole = opened.library.get(first.id);
+    if (whole === null) throw new Error("not stored");
+    const deck = compileDeck(songPlan(whole), lookupFrom([whole]));
+    expect(deck.problems).toEqual([]);
+    expect(deck.cues.length).toBeGreaterThan(0);
+  });
+
+  it("leaves a church that has its own songs alone", () => {
+    opened.library.save(amazingGrace);
+    expect(presentations.state().library.map((row) => row.title)).toEqual(["Amazing Grace"]);
   });
 });
 
