@@ -938,9 +938,15 @@ function renderCredits(): void {
   el.publicDomain.disabled = locked;
 }
 
-/** What the count means, which depends on what the row holds. */
-function countOf(kind: LibraryKind, count: number): string {
-  return plural(kind === "song" ? "library.sections" : "library.slides", count);
+/**
+ * How many slides an item holds.
+ *
+ * A song's sections and a notice sheet's slides are the same thing to the
+ * person looking at the tile, and they are the same thing in the editor, where
+ * each one is a card with a title and a box. One word for one level.
+ */
+function countOf(count: number): string {
+  return plural("library.slides", count);
 }
 
 /**
@@ -1015,7 +1021,7 @@ function tileFor(row: LibraryItem, themes: ThemeChoice[]): HTMLLIElement {
 
   const facts = document.createElement("span");
   facts.className = "tile-facts";
-  const detail = [countOf(row.kind, row.count)];
+  const detail = [countOf(row.count)];
   if (row.subtitle !== null) detail.push(row.subtitle);
   if (row.id === latest?.presentingId) detail.push(t("library.onScreen"));
   if (row.origin === "hearth") detail.push(t("library.fromHearth"));

@@ -1590,6 +1590,25 @@ control window inside a ternary spread over four lines, and the guard scanned li
 assignment and the words were never on the same line. It reads whole files now, after taking out the
 strings that are not copy: a key handed to `t`, a comparison, a `case` label.
 
+## The words, settled
+
+Three levels, three words, and none of them used twice.
+
+| Level | Word | What it is |
+|---|---|---|
+| 1 | **Service** | What the church is running on a Sunday. Its items in order. |
+| 2 | **Item** | One thing in a service: a song, a reading, the notices. A stack of slides with a name on it. |
+| 3 | **Slide** | One screen the room sees. |
+
+The window that lists items was called **Slides**, and so are the things inside the things it lists.
+It is the **Library** now. A song's sections and a notice sheet's slides are the same thing to the
+person looking at a tile, and the same thing in the editor, where each one is a card with a title and
+a box, so a tile counts slides whichever kind it is.
+
+Building a service out of several items is **STG-46**, duplicating last week's is **STG-47**, and
+adding one to a running deck is **STG-49**. The words land first because every one of them is in
+`packages/stage-i18n` after STG-13, which made this a change to one file rather than to nine.
+
 ## STG-25, how to test it
 
 The design case is 10:28 on a Sunday with a sixteen year old operating and a room filling up.

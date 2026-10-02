@@ -12,6 +12,7 @@
 
 import { join } from "node:path";
 import { BrowserWindow, screen, shell } from "electron";
+import { t } from "@hearth/stage-i18n";
 
 const PRELOAD = join(__dirname, "../preload/index.js");
 
@@ -84,7 +85,7 @@ export function createEditorWindow(): BrowserWindow {
     minWidth: 860,
     minHeight: 540,
     show: false,
-    title: "Slides",
+    title: t("library.title"),
     backgroundColor: "#16140f",
     webPreferences: COMMON_WEB_PREFERENCES,
   });

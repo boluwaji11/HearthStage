@@ -15,7 +15,7 @@
 export const en = {
   // The window that presents
   "control.home": "Home",
-  "control.slides": "Slides",
+  "control.slides": "Library",
   "control.start": "Start",
   "control.deck": "Deck",
   "control.stage": "What is live",
@@ -96,23 +96,30 @@ export const en = {
   "cue.key": "key of {key}",
   "cue.slideCount": "{at}/{count}",
 
-  // The library
-  "library.title": "Slides",
+  /*
+   * The library.
+   *
+   * Three levels, three words, and none of them used twice: a **service** holds
+   * **items**, and an item holds **slides**. A song, a reading and the notices
+   * are all items, and what makes them the same kind of thing is that each one
+   * is a stack of slides with a name on it. The window that lists them is the
+   * library, because it was called Slides and so are the things inside the
+   * things it lists.
+   */
+  "library.title": "Library",
   "library.service": "Service",
   "library.search": "Search",
   "library.new": "New",
   "library.empty": "Nothing saved yet",
   "library.noMatch": "Nothing matches that",
   "library.addHymns": "Add {count} hymns",
-  "library.sections.one": "{count} section",
-  "library.sections.other": "{count} sections",
   "library.slides.one": "{count} slide",
   "library.slides.other": "{count} slides",
   "library.onScreen": "on screen",
   "library.fromHearth": "from Hearth",
 
   // One thing, open
-  "editor.back": "All slides",
+  "editor.back": "Library",
   "editor.look": "Look",
   "editor.lookService": "The service's look",
   "editor.present": "Present",
@@ -184,7 +191,7 @@ export const en = {
   // This machine
   "library.settings": "Settings",
   "settings.title": "This machine",
-  "settings.back": "Slides",
+  "settings.back": "Library",
   "settings.name": "Name",
   "platform.darwin": "macOS",
   "platform.win32": "Windows",
