@@ -183,7 +183,7 @@ export function songFrom(draft: SongDraft): WholeSong {
     song,
     sections,
     arrangements:
-      sections.length === 0 ? [] : ordersInto(id, draft.orders, labels, key, previous),
+      sections.length === 0 ? [] : ordersInto(id, draft.orders, sections, key, previous),
     media: [],
   };
 }
@@ -205,14 +205,23 @@ export function songFrom(draft: SongDraft): WholeSong {
  *
  * **A song with no orders gets the obvious one.** Every section once, in the
  * order they were typed. A song with none cannot present at all.
+ *
+ * **A slide somebody has just added goes into the default order.** Adding a
+ * verse to a song that already had orders left it in the library and out of
+ * every one of them, so it saved and could never reach a screen. Only a slide
+ * that is new since the last save, because a section an existing order leaves
+ * out was left out on purpose, and a translated verse is never sequenced at all
+ * (R12.8). A church that does not want the new one there takes it out of the
+ * order, or skips it for the run (STG-24).
  */
 function ordersInto(
   id: string,
   orders: OrderDraft[] | undefined,
-  labels: string[],
+  sections: SongSection[],
   key: Key | null,
   previous: WholeSong | null,
 ): Arrangement[] {
+  const labels = sections.map((section) => section.label);
   const known = new Set(labels);
   const taken = new Set<string>();
   const names = new Set<string>();
@@ -250,6 +259,21 @@ function ordersInto(
   // the first, because the record has to have exactly one.
   const chosen = named.findIndex((order) => order.isDefault);
   const defaultAt = chosen === -1 ? 0 : chosen;
+
+  // A slide somebody has just typed and nothing sings is a slide nobody can
+  // show. It goes on the end of the default order, in the order the sections
+  // are in, which is where the person who typed it is looking for it.
+  const sung = new Set(named.flatMap((order) => order.sequence));
+  const before = new Set((previous?.sections ?? []).map((section) => section.label));
+  const unsung = sections
+    .filter((section) => !sung.has(section.label))
+    .filter((section) => !before.has(section.label))
+    .filter((section) => section.translationOf === null)
+    .map((section) => section.label);
+  const fallback = named[defaultAt];
+  if (unsung.length > 0 && fallback !== undefined) {
+    fallback.sequence = [...fallback.sequence, ...unsung];
+  }
 
   let n = 1;
   return matched.map(({ order, before }, index) => {

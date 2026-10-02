@@ -321,7 +321,10 @@ describe("orders", () => {
 
   it("drops a title the song no longer has, rather than storing a hole", () => {
     const stale = withOrders([{ name: "Full", sequence: ["V1", "V9", "V2"], isDefault: true }]);
-    expect(stale.arrangements[0]?.sequence).toEqual(["V1", "V2"]);
+    // V9 is gone. V3 is on the end because this song has never been saved, so
+    // nothing has been left out of an order on purpose yet.
+    expect(stale.arrangements[0]?.sequence).toEqual(["V1", "V2", "V3"]);
+    expect(stale.arrangements[0]?.sequence).not.toContain("V9");
     expect(hasErrors(validateWholeSong(stale))).toBe(false);
   });
 
@@ -389,6 +392,35 @@ describe("orders", () => {
     );
     const ids = added.arrangements.map((one) => one.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("adds a slide nothing sings to the default order, so it can reach a screen", () => {
+    // The defect this closes: a verse typed into a song that already had orders
+    // saved into the library and appeared in none of them, so pressing Present
+    // never showed it and nothing said why.
+    const whole = songFrom({
+      id: "song_1",
+      title: "Amazing Grace",
+      fields: FIELDS,
+      sections: [...SECTIONS, { label: null, body: "A verse somebody typed today" }],
+      orders: [
+        { name: "Full", sequence: ["V1", "V2", "V3"], isDefault: true },
+        { name: "Short", sequence: ["V1", "V3"], isDefault: false },
+      ],
+    });
+
+    const full = whole.arrangements.find((one) => one.name === "Full");
+    expect(full?.sequence).toEqual(["V1", "V2", "V3", "V4"]);
+    // The church's own shorter order is left exactly as they made it.
+    expect(whole.arrangements.find((one) => one.name === "Short")?.sequence).toEqual(["V1", "V3"]);
+  });
+
+  it("leaves a song alone where every slide is already sung somewhere", () => {
+    const whole = withOrders([
+      { name: "Full", sequence: ["V1", "V2"], isDefault: true },
+      { name: "Short", sequence: ["V3"], isDefault: false },
+    ]);
+    expect(whole.arrangements[0]?.sequence).toEqual(["V1", "V2"]);
   });
 
   it("reads back as the window shows them", () => {

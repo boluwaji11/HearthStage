@@ -121,3 +121,16 @@ describe("putting something else on the screen", () => {
     expect(markup).toMatch(/<dialog id="ask"/);
   });
 });
+
+/**
+ * A dialog that opens in the top left corner is a dialog nobody trusts. A
+ * modal `<dialog>` centres itself on `margin: auto`, and a reset that zeroes
+ * every margin takes that away without anything failing.
+ */
+describe("where the dialog opens", () => {
+  it("is the middle of the window", () => {
+    const styles = readFileSync(join(root, "src/editor/editor.css"), "utf8");
+    const rule = /\.ask\s*\{[^}]*\}/.exec(styles)?.[0] ?? "";
+    expect(rule).toMatch(/margin:\s*auto/);
+  });
+});

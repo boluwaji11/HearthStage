@@ -692,6 +692,12 @@ footer {
  */
 
 .ask {
+  /*
+   * A modal dialog centres itself on `margin: auto`, and the reset at the top
+   * of this file sets every margin to zero, which pinned it to the top left
+   * corner. Said again here, because the reset is right and so is this.
+   */
+  margin: auto;
   width: min(26rem, calc(100vw - 2 * var(--space-4)));
   padding: var(--space-4);
   color: var(--text);
