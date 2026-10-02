@@ -9,7 +9,7 @@
  */
 
 /**
- * The tonics that appear as a key on a worship chart.
+ * The tonics that appear as a key on a chord chart.
  *
  * Seventeen spellings of twelve pitch classes. Cb, Fb, B# and E# are real in
  * theory and absent in practice, so they are left out: transposition emits the

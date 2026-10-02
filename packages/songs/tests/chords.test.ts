@@ -5,7 +5,7 @@
  * all chords including slash chords and sharps, verified against a fixture set.
  *
  * The fixture set is the table below: 60 chord symbols across six key changes,
- * covering every quality a worship chart uses, slash chords with natural and
+ * covering every quality a chord chart uses, slash chords with natural and
  * altered bass notes, and the cases where the spelling has to follow the target
  * key rather than a fixed preference.
  *

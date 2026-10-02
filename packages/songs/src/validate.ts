@@ -9,7 +9,7 @@
  *   (ST3.3).
  * - **The deck compiler**, which must fail loudly on a sequence referring to a
  *   section that does not exist, at compile time rather than at 10:31 on a
- *   Sunday (ST5.2).
+ *   service (ST5.2).
  * - **A form**, where somebody typed a song in.
  *
  * Problems carry a code and the values that explain them. They are never

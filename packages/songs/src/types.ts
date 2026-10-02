@@ -61,7 +61,7 @@ export interface SongSection {
 /**
  * A way of performing a song: a key, a tempo, and an order of sections.
  *
- * A song has several. "Sunday 2026" and "Acoustic" are the same lyrics in a
+ * A song has several. "service 2026" and "Acoustic" are the same lyrics in a
  * different order, which is why the sequence lives here rather than on the song.
  */
 export interface Arrangement {

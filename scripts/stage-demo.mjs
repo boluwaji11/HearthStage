@@ -19,7 +19,7 @@ const rule = () => dim("━".repeat(76));
 
 const steps = [
   {
-    title: "1. A Sunday service, compiled into slides",
+    title: "1. A service, compiled into slides",
     why:
       "Every slide below came out of the song records and the arrangement sequences,\n" +
       "with nobody typing a slide. Watch for the repeated verse in Holy, Holy, Holy,\n" +

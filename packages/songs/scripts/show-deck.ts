@@ -14,14 +14,14 @@
  */
 
 import { compileDeck, lookupFrom } from "../src/deck";
-import { sampleLibrary, sundayService } from "../src/fixtures";
+import { sampleLibrary, sampleService } from "../src/fixtures";
 import { formatSequence } from "../src/sequence";
 import { notesFor, plannedSeconds } from "../src/service";
 
 const argument = process.argv.indexOf("--lines");
 const maxLines = argument === -1 ? 4 : Number(process.argv[argument + 1] ?? 4);
 
-const deck = compileDeck(sundayService, lookupFrom(sampleLibrary), {
+const deck = compileDeck(sampleService, lookupFrom(sampleLibrary), {
   limits: { maxLines },
 });
 
@@ -40,7 +40,7 @@ console.log(
   dim(
     `${deck.source === "set_list" ? "Stage set list" : "Hearth plan"} · ` +
       `${deck.groups.length} items · ${deck.cues.length} cues · ` +
-      `${minutes(plannedSeconds(sundayService))} planned · ${maxLines} lines a slide`,
+      `${minutes(plannedSeconds(sampleService))} planned · ${maxLines} lines a slide`,
   ),
 );
 console.log(rule());
@@ -57,7 +57,7 @@ for (const group of deck.groups) {
 
   // What the person on drums would see: the global notes plus their own, and
   // not the ones addressed to somebody else (R11.6).
-  const item = sundayService.items.find((candidate) => candidate.id === group.itemId);
+  const item = sampleService.items.find((candidate) => candidate.id === group.itemId);
   if (item !== undefined) {
     for (const note of notesFor(item, "Drums")) {
       console.log(dim(`  note${note.position === null ? "" : ` to ${note.position}`}: ${note.body}`));

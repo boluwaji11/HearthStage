@@ -108,7 +108,7 @@ describe("restoring", () => {
     expect(song?.sections).toHaveLength(4);
     expect(song?.arrangements).toHaveLength(2);
     expect(song?.sections.find((section) => section.label === "V1")?.lines).toHaveLength(4);
-    expect(song?.arrangements.find((a) => a.name === "Sunday")?.chordpro).toContain("[G]");
+    expect(song?.arrangements.find((a) => a.name === "Standard")?.chordpro).toContain("[G]");
     recovered.close();
     opened = recovered;
   });

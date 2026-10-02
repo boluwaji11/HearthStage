@@ -16,7 +16,7 @@
  * **It fails loudly.** A song in the plan that is missing from the library, an
  * arrangement sequencing a section that does not exist, a scripture item with
  * no text: each is a problem on the deck, named, at the moment the service is
- * opened. The alternative is finding out at 10:31 on a Sunday, which is the
+ * opened. The alternative is finding out two minutes into a service, which is the
  * thing this whole package exists to prevent.
  */
 

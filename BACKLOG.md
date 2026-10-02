@@ -17,7 +17,7 @@ Same four levels, same states, and the same rules as the platform board.
 
 | Level | Meaning | ID |
 |---|---|---|
-| **Epic** | A Stage release. Defined by what a church can do on a Sunday with it. | `SE1` to `SE6` |
+| **Epic** | A Stage release. Defined by what a church can do during a service with it. | `SE1` to `SE6` |
 | **Feature** | A PRD domain inside that release. | `SF1` to `SF21` |
 | **Story** | One deliverable. Built, then tested, then closed. | `STG-n` |
 | **Task** | Steps inside a story. In the story's checklist. | |
@@ -64,7 +64,7 @@ in [the platform PRD, section 9.4](https://github.com/boluwaji11/ChurchManagemen
 
 ## SE1. The slide (S0.1)
 
-A presenter a worship leader can type four songs into and run. No platform dependency. Exit criteria in
+A presenter somebody can type slides and songs into and run. No platform dependency. Exit criteria in
 [PRD.md section 5](PRD.md).
 
 **Order corrected, 1 October 2026.** This epic originally put the song entry stories (STG-7 to
@@ -202,7 +202,7 @@ The release a church with a 300 song ProPresenter library can actually adopt. No
 ## SE3. The room (S0.3)
 
 What makes Stage a church's only presenter. No platform dependency. Exit criteria: four consecutive
-Sundays with ProPresenter uninstalled.
+services with ProPresenter uninstalled.
 
 ### SF11. Stage display
 
@@ -294,7 +294,7 @@ and the sync API, and pulled forward the moment it does. The dependency table be
 | STG-94 | Run sync on a worker thread, and prove it cannot delay a cue advance | ST4.7 | New |
 | STG-95 | Fetch media by content hash, resumable and verified | ST4.9 | New |
 | STG-96 | Show the last successful sync, and say when the plan on screen is older than the server's | ST4.8 | New |
-| STG-97 | Prefetch seven days of services, so Sunday needs no network | ST4.10 | New |
+| STG-97 | Prefetch seven days of services, so a service needs no network | ST4.10 | New |
 | STG-98 | Promote a local song into the church library on request, with a duplicate check first | ST2.14, ST4.11 | New |
 
 ### SF5. The plan as a deck
@@ -372,6 +372,8 @@ Public launch of Stage.
 | STG-126 | Output NDI per output group, degrading to no NDI when it cannot initialise | ST16.1, ST16.5 | New |
 | STG-127 | Output alpha-keyed lyrics with clean antialiased edges | ST16.2 | New |
 | STG-128 | Give the keyed output its own theme, sized for camera | ST16.3 | New |
+| STG-164 | Syphon output, for another application on the same Mac | ST16.1 | New |
+| STG-165 | Name an output's role: lobby, overflow, stage, stream, so a look can be assigned by what it is for | ST10.10 | New |
 
 ### SF17. Language
 
@@ -397,7 +399,7 @@ Public launch of Stage.
 |---|---|---|---|
 | STG-137 | Import a PowerPoint or Keynote deck as an item of ordered slides | ST3.8 | New |
 | STG-138 | Sign and notarise macOS, sign Windows, build AppImage and deb | ST19.10, ST21.11 | New |
-| STG-139 | Auto-update in the background, applied by the operator, held outside the Sunday window | ST19.7 | New |
+| STG-139 | Auto-update in the background, applied by the operator, held outside a service window | ST19.7 | New |
 | STG-140 | Roll back to the previous version from inside Stage | ST19.8 | New |
 | STG-141 | Export the library and cache as a portable bundle for a church with no usable wifi | ST4.13 | New |
 | STG-142 | Serve a view-only remote for the preacher and the host | ST14.7 | New |
@@ -431,7 +433,7 @@ belongs to the platform board, so that line is corrected there.
 
 ### The order, and why
 
-**SE1 first, and it is a real presenter.** By the end of SE1 a worship leader types four songs in and
+**SE1 first, and it is a real presenter.** By the end of SE1 somebody types four songs in and
 runs the set on a projector. That is judgeable, and it is judgeable without a Hearth account, which is
 the point of draft 2. Inside SE1 the order is forced: `packages/songs` before anything compiles a deck,
 the library before there is a song to compile, the deck before there is anything to render, the render
@@ -473,6 +475,7 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | **Next** | **STG-145**, typing a presentation of plain slides, which is the gap the parity inventory found and the first thing a person does with Stage. Then STG-146 to STG-149, then the measurements STG-28 and STG-29. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
+| **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
 | **Blocked** | **SE4** only, on the six platform deliverables above. Fifty-two stories sit in front of it. |
 | **Branch** | Stage work is on the `stage` branch, in a git worktree at `../hearth-stage`, so the two windows no longer share a HEAD. Everything up to `da167d8` is on `main`. |
 | **Watch** | `packages/songs` is read by the platform's song library screens in 0.4, and `packages/song-import` by its R20.10 importers. The schema in the platform PRD section 9.4 is the contract, and a change to it is a platform story. |
@@ -543,7 +546,7 @@ pnpm --filter @hearth/songs deck -- --lines 2
 pnpm --filter @hearth/songs test
 ```
 
-**`deck` prints a Sunday service, compiled.** Six items: a welcome, two hymns, a
+**`deck` prints a service service, compiled.** Six items: a welcome, two hymns, a
 reading, the sermon, and a closing reprise. Every slide on that screen came out
 of the song records and the arrangement sequences with nobody typing a slide.
 That is the claim the whole platform rests on, and it is now a thing that runs.
@@ -554,7 +557,7 @@ What to look at in the output:
    second V1 marked `(2 of 2)`. A presenter that collapsed the repeat would leave
    the service one slide behind the band.
 2. **"Amazing Grace" reports the key of Bb**, although its arrangement is in G,
-   because the leader set an override on the item for this Sunday. The reprise
+   because the leader set an override on the item for the next service. The reprise
    below it reports D, which is its own arrangement's key.
 3. **The sermon and the welcome are in the deck**, saying "nothing on the
    screen". The operator's position in the deck matches the service's position
@@ -625,7 +628,7 @@ What to check in the output:
    slash chord in it.
 
 **The fixture set is 60 chord symbols across six key changes**, which is what
-R12.6's "fifty charts" asks for in substance. It covers every quality a worship
+R12.6's "fifty charts" asks for in substance. It covers every quality a chord
 chart uses, slash chords with natural and altered bass notes, both directions of
 respelling between sharp and flat keys, and a no-op when the key does not
 change. One test asserts no transposition anywhere in the corpus produces a
@@ -681,7 +684,7 @@ What it shows, in order:
 - A section label is unique within a song at the database as well as in the
   validator, so a caller bypassing validation still cannot write it.
 - `synchronous = FULL` on the library, asserted, because a power cut during a
-  Sunday morning edit should cost the edit rather than the file. The synced cache
+  a service edit should cost the edit rather than the file. The synced cache
   will run `NORMAL`, since its worst case is a resync.
 - A library written by a newer Stage is refused rather than downgraded, because
   a migration that silently dropped a column would lose a church's work.

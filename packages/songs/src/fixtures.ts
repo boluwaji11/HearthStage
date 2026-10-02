@@ -170,9 +170,9 @@ export const amazingGrace: WholeSong = {
   ],
   arrangements: [
     {
-      id: "ag-sunday",
+      id: "ag-standard",
       songId: "song-amazing-grace",
-      name: "Sunday",
+      name: "Standard",
       key: "G",
       tempoBpm: 72,
       sequence: ["V1", "V2", "V3"],
@@ -262,9 +262,9 @@ export const holyHolyHoly: WholeSong = {
   ],
   arrangements: [
     {
-      id: "hhh-sunday",
+      id: "hhh-standard",
       songId: "song-holy",
-      name: "Sunday",
+      name: "Standard",
       key: "D",
       tempoBpm: 60,
       // The repeat is the point. Two cues, one section.
@@ -291,17 +291,17 @@ export const holyHolyHoly: WholeSong = {
 export const sampleLibrary: WholeSong[] = [amazingGrace, holyHolyHoly];
 
 /**
- * A Sunday service, for the deck compiler's tests and for `show-deck`.
+ * A service, for the deck compiler's tests and for `show-deck`.
  *
  * Shaped like a real one rather than like a test: a welcome, two songs with the
  * second in a different key from its arrangement, a reading, the sermon, and a
  * closing reprise of the first song. The notices carry a note addressed to one
  * position, so `notesFor` has something to filter.
  */
-export const sundayService: ServicePlan = {
-  id: "plan-sunday",
+export const sampleService: ServicePlan = {
+  id: "plan-morning",
   source: "set_list",
-  title: "Sunday Morning",
+  title: "Morning Service",
   date: "2026-10-04",
   startsAt: "2026-10-04T10:30:00-05:00",
   items: [
@@ -322,7 +322,7 @@ export const sundayService: ServicePlan = {
       durationSeconds: 300,
       notes: [{ position: null, body: "Start a cappella" }],
       songId: "song-holy",
-      arrangementId: "hhh-sunday",
+      arrangementId: "hhh-standard",
       keyOverride: null,
     },
     {
@@ -336,8 +336,8 @@ export const sundayService: ServicePlan = {
         { position: "Drums", body: "In on the second verse" },
       ],
       songId: "song-amazing-grace",
-      arrangementId: "ag-sunday",
-      // The arrangement is in G and the leader wants it lower this Sunday, so
+      arrangementId: "ag-standard",
+      // The arrangement is in G and the leader wants it lower the next service, so
       // the deck reports Bb and the chart transposes (ST5.6).
       keyOverride: "Bb",
     },

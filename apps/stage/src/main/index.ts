@@ -19,11 +19,11 @@ import {
   type OutputView,
 } from "@hearth/stage-protocol";
 import { compileDeck, lookupFrom } from "@hearth/songs";
-import { sampleLibrary, sundayService } from "@hearth/songs/fixtures";
+import { sampleLibrary, sampleService } from "@hearth/songs/fixtures";
 import { Session } from "./session";
 import { createControlWindow, createOutputWindow, displays, type DisplayChoice } from "./windows";
 
-const session = new Session(compileDeck(sundayService, lookupFrom(sampleLibrary)), sundayService);
+const session = new Session(compileDeck(sampleService, lookupFrom(sampleLibrary)), sampleService);
 
 let control: BrowserWindow | null = null;
 const outputs = new Map<string, { window: BrowserWindow; choice: DisplayChoice }>();

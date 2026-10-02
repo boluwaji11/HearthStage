@@ -88,7 +88,7 @@ describe("lyrics are sections rather than a blob (R12.4)", () => {
 describe("a sequence is data, and it has to resolve (R12.5)", () => {
   it("refuses a sequence naming a section the song does not have", () => {
     // The acceptance criterion that matters most. A hole here is a hole in the
-    // service, and finding it now beats finding it at 10:31 on a Sunday.
+    // service, and finding it now beats finding it two minutes into a service.
     const whole = blankWholeSong({
       sections: [blankSection({ label: "V1" })],
       arrangements: [blankArrangement({ sequence: ["V1", "C", "B"] })],

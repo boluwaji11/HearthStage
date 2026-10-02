@@ -1,14 +1,22 @@
 # Hearth Stage
 
-A worship presenter. Free, and it runs on its own.
+Presentation software for churches. Free, and it runs on its own.
 
-Stage puts words, scripture, media and announcements on the screens in a church
-building, and it does it well enough to replace what a church is paying for now.
-It installs and presents without signing in to anything.
+Stage runs the screens. Song lyrics, scripture, sermon slides, notices,
+countdowns, video, a lobby display, a confidence monitor facing the platform, a
+lower third on the livestream, and the overflow room. Whatever a church puts on a
+screen, at whatever it gathers for, on whatever day.
+
+The bar is the best software in this category, whatever that is in a given year,
+and the price is nothing. It installs and presents without signing in to
+anything.
+
+Churches and ministries get it at no cost. Not a trial, not a free tier, not a
+loss leader.
 
 It is also half of a pair. [Hearth](https://github.com/boluwaji11/ChurchManagement)
 is a church management platform given to churches at no cost. A church that uses
-both pairs them once, and then this Sunday's plan, the song order, the keys, the
+both pairs them once, and then the next service's plan, the song order, the keys, the
 scripture and the team are on the laptop before anyone opens it. No export, and
 no file carried across the room.
 

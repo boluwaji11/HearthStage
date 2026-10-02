@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Product** | Hearth Stage, a worship presenter. Free, and it runs on its own. |
+| **Product** | Hearth Stage, presentation software for churches. Free, and it runs on its own. |
 | **Phase** | Phase 2. Outline in [the platform PRD, section 8.23](https://github.com/boluwaji11/ChurchManagement/blob/main/PRD.md). This document is the build specification. |
 | **Status** | Draft 2, October 2026. Written before any Stage code. |
 | **Board** | [BACKLOG.md](BACKLOG.md) |
@@ -22,7 +22,7 @@ outline those IDs expand, and section 23 maps every one of them to the requireme
 
 ## 1. Why Stage exists
 
-The management system owns the Sunday loop up to the moment the first song starts, and then hands the
+The management system owns the service loop up to the moment the first song starts, and then hands the
 whole thing to a different vendor. Planning Center plans the service and exports it to ProPresenter
 through an import that loses the arrangement. ProPresenter runs the screens and knows nothing about
 the church. The loop breaks in the one place a volunteer has to stand in front of six hundred people.
@@ -37,10 +37,10 @@ A church that has never heard of Hearth downloads Stage and uses it anyway.
 
 **A free presenter that stands on its own.** It holds its own song library, imports the library a
 church already has, builds its own set lists, carries its own public-domain scripture, and presents a
-Sunday service on a laptop that has never signed in to anything and is not on a network. Measured against OpenLP, FreeShow, Quelea
+service on a laptop that has never signed in to anything and is not on a network. Measured against OpenLP, FreeShow, Quelea
 and Church Presenter, it has to be as complete as they are and look considerably better.
 
-**The only presenter that already knows this Sunday.** Paired with Hearth, the plan, the song order,
+**The only presenter that already knows the service that is about to start.** Paired with Hearth, the plan, the song order,
 the key, the arrangement, the scripture reference, the announcement list, and the team are already
 there before the laptop is opened. No other presenter can do this, because no other presenter's
 vendor also runs the church's database.
@@ -51,7 +51,7 @@ better distribution route than the platform being a toll gate on Stage.
 
 ### The design case
 
-**10:28 on a Sunday.** The service starts at 10:30. The worship leader changed the song order at
+**Two minutes before a service.** It starts at 10:30. The person leading changed the order at
 10:15. The laptop is on battery, driving a projector through an HDMI adapter bought in 2017, on wifi
 that drops every few minutes. The person operating it is sixteen years old and has opened Stage twice.
 
@@ -118,14 +118,18 @@ locally authored song promotes into Hearth as an insert rather than a translatio
 
 ## 3. Users
 
-**James, worship leader, 34, volunteer, four hours a week.** Picks the songs, sets the keys, builds
+**James, who leads the music, 34, volunteer, four hours a week.** Picks the songs, sets the keys, builds
 the arrangement. He already pays for ProPresenter out of his own pocket, or runs a copy from 2016, or
-builds slides in PowerPoint on Saturday night. He is the person who downloads Stage, and the person
+builds slides in PowerPoint on the night before. He is the person who downloads Stage, and the person
 who decides whether the church adopts it.
 
-**The Sunday operator, age 14 to 70, briefed once.** Sits at the laptop and presses a key when the
+**The service operator, age 14 to 70, briefed once.** Sits at the laptop and presses a key when the
 song moves on. Rotates weekly, and may never have opened Stage before this morning. Cannot be
 trained, so the control surface has to be obvious at a glance and impossible to break.
+
+**Daniel, who makes the slides, 50s, works Tuesday evenings.** Builds the sermon outline, the three
+notices, the title card and the giving slide. He is the reason ST2.16 exists, he outnumbers James in
+most churches, and the first version of this document had nothing for him to do.
 
 **Maria, administrator, non-technical.** Does not open Stage. She feels it, because the announcement
 loop on the screens before the service is the one she typed into Hearth on Thursday.
@@ -144,7 +148,7 @@ must not require them, and must not insult them when they show up.
 | Pairing | Optional, additive, reversible. | Pairing is the upgrade that closes the loop. It is never the price of entry. |
 | Price | Free, like the rest of Hearth. | Settled in the platform PRD section 2. No paid tier for Stage, ever. |
 | Delivery | Electron desktop, macOS, Windows, Linux. | The output drives real displays, holds a video decode pipeline, and runs with the network off. |
-| Offline | Offline always. The network is an optional extra. | The building's internet is not a Sunday dependency. |
+| Offline | Offline always. The network is an optional extra. | The building's internet is not a service dependency. |
 | Library | Stage holds a real library. Songs are `local` or `hearth`, with one writer each (section 2). | Independence without a merge problem. |
 | Song schema | The schema in the platform PRD section 9.4, through `packages/songs`, in both products. | A locally authored song promotes into Hearth as an insert. |
 | Scripture | Public-domain translations bundled. Licensed text comes from a paired church's own licence. | We cannot redistribute the NIV, and pretending otherwise is a lawsuit. |
@@ -177,7 +181,7 @@ and Stage is better used as one well-behaved source into those than as a bad imi
 ## 5. Release sequence
 
 Six releases, labelled `S0.1` to `S1.0` so they are never confused with the platform's own versions.
-Each is defined by what a church can do on a Sunday with it.
+Each is defined by what a church can do during a service with it.
 
 **S0.1 to S0.3 have no platform dependency whatsoever.** They are a complete standalone presenter and
 can be built from end to end while the platform works through 0.2 and 0.3.
@@ -190,7 +194,7 @@ The shared `packages/songs` domain, the local library with a song typed in by ha
 with a control window and one output window, lyric slides rendered from sections following an
 arrangement sequence, one theme, text that fits the screen, and keyboard operation with no pointer.
 
-**Exit criteria:** a worship leader types four songs into Stage and runs the set on a second display,
+**Exit criteria:** somebody types four songs into Stage and runs the set on a second display,
 with the network off and the trackpad untouched. Nothing on the output has a visible seam, a cut-off
 line, or a flash between slides.
 
@@ -203,7 +207,7 @@ arrangement editing, ChordPro charts. Bundled public-domain scripture with refer
 splitting. Set lists built in Stage. A local usage log with a CCLI export.
 
 **Exit criteria:** a church imports its 300 song ProPresenter library with section labels intact,
-builds Sunday's set in Stage, runs it, and exports a CCLI usage report at the end of the period.
+builds the service's set in Stage, runs it, and exports a CCLI usage report at the end of the period.
 
 ### S0.3 The room
 
@@ -213,7 +217,7 @@ Stage display and confidence monitor, multi-output mapping with independent cont
 and video backgrounds with per-slide overrides, countdown timers and clocks, the pre-service
 announcement loop, and crash recovery.
 
-**Exit criteria:** one church runs four consecutive Sundays on Stage alone, with ProPresenter
+**Exit criteria:** one church runs four consecutive services on Stage alone, with ProPresenter
 uninstalled, including a deliberate mid-service process kill that recovers to the live slide inside
 five seconds.
 
@@ -227,7 +231,7 @@ Device pairing, delta sync, Hearth plans compiled into decks, plan notes address
 scripture resolved under the church's own licence, the two-origin rule, local songs promoted into the
 church library, and usage pushed back for the platform's CCLI report.
 
-**Exit criteria:** a plan edited in Hearth on Saturday night is on the screen on Sunday morning
+**Exit criteria:** a plan edited in Hearth on the night before is on the screen on a service
 without anyone exporting a file, the whole service runs after the network cable is pulled out mid-set,
 and the songs used appear in the platform's CCLI report on Monday.
 
@@ -238,7 +242,7 @@ Everything that happens once more than one person is involved.
 Remote control from a phone on the local network, hotkeys and macros, Stream Deck, MIDI and OSC, audio
 and video as plan items, and props and overlays shown independently of the slide.
 
-**Exit criteria:** the worship leader advances the set from a phone on stage while the operator holds
+**Exit criteria:** the person leading advances from a phone on stage while the operator holds
 the laptop, and a Stream Deck button fires the correct cue with the laptop screen asleep.
 
 ### S1.0 The broadcast and the launch
@@ -247,7 +251,7 @@ Public launch of Stage.
 
 NDI and alpha-keyed output, bilingual lyrics and caption output, theme and template editing, live
 camera input, PowerPoint and Keynote import, signed and notarised builds for three operating systems,
-and auto-update that will not touch a Sunday.
+and auto-update that will not touch a service.
 
 **Exit criteria:** a livestream carries a keyed lower third from Stage into OBS over NDI, and ten
 churches have moved to Stage from a paid presenter, at least five of them without using Hearth.
@@ -292,7 +296,7 @@ Stage's own library, which is what makes it a presenter rather than a viewer.
 In every presenter a church actually uses, the central object is a
 **presentation**: an ordered set of slides, of which a song is one kind. So is a
 sermon outline, a notice, a title card, a reading and a video. A model that holds
-only songs can present about a third of a Sunday, which is why ST2.16 exists and
+only songs can present about a third of a service, which is why ST2.16 exists and
 why it sits in S0.1 ahead of everything else in this domain.
 
 A song stays special, because its labelled sections and its arrangement sequence
@@ -374,7 +378,7 @@ The loop. Additive, and the only domain that needs the platform.
 | ST4.7 | S0.4 | **Sync never blocks the render path.** A sync in flight cannot delay a slide advance, and a failed sync cannot stop a service. |
 | ST4.8 | S0.4 | The control surface shows the last successful sync, and says plainly when the plan on screen is older than the server's. |
 | ST4.9 | S0.4 | Media syncs by content hash into the local cache, resumable, verified before use. A missing background degrades to the theme colour. |
-| ST4.10 | S0.4 | **Pre-service prefetch** of the next seven days of services, so Sunday needs no network at all. |
+| ST4.10 | S0.4 | **Pre-service prefetch** of the next seven days of services, so a service needs no network at all. |
 | ST4.11 | S0.4 | Promoting a local song upward (ST2.14) is one way, on request, and never automatic. |
 | ST4.12 | S0.4 | An archived song or plan is tombstoned and hidden, and is retained for the service in progress if it is live on screen. |
 | ST4.13 | S1.0 | Export the synced cache and the library as a portable bundle, so a second laptop is prepared from a USB stick when a church has no usable wifi. |
@@ -387,7 +391,7 @@ the whole usage log intact.
 *Accept ST4.7:* with the sync endpoint artificially held open for sixty seconds, advance latency is
 unchanged against the ST21.1 budget.
 
-*Accept ST4.10:* a laptop synced on Thursday, then left in a cupboard with no network, runs Sunday's
+*Accept ST4.10:* a laptop synced on Thursday, then left in a cupboard with no network, runs the weekend's
 full service including backgrounds and scripture text.
 
 ---
@@ -475,7 +479,7 @@ and what pairing with Hearth changes.
 
 | ID | Rel | Requirement |
 |---|---|---|
-| ST8.1 | S0.1 | One built-in theme good enough to use unmodified on a Sunday. Typography, contrast and safe areas from the platform's design system. |
+| ST8.1 | S0.1 | One built-in theme good enough to use unmodified at a service. Typography, contrast and safe areas from the platform's design system. |
 | ST8.2 | S0.1 | A theme is data: font family, weights, sizes as a proportion of output height, colour, alignment, safe area insets, line limit, shadow or outline for legibility over video, and transition duration. |
 | ST8.3 | S0.3 | Separate themes per content kind: lyrics, scripture, announcement, title. Four looks is what a church will actually maintain. |
 | ST8.4 | S0.3 | A theme is previewed at the real output resolution before it is used. |
@@ -519,7 +523,7 @@ point, no drift in memory use, and no dropped frames during a slide dissolve, on
 | ST10.1 | S0.1 | One output window, fullscreen on a display picked by name and position rather than by index. |
 | ST10.2 | S0.1 | The output window carries no chrome. The cursor is hidden, operating system notifications are suppressed, and the display is kept awake. |
 | ST10.3 | S0.3 | **Several outputs, independent content per output.** The main screen shows lyrics while the foyer screen shows the announcement loop. |
-| ST10.4 | S0.3 | Output configuration survives a display unplugged and replugged, matched by display identity, so the Sunday projector always lands on the same output. |
+| ST10.4 | S0.3 | Output configuration survives a display unplugged and replugged, matched by display identity, so the main projector always lands on the same output. |
 | ST10.5 | S0.3 | A display disappearing mid-service leaves Stage running, and the output reappears on reconnection with the live slide. |
 | ST10.6 | S0.3 | Resolution, scaling and aspect handled explicitly, with letterboxing by choice. |
 | ST10.7 | S0.3 | A test pattern per output showing safe areas, resolution and a contrast ramp, which is how an operator finds out the projector is clipping the edges before the service. |
@@ -690,8 +694,8 @@ after the laptop reconnects, with the correct key.
 | ST19.4 | S0.3 | Stage starts with a corrupt synced cache by rebuilding it. **The local library is a separate store and is never rebuilt from the network**, so it survives. |
 | ST19.5 | S0.3 | The local library is backed up on every write, with a restore inside Stage, because for a standalone church this is the only copy. |
 | ST19.6 | S0.4 | Stage starts with no network, an expired token, and a stale cache, and runs the service it has. **This is the primary failure case and it is tested every release.** |
-| ST19.7 | S1.0 | Auto-update downloading in the background, applied on the operator's say-so, and **never prompting or applying inside a Sunday window**, matching the platform's deploy rule (N5). |
-| ST19.8 | S1.0 | The previous version is kept and rolled back to from inside Stage, because an update that breaks Sunday has to be undoable by a volunteer. |
+| ST19.7 | S1.0 | Auto-update downloading in the background, applied on the operator's say-so, and **never prompting or applying inside a service window**, matching the platform's deploy rule (N5). |
+| ST19.8 | S1.0 | The previous version is kept and rolled back to from inside Stage, because an update that breaks a service has to be undoable by a volunteer. |
 | ST19.9 | S0.3 | A local diagnostic log the operator can send, scrubbed of lyrics, names, and the device token. |
 | ST19.10 | S1.0 | Signed and notarised builds for macOS, signed for Windows, AppImage and deb for Linux. An unsigned build is not shipped to a church. |
 

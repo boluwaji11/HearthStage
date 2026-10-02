@@ -77,7 +77,7 @@ describe("saving and reading a song", () => {
   it("keeps the sequence as data and the chart as written", () => {
     opened.library.save(local(amazingGrace));
     const read = opened.library.get("song-amazing-grace");
-    const arrangement = read?.arrangements.find((candidate) => candidate.name === "Sunday");
+    const arrangement = read?.arrangements.find((candidate) => candidate.name === "Standard");
 
     expect(arrangement?.sequence).toEqual(["V1", "V2", "V3"]);
     expect(arrangement?.chordpro).toContain("A[G]mazing grace!");

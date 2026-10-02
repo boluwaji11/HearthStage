@@ -196,7 +196,7 @@ sections is not a thing Stage can use and two round trips to assemble one is was
     }],
     "arrangements": [{
       "id": "uuid",
-      "name": "Sunday 2026",
+      "name": "Standard",
       "key": "D",
       "tempo_bpm": 76,
       "sequence": ["V1", "C", "V2", "C", "V3", "C", "C"],
@@ -223,7 +223,7 @@ further lookup.
   "plans": [{
     "id": "uuid",
     "service_occurrence_id": "uuid",
-    "title": "Sunday Morning",
+    "title": "Morning Service",
     "starts_at": "2026-10-04T10:30:00-05:00",
     "campus_id": "uuid | null",
     "series": "The Kingdom",
@@ -270,7 +270,7 @@ further lookup.
 API, and therefore cannot fail to render a passage because the wifi is down. The verse array rather
 than one string is what makes verse-boundary splitting possible (ST7.3).
 
-`key_override` on the plan item is what a leader sets when this Sunday's key differs from the
+`key_override` on the plan item is what a leader sets when the next service's key differs from the
 arrangement's. Stage transposes from the arrangement key to the override using `packages/songs`, the
 same code that produces the printed chart.
 
@@ -372,7 +372,7 @@ in "keep serving the cache" (ST4.7, ST19.6).
 
 ## Rate limits
 
-Per device: 60 requests a minute sustained, 300 in a burst. The normal Sunday cost of the whole
+Per device: 60 requests a minute sustained, 300 in a burst. The normal cost of the whole
 contract is one `changes` loop and a handful of body fetches, so a church never approaches the limit.
 A client that hits 429 is a client with a bug.
 

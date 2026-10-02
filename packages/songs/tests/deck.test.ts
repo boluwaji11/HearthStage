@@ -3,7 +3,7 @@
  *
  * The deck is the service, compiled. These are the golden expectations: the
  * same service compiles to the same cues every time, and every way it can be
- * wrong is reported at the moment it is opened rather than at 10:31 on a Sunday.
+ * wrong is reported at the moment it is opened rather than two minutes into a service.
  */
 import { describe, it, expect } from "vitest";
 import {
@@ -13,7 +13,7 @@ import {
   blankWholeSong,
   holyHolyHoly,
   sampleLibrary,
-  sundayService,
+  sampleService,
 } from "../src/fixtures";
 import {
   compileDeck,
@@ -28,11 +28,11 @@ import type { ServicePlan } from "../src/service";
 
 const library = lookupFrom(sampleLibrary);
 
-function deck(plan: ServicePlan = sundayService, maxLines = 4) {
+function deck(plan: ServicePlan = sampleService, maxLines = 4) {
   return compileDeck(plan, library, { limits: { maxLines } });
 }
 
-describe("a Sunday service, compiled", () => {
+describe("a service, compiled", () => {
   it("produces the same deck every time", () => {
     const first = deck();
     const second = deck();
@@ -87,9 +87,9 @@ describe("a song becomes slides by its sequence (ST5.2)", () => {
   });
 
   it("reports the key the leader asked for rather than the arrangement's", () => {
-    // ST5.6. The arrangement is in G and this Sunday is in Bb.
+    // ST5.6. The arrangement is in G and the next service is in Bb.
     const group = deck().groups.find((candidate) => candidate.title === "Amazing Grace");
-    expect(amazingGrace.arrangements.find((a) => a.id === "ag-sunday")?.key).toBe("G");
+    expect(amazingGrace.arrangements.find((a) => a.id === "ag-standard")?.key).toBe("G");
     expect(group?.key).toBe("Bb");
   });
 
@@ -100,7 +100,7 @@ describe("a song becomes slides by its sequence (ST5.2)", () => {
   });
 
   it("splits a long section across cues when the theme allows fewer lines", () => {
-    const tight = deck(sundayService, 2);
+    const tight = deck(sampleService, 2);
     const group = tight.groups.find((candidate) => candidate.title === "Holy, Holy, Holy");
     // Three sections of four lines, two lines a slide, so six cues.
     expect(group?.cues).toHaveLength(6);
@@ -124,7 +124,7 @@ describe("scripture (ST7.3)", () => {
 
   it("reports a scripture item with no text", () => {
     const plan: ServicePlan = {
-      ...sundayService,
+      ...sampleService,
       items: [
         {
           type: "scripture",
@@ -148,7 +148,7 @@ describe("scripture (ST7.3)", () => {
 describe("what it refuses to do quietly", () => {
   it("reports a song the library does not have", () => {
     const plan: ServicePlan = {
-      ...sundayService,
+      ...sampleService,
       items: [
         {
           type: "song",
@@ -183,7 +183,7 @@ describe("what it refuses to do quietly", () => {
       arrangements: [blankArrangement({ songId: "song-broken", sequence: ["V1", "C"] })],
     });
     const plan: ServicePlan = {
-      ...sundayService,
+      ...sampleService,
       items: [
         {
           type: "song",
@@ -216,8 +216,8 @@ describe("what it refuses to do quietly", () => {
 
   it("compiles items in sortOrder, whatever order they are stored in", () => {
     const shuffled: ServicePlan = {
-      ...sundayService,
-      items: [...sundayService.items].reverse(),
+      ...sampleService,
+      items: [...sampleService.items].reverse(),
     };
     expect(compileDeck(shuffled, library).groups.map((group) => group.title)).toEqual(
       deck().groups.map((group) => group.title),
@@ -249,8 +249,8 @@ describe("moving through a deck", () => {
     // Recompiling at a different line limit changes how many cues a section
     // becomes, so an id carries the section and the occurrence rather than a
     // position.
-    const wide = deck(sundayService, 4);
-    const narrow = deck(sundayService, 2);
+    const wide = deck(sampleService, 4);
+    const narrow = deck(sampleService, 2);
     const firstV1Wide = wide.cues.find((cue) => cue.label === "V1");
     const firstV1Narrow = narrow.cues.find((cue) => cue.label === "V1");
     expect(firstV1Wide?.id).toBe(firstV1Narrow?.id);

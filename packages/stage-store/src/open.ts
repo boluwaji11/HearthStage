@@ -7,7 +7,7 @@
  *
  * - **`library.db` is the church's own work.** For an unpaired church it is the
  *   only copy. Writes are rare and human paced, so it runs with
- *   `synchronous = FULL`: a power cut during a Sunday morning edit costs the
+ *   `synchronous = FULL`: a power cut during an edit before a service costs the
  *   edit rather than the file.
  * - **`cache.db` is synced from the platform and disposable.** It runs with
  *   `synchronous = NORMAL`, because the worst case is a resync.

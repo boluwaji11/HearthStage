@@ -79,7 +79,7 @@ export interface DisplayChoice {
  * The displays, named.
  *
  * Addressed by identity rather than by index, because an index changes when
- * something is unplugged and the Sunday projector has to land on the same
+ * something is unplugged and the main projector has to land on the same
  * output every week (ST10.4). Identity by display id for now; the stable
  * manufacturer and serial hash arrives with STG-64.
  */

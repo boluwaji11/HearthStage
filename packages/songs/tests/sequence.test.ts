@@ -16,7 +16,7 @@ import { formatSequence, parseSequence, pickArrangement, resolveSequence } from 
 
 describe("resolveSequence", () => {
   it("returns the sections the sequence names, in order", () => {
-    const resolved = resolveSequence(amazingGrace, "ag-sunday");
+    const resolved = resolveSequence(amazingGrace, "ag-standard");
     expect(resolved?.sections.map((entry) => entry.label)).toEqual(["V1", "V2", "V3"]);
     expect(resolved?.problems).toEqual([]);
   });
@@ -24,7 +24,7 @@ describe("resolveSequence", () => {
   it("resolves a repeat as separate entries, numbered", () => {
     // "V1 V2 V1" is three cues. A sequence that collapsed the repeat would put
     // the service one slide short of where the band is.
-    const resolved = resolveSequence(holyHolyHoly, "hhh-sunday");
+    const resolved = resolveSequence(holyHolyHoly, "hhh-standard");
     expect(resolved?.sections.map((entry) => entry.label)).toEqual(["V1", "V2", "V1"]);
     expect(resolved?.sections.map((entry) => entry.occurrence)).toEqual([1, 1, 2]);
     expect(resolved?.sections[0]?.occurrencesTotal).toBe(2);
@@ -109,12 +109,12 @@ describe("pickArrangement", () => {
   });
 
   it("takes the default when none is asked for, which is a song called from the floor", () => {
-    expect(pickArrangement(amazingGrace, null).arrangement?.name).toBe("Sunday");
+    expect(pickArrangement(amazingGrace, null).arrangement?.name).toBe("Standard");
   });
 
   it("falls back to the default when the named one is gone, and says so", () => {
     const picked = pickArrangement(amazingGrace, "deleted-last-week");
-    expect(picked.arrangement?.name).toBe("Sunday");
+    expect(picked.arrangement?.name).toBe("Standard");
     expect(picked.problems).toEqual([
       { code: "arrangement.unknown", arrangementId: "deleted-last-week" },
     ]);

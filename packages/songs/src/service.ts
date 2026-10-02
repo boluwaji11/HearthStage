@@ -43,7 +43,7 @@ export interface SongItem {
   songId: string;
   /** null takes the song's default arrangement. */
   arrangementId: string | null;
-  /** This Sunday's key, where it differs from the arrangement's (ST5.6). */
+  /** This the service's key, where it differs from the arrangement's (ST5.6). */
   keyOverride: Key | null;
 }
 

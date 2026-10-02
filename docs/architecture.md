@@ -36,7 +36,7 @@ R20.10 importers use them unchanged.
 Three things decide it, and they are the three things a browser tab cannot do.
 
 1. **Real displays.** One fullscreen window per physical display, addressed by display identity so
-   the Sunday projector always lands on the same output (ST10.4). A browser offers one fullscreen
+   the main projector always lands on the same output (ST10.4). A browser offers one fullscreen
    element on the display it happens to be on.
 2. **A library of its own, on disk.** A local SQLite database the church authors into, a
    content-addressed media directory, and no network in the render path (ST21.8). A browser tab
@@ -116,7 +116,7 @@ set list or Hearth plan + songs + arrangements + themes
   (ST6.1).
 - **Compilation is deterministic**, so it is tested against golden fixtures. A sequence referencing a
   label the song does not have fails at compile time with the label named, rather than at 10:31 on a
-  Sunday (ST5.2 acceptance).
+  a service (ST5.2 acceptance).
 - Compilation happens when a set list or plan is opened, and when a plan change is accepted. A cue
   advance never compiles anything.
 
@@ -287,7 +287,7 @@ rather than a degraded one, so the tests treat it as the normal case and pairing
 
 - `electron-builder`. macOS signed and notarised, Windows signed, Linux AppImage and deb (ST19.10).
 - `electron-updater`, downloading in the background, applying on the operator's say-so, and **refusing
-  to prompt inside a Sunday window**, which is the same rule the platform's deploys follow (ST19.7).
+  to prompt inside a service window**, which is the same rule the platform's deploys follow (ST19.7).
 - The previous version is retained and rolled back to from inside Stage (ST19.8).
 - Installer under 150MB per platform (ST21.11), which means the bundled video loops are few and
   compressed.

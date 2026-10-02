@@ -25,7 +25,7 @@ import {
 import type { Cue, Deck, ServicePlan } from "@hearth/songs";
 
 /**
- * The built-in theme, good enough to use unmodified on a Sunday (ST8.1).
+ * The built-in theme, good enough to use unmodified during a service (ST8.1).
  *
  * Sizes are a fraction of output height, so the same theme is right on a 1080p
  * projector and on a 4K foyer screen. `textSize` is cap height at 0.072, which

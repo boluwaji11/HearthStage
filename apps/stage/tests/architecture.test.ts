@@ -59,7 +59,7 @@ describe("the render path", () => {
 
   it("loads nothing from a remote origin", () => {
     // A font or a stylesheet from a CDN is a network call that only fails on
-    // the one Sunday the wifi is down.
+    // the one service the wifi is down.
     for (const directory of renderPath) {
       for (const file of filesUnder(directory)) {
         const source = readFileSync(file, "utf8");

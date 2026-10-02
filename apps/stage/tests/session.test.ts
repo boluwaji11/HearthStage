@@ -7,15 +7,15 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { compileDeck, lookupFrom, type Deck } from "@hearth/songs";
-import { sampleLibrary, sundayService } from "@hearth/songs/fixtures";
+import { sampleLibrary, sampleService } from "@hearth/songs/fixtures";
 import { Session, contentOf, DEFAULT_THEME } from "../src/main/session";
 
 let deck: Deck;
 let session: Session;
 
 beforeEach(() => {
-  deck = compileDeck(sundayService, lookupFrom(sampleLibrary));
-  session = new Session(deck, sundayService);
+  deck = compileDeck(sampleService, lookupFrom(sampleLibrary));
+  session = new Session(deck, sampleService);
 });
 
 describe("moving through a service", () => {
@@ -137,7 +137,7 @@ describe("what the control surface is handed", () => {
     const state = session.controlState([
       { outputId: "out", name: "Main", display: "Projector", live: true },
     ]);
-    expect(state.service?.title).toBe("Sunday Morning");
+    expect(state.service?.title).toBe("Morning Service");
     expect(state.service?.source).toBe("set_list");
     expect(state.groups).toHaveLength(6);
     expect(state.cues).toHaveLength(deck.cues.length);
@@ -182,10 +182,10 @@ describe("opening another service (ST5.11)", () => {
 
     // The same service, recompiled for a theme that fits two lines a slide, so
     // every section splits and positions move.
-    const narrow = compileDeck(sundayService, lookupFrom(sampleLibrary), {
+    const narrow = compileDeck(sampleService, lookupFrom(sampleLibrary), {
       limits: { maxLines: 2 },
     });
-    session.open(narrow, sundayService);
+    session.open(narrow, sampleService);
 
     expect(session.liveCueId()).toBe(liveId);
     expect(session.controlState([]).position).not.toBe(5);
@@ -193,7 +193,7 @@ describe("opening another service (ST5.11)", () => {
 
   it("goes back to the beginning when the cue is gone", () => {
     session.apply({ type: "goTo", position: 5 });
-    const other = compileDeck({ ...sundayService, id: "other", items: [] }, lookupFrom([]));
+    const other = compileDeck({ ...sampleService, id: "other", items: [] }, lookupFrom([]));
     session.open(other, null);
     expect(session.controlState([]).position).toBe(0);
     expect(session.controlState([]).service).toBeNull();
@@ -205,7 +205,7 @@ describe("recovery (ST19.1, ST19.2)", () => {
     session.apply({ type: "goTo", position: 7 });
     const saved = session.liveCueId();
 
-    const fresh = new Session(compileDeck(sundayService, lookupFrom(sampleLibrary)), sundayService);
+    const fresh = new Session(compileDeck(sampleService, lookupFrom(sampleLibrary)), sampleService);
     expect(fresh.restoreTo(saved ?? "")).toBe(true);
     expect(fresh.liveCueId()).toBe(saved);
   });
@@ -213,7 +213,7 @@ describe("recovery (ST19.1, ST19.2)", () => {
 
 describe("an empty deck", () => {
   it("does not move, and hands the output nothing", () => {
-    const empty = new Session(compileDeck({ ...sundayService, items: [] }, lookupFrom([])), null);
+    const empty = new Session(compileDeck({ ...sampleService, items: [] }, lookupFrom([])), null);
     expect(empty.apply({ type: "advance" })).toBe(false);
     expect(empty.liveCueId()).toBeNull();
     expect(empty.outputState("out").content).toEqual({ kind: "nothing" });

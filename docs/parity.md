@@ -2,7 +2,21 @@
 
 A feature inventory against ProPresenter 7, EasyWorship 7, OpenLP 3 and FreeShow,
 written because Stage replaces one of those on a church's media desk and a
-church will judge it by whether the thing it did last Sunday still works.
+church will judge it by whether the thing it did the last service still works.
+
+**What they call themselves is worth noticing.** ProPresenter's own page says
+"the industry standard in presentation software", and lists lobby displays,
+overflow rooms, livestreams, stage screens, conferences, broadcast and classrooms.
+It does not say worship, and neither should Stage: lyrics are one of the things
+that go on a screen, alongside sermon slides, scripture, notices, countdowns,
+video and a lower third on the stream.
+
+**ProPresenter is the yardstick here because it is the one most churches are
+paying for.** It is an example rather than the target. The bar is the best
+software in this category, whoever is making it in a given year, and the point is
+to reach that bar and then give the result to ministries at no cost. Where one of
+these products does something better than the plan, that is a gap to close. Where
+all of them do something badly, that is an opening.
 
 **Have** means built. **Planned** means it has a story on
 [BACKLOG.md](../BACKLOG.md). **Missing** means this document is the first time it
@@ -27,7 +41,7 @@ sermon outline is another. So are a welcome slide, three announcement slides, a
 title card, a blank, a verse of scripture, a video with no words on it, and the
 notice about the car park.
 
-A model that can only hold songs can present roughly a third of a Sunday.
+A model that can only hold songs can present roughly a third of a service.
 
 So the object model is corrected here, and PRD domain 2 is rewritten around it:
 
@@ -106,6 +120,8 @@ of presentation** rather than as the only thing that exists.
 | Announcement rotation | Yes | **Planned**, STG-75 |
 | Audio and video as items | Yes | **Planned**, STG-118 |
 | Live camera as a background | Yes | **Planned**, STG-136 |
+| An announcement presentation running at the same time as the main one | Yes | **Planned**, STG-75. Theirs is a whole second presentation, which is the right shape |
+| Scripture at scale: 130 translations, 25 languages | Yes, and it is a selling point | **Planned** for what can be shipped. Public domain is bundled, a paired church's licensed text comes from Hearth, and the rest cannot be redistributed by anyone who is not paying for it |
 
 ## 5. The room, and the outputs
 
@@ -123,6 +139,9 @@ of presentation** rather than as the only thing that exists.
 | Alpha-keyed output for a livestream | Yes | **Planned**, STG-127 |
 | SDI output | Yes, with hardware | **Refused.** That is a capture card's job |
 | Recording or streaming the output | Yes, capture | **Refused.** OBS is free, better at it, and already in the building |
+| Syphon output, for another application on the same Mac | Yes | **Missing.** Now STG-164, alongside NDI |
+| Lobby display, overflow room, a separate feed for people watching online | Yes, as output roles | **Planned** through looks and output groups, STG-160, STG-163. Naming them as roles is now STG-165 |
+| Custom objects and masks on an output | Yes | **Refused** for v1. A church with a curved screen has a projector that does this in hardware |
 
 ## 6. Design
 
@@ -147,6 +166,9 @@ of presentation** rather than as the only thing that exists.
 | Macros | Yes | **Planned**, STG-112 |
 | Triggers out to a lighting desk | Yes | **Planned**, STG-116 |
 | A documented local API | Partly | **Planned**, STG-143 |
+| Timecode: slides following a recorded track | Yes | **Missing.** Now STG-166, deferred past S1.0 and recorded so it is a decision |
+| Several machines triggering each other | Yes, Network Link | **Missing.** Now STG-167, deferred. A church with two presenter machines has a production team |
+| DMX lighting control | Yes | **Refused.** A lighting desk does this, and Stage emits a trigger it can follow (STG-116) |
 | Ableton or MultiTracks session playback | Yes | **Refused.** Separate product, separate hardware, and pretending otherwise is how Stage never ships |
 
 ## 8. What a church notices when it goes wrong
@@ -162,7 +184,7 @@ The column nobody compares on, and the one that decides whether a church stays.
 | A missing media file | Shows an error on the screen | **Planned**, STG-71. Falls back to the theme colour; the wall says nothing |
 | The library backed up and restorable | Manual | **Have**, on every write, with a verified restore |
 | Rolling back a bad update | No | **Planned**, STG-140 |
-| An update applying on a Sunday morning | Possible | **Planned**, STG-139. Refused inside a Sunday window |
+| An update applying during a service | Possible | **Planned**, STG-139. Refused inside a service window |
 
 ---
 
@@ -189,5 +211,5 @@ free, is better at the second, and is already in the building.
 
 **None of this changes the thesis.** A church installs Stage because it is a
 complete presenter, and keeps it because it is the only one that already knows
-this Sunday. The inventory is about the first half of that sentence, which is the
+the next service. The inventory is about the first half of that sentence, which is the
 half that gets Stage onto the laptop at all.

@@ -1,7 +1,7 @@
 # Hearth Stage, user journeys
 
 What a person does inside the application, in the order they do it, from opening
-it for the first time to running a Sunday.
+it for the first time to running a service.
 
 [PRD.md](../PRD.md) says what Stage must do and [BACKLOG.md](../BACKLOG.md) says
 when each piece gets built. This document is the join: it is how we check that
@@ -22,7 +22,7 @@ the stories add up to something a church can use.
 ```
    LIBRARY                PLAYLIST                 LIVE
    ───────                ────────                 ────
-   presentations          this Sunday's order      what is on each screen now
+   presentations          this the service order      what is on each screen now
                                                    ┌──────────────────────┐
    ┌─────────────┐        1  Countdown             │ foreground   props   │
    │ song        │   ──►  2  Welcome        ──►    │ slide        text    │
@@ -43,14 +43,14 @@ Three things in that picture are the whole product.
 
 **A presentation is an ordered set of slides**, and a song is one kind of
 presentation. So is a sermon outline, a notice, a title card and a video. A model
-that only held songs could present a third of a Sunday.
+that only held songs could present a third of a service.
 
 **A look decides which layers are on, per output.** Clearing the words leaves the
 background. A prop sits over a video. The foyer screen runs its own look while
 the main screen runs lyrics. This is how a presenter is actually operated.
 
 **The playlist can arrive from somewhere else.** For a church that uses Hearth,
-Sunday's order is already built by the person who planned the service, and it
+the service order is already built by the person who planned the service, and it
 reaches the laptop with no export and no file carried across the room. No other
 presenter can do that.
 
@@ -58,7 +58,7 @@ presenter can do that.
 
 ## J1. The first ten minutes
 
-**Who:** James, worship leader, 34, volunteer, four hours a week. He has
+**Who:** James, who leads the music, 34, volunteer, four hours a week. He has
 downloaded Stage because he is tired of paying for ProPresenter himself. He has
 not read anything.
 
@@ -70,7 +70,7 @@ not read anything.
 | 4 | **Types a title slide.** "Welcome to Grace Community". It appears on the wall, fitted to the screen, legible from the back. | ST2.16 | **STG-145** |
 | 5 | Adds two more slides to it: the notices. Presses the arrow keys and they advance. | ST2.16 | **STG-145** |
 | 6 | Blacks the screen. Presses the key again and the slide comes back. | ST6.6 | Built |
-| 7 | Decides it is good enough to use on Sunday, and has not opened a manual. | | |
+| 7 | Decides it is good enough to use at the service, and has not opened a manual. | | |
 
 **The test of this journey:** from download to words on a wall in under five
 minutes, with no account and no network, and without reading anything. Note that
@@ -78,18 +78,18 @@ nothing in it involves a song.
 
 ---
 
-## J2. The first Sunday
+## J2. The first service
 
-**Who:** the Sunday operator. Sixteen years old this week, on a rota. Opened
+**Who:** the operator. Sixteen years old this week, on a rota. Opened
 Stage once, three weeks ago.
 
-**The design case: 10:28.** The service starts at 10:30. The laptop is on
+**The design case: two minutes to go.** The service starts at 10:30. The laptop is on
 battery, driving a projector through a 2017 adapter, on wifi that drops. The
 order changed on Thursday. Nobody is free to help.
 
 | Step | What happens | Req | State |
 |---|---|---|---|
-| 1 | Opens Stage. Sunday's playlist is already the one offered, because it is the next by date. One keypress. | ST12.5 | STG-48 |
+| 1 | Opens Stage. the service playlist is already the one offered, because it is the next by date. One keypress. | ST12.5 | STG-48 |
 | 2 | Reads the six keys along the bottom of the window. That is the whole of the training. | ST12.10 | Built |
 | 3 | Starts the countdown to 10:30. It is anchored to the clock, so restarting Stage resumes it correctly. | ST13.1 | STG-73 |
 | 4 | Presses space when the band starts. The slide cross-dissolves. | ST6.5 | Built |
@@ -119,11 +119,11 @@ five minutes earlier, with the trackpad physically disconnected.
 
 ---
 
-## J4. Building Sunday, on a Thursday evening
+## J4. Building the next service, a few days ahead
 
 | Step | What happens | Req | State |
 |---|---|---|---|
-| 1 | Opens last Sunday's playlist and duplicates it, keeping the shape and dropping the content. | ST2.9 | STG-47 |
+| 1 | Opens last the service playlist and duplicates it, keeping the shape and dropping the content. | ST2.9 | STG-47 |
 | 2 | Drops in four songs, a reading, the sermon as a header, and the notices. | ST2.8, ST2.17 | STG-46, STG-154 |
 | 3 | Drops a song a tone because the congregation cannot reach it. The chart transposes with it. | ST2.6, ST5.6 | Built |
 | 4 | Types `Psalm 23:1-6`. It resolves from the bundled text, with no internet. | ST7.1, ST7.2 | STG-55, STG-56 |
@@ -145,7 +145,7 @@ existing library has no users.
 |---|---|---|---|
 | 1 | Points Stage at the old library. ProPresenter, EasyWorship, OpenLP, OpenSong or OpenLyrics. | ST3.1 | STG-33 to STG-36 |
 | 2 | Stage reports before it writes: how many songs, how many kept their section structure, how many look like duplicates. | ST3.3 | STG-38 |
-| 3 | The ones that arrived without structure are listed for review, so they are a known problem rather than a surprise on a Sunday. | ST3.2 | STG-33 to STG-36 |
+| 3 | The ones that arrived without structure are listed for review, so they are a known problem rather than a surprise during a service. | ST3.2 | STG-33 to STG-36 |
 | 4 | Media the old library referenced is matched on disk, and what is missing is named. | ST3.6 | STG-41 |
 | 5 | A week later, undoes the whole import. | ST3.4 | STG-40 |
 
@@ -161,14 +161,14 @@ nineteenth free presenter.
 | Step | What happens | Req | State |
 |---|---|---|---|
 | 1 | Maria makes a six character pairing code in Hearth. James types it into Stage once. | ST1.3 | STG-88, waiting on the platform |
-| 2 | Sunday's **playlist is already there**, in the order the person who planned the service put it in. Songs, readings, the sermon, the notices. | ST5.3 | STG-99 |
+| 2 | **The playlist is already there**, in the order the person who planned the service put it in. Songs, readings, the sermon, the notices. | ST5.3 | STG-99 |
 | 3 | The keys are the ones the leader set. The scripture is the translation the church holds a licence for. | ST5.6, ST7.6 | STG-101 |
 | 4 | The notices on the foyer screen are the ones Maria typed on Thursday. Nobody rebuilds them. | ST13.5 | STG-102 |
 | 5 | The note addressed to Drums shows to the person on drums, and not to anybody else. | ST5.5 | STG-100 |
 | 6 | Songs that came from Hearth are read-only here. The ones James typed in stay his, and he can push them up to the church library once, by choosing to. | ST2.13, ST2.14 | STG-93, STG-98 |
 
-**The test of this journey:** a plan edited in Hearth on Saturday night is on the
-screen on Sunday morning, and the service still runs after the network cable is
+**The test of this journey:** a plan edited in Hearth on the night before is on the
+screen on a service, and the service still runs after the network cable is
 pulled out mid-set.
 
 ---
@@ -197,7 +197,7 @@ Stage is still in use a year later.
 | The projector is unplugged | Stage stays up. The output returns on the live slide. | ST10.5 | STG-64 |
 | A video file is missing | The slide falls back to the theme colour. The control surface says what happened and the wall says nothing. | ST9.9 | STG-71 |
 | The library file is lost | Restored from the automatic backup: every slide, section, arrangement and chart. | ST19.5 | Built |
-| An update breaks Sunday | Rolled back from inside Stage, by a volunteer. Updates never apply inside a Sunday window. | ST19.7, ST19.8 | STG-139, STG-140 |
+| An update breaks a service | Rolled back from inside Stage, by a volunteer. Updates never apply inside a service window. | ST19.7, ST19.8 | STG-139, STG-140 |
 | The laptop is unpaired, or revoked | Keeps everything local and keeps running the service in progress. | ST1.7 | STG-90 |
 
 ---
