@@ -183,7 +183,7 @@ function paint(state: ControlState): void {
   // left in it, and the three ways in are the only place the sample lives.
   el.home.hidden = !open;
 
-  el.service.textContent = state.service?.title ?? "Nothing open";
+  el.service.textContent = state.service?.title ?? "";
   el.serviceDetail.textContent =
     state.service === null
       ? ""

@@ -219,15 +219,10 @@ h2 {
   letter-spacing: -0.015em;
 }
 
-.start-line {
-  color: var(--quiet);
-  font-size: 1rem;
-}
-
 .start-ways {
   display: flex;
   gap: var(--space-3);
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .way {
