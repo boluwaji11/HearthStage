@@ -62,6 +62,15 @@ export const en = {
   "keys.escape": "Esc",
   "keys.escape.meaning": "Back to the slide",
 
+  // What an operator does to a cue during a service (STG-24)
+  "run.up": "Move up",
+  "run.down": "Move down",
+  "run.skip": "Skip this run",
+  "run.unskip": "Put it back",
+  "run.repeat": "Sing it again",
+  "run.drop": "Take the repeat away",
+  "run.reset": "Back to the set list",
+
   // What is wrong with a service, said so somebody can act on it
   "problem.anItem": "An item",
   "problem.named": "“{item}”",

@@ -1,5 +1,5 @@
 /**
- * STG-145. The handful of marks this window needs.
+ * STG-145, STG-24. The handful of marks the windows need.
  *
  * Drawn here rather than pulled from Lucide, because the icon package is React
  * and this window is plain DOM. The paths follow Lucide's geometry so that the
@@ -36,6 +36,20 @@ const SHAPES: Record<string, Shape[]> = {
     { x: 8, y: 2, w: 8, h: 4 },
   ],
   note: [{ d: "M21 15A2 2 0 0 1 19 17H7L3 21V5A2 2 0 0 1 5 3H19A2 2 0 0 1 21 5Z" }],
+  /** Out of this run, and back in on a second press (STG-24). */
+  skip: [
+    { d: "M10.7 5.1A10 10 0 0 1 12 5C19 5 22 12 22 12A17 17 0 0 1 19.2 16.1" },
+    { d: "M6.6 6.6A17 17 0 0 0 2 12S5 19 12 19A10 10 0 0 0 17.4 17.4" },
+    { d: "M2 2L22 22" },
+  ],
+  /** Round one more time, because the room is still singing (STG-24). */
+  repeat: [
+    { d: "M17 2L21 6L17 10" },
+    { d: "M3 11V9A4 4 0 0 1 7 5H21" },
+    { d: "M7 22L3 18L7 14" },
+    { d: "M21 13V15A4 4 0 0 1 17 19H3" },
+  ],
+  minus: [{ d: "M5 12H19" }],
   grip: [
     { cx: 9, cy: 5 },
     { cx: 9, cy: 12 },

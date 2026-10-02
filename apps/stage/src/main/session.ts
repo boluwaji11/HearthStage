@@ -25,6 +25,7 @@ import {
 } from "@hearth/stage-protocol";
 import type { Cue, CueGroup, Deck, ServicePlan } from "@hearth/songs";
 import { DEFAULT_THEME, themeFor } from "./themes";
+import { applyChange, asPlanned, runFrom, type RunEntry } from "./running";
 
 export { DEFAULT_THEME };
 
@@ -67,6 +68,8 @@ export class Session {
   private blank: Blank = "none";
   private revision = 0;
   private readonly now: () => number;
+  /** The order this run goes in (STG-24). Built from the deck, never into it. */
+  private order: RunEntry[];
   /** When the deck last moved on a key, for the repeat guard (STG-23). */
   private movedAt = Number.NEGATIVE_INFINITY;
 
@@ -76,6 +79,27 @@ export class Session {
     this.theme = options.theme ?? DEFAULT_THEME;
     this.themes = options.themes ?? themeFor;
     this.now = options.now ?? Date.now;
+    this.order = runFrom(deck);
+  }
+
+  /** The cue an entry in the running order stands for. */
+  private cueAt(position: number): Cue | undefined {
+    const entry = this.order[position];
+    if (entry === undefined) return undefined;
+    return this.deck.cues.find((cue) => cue.id === entry.cueId);
+  }
+
+  /**
+   * The next entry the room will actually see, from a position.
+   *
+   * A skipped entry stays in the list so the operator can see what they took
+   * out and put it back, so moving through the service steps over them.
+   */
+  private showingFrom(position: number, direction: 1 | -1): number {
+    for (let at = position; at >= 0 && at < this.order.length; at += direction) {
+      if (this.order[at]?.skipped === false) return at;
+    }
+    return -1;
   }
 
   /**
@@ -86,10 +110,15 @@ export class Session {
    * (ST5.11).
    */
   open(deck: Deck, plan: ServicePlan | null = null): void {
-    const liveId = this.deck.cues[this.position]?.id;
+    const liveId = this.cueAt(this.position)?.id;
     this.deck = deck;
     this.plan = plan;
-    const found = liveId === undefined ? -1 : deck.cues.findIndex((cue) => cue.id === liveId);
+    // A new deck is a new service, so the run starts as the church planned it.
+    // Carrying a skipped verse across a recompile would hide a verse somebody
+    // has just put back into the set list.
+    this.order = runFrom(deck);
+    const found =
+      liveId === undefined ? -1 : this.order.findIndex((entry) => entry.cueId === liveId);
     this.position = found === -1 ? 0 : found;
     this.revision += 1;
   }
@@ -109,8 +138,23 @@ export class Session {
       case "goTo":
         return this.moveTo(intent.position);
       case "goToCue": {
-        const found = this.deck.cues.findIndex((cue) => cue.id === intent.cueId);
+        const found = this.order.findIndex(
+          (entry) => !entry.skipped && (entry.id === intent.cueId || entry.cueId === intent.cueId),
+        );
         return found === -1 ? false : this.moveTo(found);
+      }
+      case "runChange":
+        return this.changeRun(intent.entryId, intent.change);
+      case "resetRun": {
+        if (asPlanned(this.order, this.deck)) return false;
+        const liveId = this.cueAt(this.position)?.id;
+        this.order = runFrom(this.deck);
+        this.position = Math.max(
+          0,
+          this.order.findIndex((entry) => entry.cueId === liveId),
+        );
+        this.revision += 1;
+        return true;
       }
       case "setBlank":
         return this.setBlank(intent.blank);
@@ -139,6 +183,29 @@ export class Session {
    * Jumping to a cue by name or by clicking it is not guarded. Those are a
    * person choosing, one at a time, and there is no such thing as a repeat.
    */
+  /**
+   * One change to the running order (STG-24, ST5.7).
+   *
+   * The live entry is held by its own identity across the change, so skipping
+   * the verse after this one does not move the room, and skipping the one that
+   * is live moves on to the next thing that will be shown.
+   */
+  private changeRun(entryId: string, change: "skip" | "repeat" | "up" | "down" | "drop"): boolean {
+    const liveEntry = this.order[this.position]?.id ?? null;
+    const changed = applyChange(this.order, entryId, change);
+    if (changed === null) return false;
+
+    this.order = changed;
+    const found = changed.findIndex((entry) => entry.id === liveEntry);
+    const at = found === -1 ? this.position : found;
+    // Where the operator skipped what was live, the room moves on to the next
+    // thing rather than sitting on a slide that is no longer in the service.
+    const showing = changed[at]?.skipped === true ? this.showingFrom(at, 1) : at;
+    this.position = showing === -1 ? Math.max(0, this.showingFrom(at, -1)) : showing;
+    this.revision += 1;
+    return true;
+  }
+
   private step(direction: 1 | -1): boolean {
     const at = this.now();
     const stillDown = at - this.movedAt < REPEAT_GUARD_MS;
@@ -148,12 +215,16 @@ export class Session {
     // of moving one cue.
     this.movedAt = at;
     if (stillDown) return false;
-    return this.moveTo(this.position + direction);
+    const next = this.showingFrom(this.position + direction, direction);
+    return next === -1 ? false : this.moveTo(next);
   }
 
   private moveTo(position: number): boolean {
-    if (this.deck.cues.length === 0) return false;
-    const clamped = Math.min(Math.max(position, 0), this.deck.cues.length - 1);
+    if (this.order.length === 0) return false;
+    const clamped = Math.min(Math.max(position, 0), this.order.length - 1);
+    // A skipped entry is not somewhere the service goes. The operator puts it
+    // back first, which is one press and visible in the list.
+    if (this.order[clamped]?.skipped === true) return false;
     if (clamped === this.position) return false;
     this.position = clamped;
     this.revision += 1;
@@ -169,7 +240,7 @@ export class Session {
 
   /** The live cue's id, which is what gets persisted for recovery (ST19.2). */
   liveCueId(): string | null {
-    return this.deck.cues[this.position]?.id ?? null;
+    return this.cueAt(this.position)?.id ?? null;
   }
 
   /** Puts a session back where it was, by cue id rather than by position. */
@@ -190,7 +261,7 @@ export class Session {
   }
 
   private themeAt(position: number): ThemeState {
-    const cue = this.deck.cues[position];
+    const cue = position < 0 ? undefined : this.cueAt(position);
     if (cue === undefined) return this.theme;
     const group: CueGroup | undefined = this.deck.groups.find(
       (candidate) => candidate.id === cue.groupId,
@@ -201,7 +272,7 @@ export class Session {
 
   /** One cue, as the control surface paints it in its live and next panes. */
   private slideView(position: number): SlideView | null {
-    const cue = this.deck.cues[position];
+    const cue = position < 0 ? undefined : this.cueAt(position);
     if (cue === undefined) return null;
     return { content: contentOf(cue, this.deck), theme: this.themeAt(position) };
   }
@@ -211,7 +282,7 @@ export class Session {
       outputId,
       revision: this.revision,
       blank: this.blank,
-      content: contentOf(this.deck.cues[this.position] ?? null, this.deck),
+      content: contentOf(this.cueAt(this.position) ?? null, this.deck),
       theme: this.liveTheme(),
     };
   }
@@ -220,7 +291,7 @@ export class Session {
     return {
       revision: this.revision,
       live: this.slideView(this.position),
-      next: this.slideView(this.position + 1),
+      next: this.slideView(this.showingFrom(this.position + 1, 1)),
       service:
         this.plan === null
           ? null
@@ -239,13 +310,22 @@ export class Session {
           tempoBpm: group.tempoBpm,
           sequence: group.sequence,
           notes: group.notes,
-          cueIds: group.cues.map((cue) => cue.id),
+          // In the order this run will show them, which is where a moved verse
+          // and a repeated chorus turn up.
+          entryIds: this.order
+            .filter((entry) => entry.groupId === group.id)
+            .map((entry) => entry.id),
         }),
       ),
-      cues: this.deck.cues.map(
-        (cue): CueView => ({
+      cues: this.order.flatMap((entry, position): CueView[] => {
+        const cue = this.deck.cues.find((candidate) => candidate.id === entry.cueId);
+        if (cue === undefined) return [];
+        return [{
           id: cue.id,
-          position: cue.position,
+          entryId: entry.id,
+          skipped: entry.skipped,
+          repeat: entry.repeat,
+          position,
           groupId: cue.groupId,
           kind: cue.kind,
           label: cue.label,
@@ -255,11 +335,12 @@ export class Session {
           slideCount: cue.slideCount,
           preview: cue.lines?.[0] ?? null,
           note: cue.note,
-        }),
-      ),
+        }];
+      }),
       position: this.position,
       blank: this.blank,
       outputs,
+      asPlanned: asPlanned(this.order, this.deck),
       problems: this.deck.problems.map((problem) => ({
         code: problem.code,
         // What the item is called, which is the only part of a compile problem

@@ -47,27 +47,47 @@ interface Offence {
  * sentence anybody translates.
  */
 const WRITTEN = [
-  /\.textContent\s*(?:\+)?=\s*(["'`])(.*?)\1/g,
-  /\.(?:title|placeholder)\s*=\s*(["'`])(.*?)\1/g,
-  /setAttribute\(\s*["'](?:aria-label|title|placeholder)["']\s*,\s*(["'`])(.*?)\1/g,
-  /createTextNode\(\s*(["'`])(.*?)\1/g,
+  /\.textContent\s*(?:\+)?=\s*[^;]*?(["'`])((?:[^"'`\\]|\\.)*)\1/gs,
+  /\.(?:title|placeholder)\s*=\s*[^;]*?(["'`])((?:[^"'`\\]|\\.)*)\1/gs,
+  /setAttribute\(\s*["'](?:aria-label|title|placeholder)["']\s*,\s*[^)]*?(["'`])((?:[^"'`\\]|\\.)*)\1/gs,
+  /createTextNode\(\s*[^)]*?(["'`])((?:[^"'`\\]|\\.)*)\1/gs,
 ];
+
+/**
+ * Takes out the strings that are not copy.
+ *
+ * A key handed to `t` is the opposite of copy written inline, a string on
+ * either side of `===` is a comparison, and a `case` label is a branch. All
+ * three sit next to an assignment and none of them is a word anybody reads.
+ */
+function scrub(source: string): string {
+  const LITERAL = `(["'\`])(?:[^"'\\\`]|\\\\.)*\\1`;
+  return source
+    .replace(new RegExp(`\\b(?:t|plural)\\(\\s*${LITERAL}`, "g"), "t(KEY")
+    .replace(new RegExp(`[!=]==?\\s*${LITERAL}`, "g"), "=== KEY")
+    .replace(new RegExp(`\\bcase\\s+${LITERAL}`, "g"), "case KEY");
+}
 
 function copyIn(source: string): Offence[] {
   const found: Offence[] = [];
-  const lines = source.split("\n");
+  // Scanned whole rather than line by line. A ternary spread over four lines
+  // puts the assignment on one and the words on another, which is how
+  // "Nothing on the screen" sat in the control window through STG-13.
+  const scrubbed = scrub(source);
 
-  lines.forEach((line, index) => {
-    for (const pattern of WRITTEN) {
-      pattern.lastIndex = 0;
-      let match: RegExpExecArray | null;
-      while ((match = pattern.exec(line)) !== null) {
-        const copy = match[2] ?? "";
-        if (!/[A-Za-z]{2}/.test(copy)) continue;
-        found.push({ where: "", line: index + 1, copy });
-      }
+  for (const pattern of WRITTEN) {
+    pattern.lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(scrubbed)) !== null) {
+      const copy = match[2] ?? "";
+      if (!/[A-Za-z]{2}/.test(copy)) continue;
+      // A catalogue key is `area.thing`: dotted, no spaces. Copy has spaces, or
+      // is one word with no dot. A key reaching here is a `t()` whose key was
+      // chosen by a condition, which is the opposite of the thing being caught.
+      if (/^[a-z][\w]*(?:\.[\w]+)+$/.test(copy)) continue;
+      found.push({ where: "", line: scrubbed.slice(0, match.index).split("\n").length, copy });
     }
-  });
+  }
 
   return found;
 }

@@ -130,7 +130,7 @@ thing a person does with Stage and until now there was no way to do it. See
 | STG-21 | Build the control surface: live slide, next slide, the deck, keyboard only | ST12.1, ST12.2 | Resolved |
 | STG-22 | Make black, clear and logo each one keypress, restoring the exact slide. The logo is the church's own file, chosen in Settings | ST6.6 | Resolved |
 | STG-23 | Make advance idempotent under key repeat, in the window and again in the session | ST12.4 | Resolved |
-| STG-24 | Reorder, skip and repeat a cue for this run, leaving the set list untouched | ST5.7 | New |
+| STG-24 | Reorder, skip and repeat a cue for this run, leaving the set list untouched | ST5.7 | Resolved |
 | STG-25 | Keep the library, import and theme editing out of the live surface | ST12.3, ST2.15 | New |
 | STG-26 | Present a song, a scripture and a countdown with no set list open | ST5.10 | New |
 | STG-27 | Write the operator brief: one screen saying what the four keys do | ST12.10 | New |
@@ -472,8 +472,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-24**, reordering, skipping and repeating a cue for this run without touching the set list. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-25**, keeping the library, import and theme editing out of the live surface. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1552,3 +1552,40 @@ seconds at the rate an operating system actually repeats.
 
 **Six new tests**, and one in the architecture file asserting the window still drops the flag, because
 that line is exactly the kind that goes missing in a refactor with nothing failing until a Sunday.
+
+## STG-24, how to test it
+
+A set list is what a church planned on Thursday. What happens on Sunday is that the preacher overruns,
+so the last verse goes, and the chorus goes round one more time because the room is still singing.
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+- Press **Try a service**. Hover a cue in the deck list, or tab onto it. Five small buttons appear on
+  the row, each carrying its name.
+- Press **Skip this run** on a verse. The row stays in the list, struck through and dimmed, and
+  pressing Space steps straight over it. Press **Put it back** and it is back.
+- Press **Skip this run** on the verse that is live. The room moves on to the next thing, rather than
+  sitting on a slide that is no longer in the service.
+- Press **Sing it again** on a chorus. A copy appears right under it, marked with a plus. Advance into
+  it and the room sees the chorus twice. **Take the repeat away** removes the copy.
+- Press **Move up** and **Move down** on a verse. It swaps with its neighbour, and it stops at the
+  ends of its own song. Moving a song to the other end of a service is a set list decision, and doing
+  it here would leave the room looking at an order nobody has on paper.
+- **Back to the set list** appears above the deck as soon as the run differs, and goes when you press
+  it. The slide the room is looking at stays where it is.
+- Press **Home**, then **Try a service** again. Everything is as the church planned it.
+
+**An entry is not a cue.** A chorus sung twice is one cue and two entries, so the operator skips or
+moves one of them without touching the other. That is why the running order is its own list in
+`running.ts` rather than a flag on a cue.
+
+**Twenty two new tests**, thirteen of them on the pure order and nine through a running session. The
+one that matters most compares the set list before and after a skip, a repeat and a move, and then
+reopens the service to find the order the church planned.
+
+**A hole in the STG-13 copy guard, found and closed.** "Nothing on the screen" was written into the
+control window inside a ternary spread over four lines, and the guard scanned line by line, so the
+assignment and the words were never on the same line. It reads whole files now, after taking out the
+strings that are not copy: a key handed to `t`, a comparison, a `case` label.

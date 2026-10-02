@@ -28,6 +28,7 @@
 
   --canvas: var(--stone-950);
   --raised: var(--stone-900);
+  --sunk: oklch(0.172 0.008 75);
   --line: oklch(0.262 0.01 75);
   --text: var(--stone-50);
   --quiet: var(--stone-400);
@@ -496,4 +497,70 @@ footer dd {
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* The order this run goes in (STG-24). */
+
+.reset {
+  align-self: flex-start;
+  margin: var(--space-2) var(--space-3) 0;
+}
+
+.cue {
+  position: relative;
+}
+
+/* Out of this run, still in the list. An operator has to see what they took
+   out, and put it back, which is the button that is now on the row. */
+.cue[data-skipped="true"] > button {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+.cue[data-repeat="true"] .cue-tag::after {
+  content: "+";
+  color: var(--ember-500);
+}
+
+.cue-buttons {
+  display: none;
+  position: absolute;
+  right: var(--space-2);
+  top: 50%;
+  transform: translateY(-50%);
+  gap: 2px;
+  background: var(--raised);
+  border-radius: var(--radius);
+  padding: 2px;
+}
+
+/* Reachable by pointer and by keyboard. Hover alone is refused
+   (docs/design-system.md section 12). */
+.cue:hover .cue-buttons,
+.cue:focus-within .cue-buttons,
+.cue[data-live="true"] .cue-buttons,
+.cue[data-skipped="true"] .cue-buttons {
+  display: flex;
+}
+
+.cue-buttons .icon {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  color: var(--quiet);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+}
+
+.cue-buttons .icon:hover {
+  color: var(--text);
+  background: var(--sunk);
+}
+
+.cue-buttons .icon svg {
+  width: 1rem;
+  height: 1rem;
 }

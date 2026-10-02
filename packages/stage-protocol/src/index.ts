@@ -118,9 +118,25 @@ export interface OutputState {
   theme: ThemeState;
 }
 
+/** The five things an operator does to the running order (STG-24, ST5.7). */
+export const RUN_CHANGES = ["skip", "repeat", "up", "down", "drop"] as const;
+
+export type RunChange = (typeof RUN_CHANGES)[number];
+
 /** One cue, as the control surface and the stage display list it. */
 export interface CueView {
   id: string;
+  /**
+   * This appearance of the cue (STG-24).
+   *
+   * A chorus sung twice is one cue and two entries, and the operator skips or
+   * moves one of them without touching the other.
+   */
+  entryId: string;
+  /** Out of this run, still in the list, and put back on a second press. */
+  skipped: boolean;
+  /** A copy the operator added. Only a copy can be taken away again. */
+  repeat: boolean;
   position: number;
   groupId: string;
   kind: "lyric" | "scripture" | "marker" | "slide";
@@ -143,7 +159,8 @@ export interface GroupView {
   tempoBpm: number | null;
   sequence: string[];
   notes: { position: string | null; body: string }[];
-  cueIds: string[];
+  /** Its cues, by entry, in the order this run will show them (STG-24). */
+  entryIds: string[];
 }
 
 export interface OutputView {
@@ -182,6 +199,8 @@ export interface ControlState {
   outputs: OutputView[];
   /** Named at compile time, so an operator knows before the service (ST5.2). */
   problems: { code: string; detail: string }[];
+  /** Whether the run is still the order the church planned (STG-24). */
+  asPlanned: boolean;
 }
 
 /**
@@ -394,6 +413,14 @@ export type Intent =
   /** Choose the church's logo, for the key that clears the room (STG-22). */
   | { type: "chooseLogo" }
   | { type: "removeLogo" }
+  /**
+   * Change the order this run goes in (STG-24, ST5.7).
+   *
+   * It affects this run. Nothing here reaches the set list or the plan.
+   */
+  | { type: "runChange"; entryId: string; change: RunChange }
+  /** Back to the order the church planned. */
+  | { type: "resetRun" }
   /** Puts the service away, back to the three ways in (STG-149, ST1.2). */
   | { type: "closeService" }
   | { type: "presentNow"; presentationId: string };
@@ -456,6 +483,8 @@ export function isIntent(value: unknown): value is Intent {
     blank?: unknown;
     presentationId?: unknown;
     itemId?: unknown;
+    entryId?: unknown;
+    change?: unknown;
     name?: unknown;
     title?: unknown;
     slides?: unknown;
@@ -481,7 +510,14 @@ export function isIntent(value: unknown): value is Intent {
     case "addSamples":
     case "chooseLogo":
     case "removeLogo":
+    case "resetRun":
       return true;
+    case "runChange":
+      return (
+        typeof candidate.entryId === "string" &&
+        candidate.entryId.length > 0 &&
+        RUN_CHANGES.includes(candidate.change as RunChange)
+      );
     case "saveSong":
       return (
         (candidate.songId === null ||

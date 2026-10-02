@@ -245,6 +245,101 @@ describe("a key held down", () => {
   });
 });
 
+/**
+ * STG-24, ST5.7. The order this run goes in.
+ *
+ * The pure half is in `running.test.ts`. This is what an operator sees: the
+ * room moving on when the live verse is taken out, staying put when a later one
+ * is, and the set list being exactly where it was through all of it.
+ */
+describe("changing the order mid service", () => {
+  /** The entry ids in the order they will be shown. */
+  function showing(): string[] {
+    return session
+      .controlState([])
+      .cues.filter((cue) => !cue.skipped)
+      .map((cue) => cue.entryId);
+  }
+
+  function entryAt(position: number): string {
+    return session.controlState([]).cues[position]?.entryId ?? "";
+  }
+
+  it("steps over a skipped cue on the way through", () => {
+    session.apply({ type: "runChange", entryId: entryAt(1), change: "skip" });
+    expect(session.controlState([]).position).toBe(0);
+    session.apply({ type: "advance" });
+    expect(session.controlState([]).position).toBe(2);
+  });
+
+  it("moves the room on when what is live is taken out", () => {
+    session.apply({ type: "goTo", position: 2 });
+    const after = entryAt(3);
+    session.apply({ type: "runChange", entryId: entryAt(2), change: "skip" });
+    expect(entryAt(session.controlState([]).position)).toBe(after);
+  });
+
+  it("leaves the room alone when a later cue is taken out", () => {
+    session.apply({ type: "goTo", position: 1 });
+    const live = session.liveCueId();
+    session.apply({ type: "runChange", entryId: entryAt(4), change: "skip" });
+    expect(session.liveCueId()).toBe(live);
+  });
+
+  it("shows a repeated cue again on the next advance", () => {
+    session.apply({ type: "goTo", position: 1 });
+    const live = session.liveCueId();
+    session.apply({ type: "runChange", entryId: entryAt(1), change: "repeat" });
+    expect(session.liveCueId()).toBe(live);
+    session.apply({ type: "advance" });
+    expect(session.liveCueId()).toBe(live);
+  });
+
+  it("will not jump to a cue that is out of this run", () => {
+    const skipped = entryAt(3);
+    session.apply({ type: "runChange", entryId: skipped, change: "skip" });
+    expect(session.apply({ type: "goToCue", cueId: skipped })).toBe(false);
+  });
+
+  it("says whether the run is still what the church planned", () => {
+    expect(session.controlState([]).asPlanned).toBe(true);
+    session.apply({ type: "runChange", entryId: entryAt(1), change: "skip" });
+    expect(session.controlState([]).asPlanned).toBe(false);
+  });
+
+  it("puts it all back, and stays on the slide the room is looking at", () => {
+    session.apply({ type: "goTo", position: 4 });
+    const live = session.liveCueId();
+    const planned = showing();
+
+    session.apply({ type: "runChange", entryId: entryAt(1), change: "skip" });
+    session.apply({ type: "runChange", entryId: entryAt(2), change: "repeat" });
+    expect(showing()).not.toEqual(planned);
+
+    expect(session.apply({ type: "resetRun" })).toBe(true);
+    expect(showing()).toEqual(planned);
+    expect(session.liveCueId()).toBe(live);
+    expect(session.controlState([]).asPlanned).toBe(true);
+  });
+
+  it("says nothing changed where the run is already the planned one", () => {
+    expect(session.apply({ type: "resetRun" })).toBe(false);
+  });
+
+  it("never writes any of it back to the set list", () => {
+    const planAsWas = JSON.stringify(sampleService);
+    session.apply({ type: "runChange", entryId: entryAt(1), change: "skip" });
+    session.apply({ type: "runChange", entryId: entryAt(2), change: "repeat" });
+    session.apply({ type: "runChange", entryId: entryAt(2), change: "down" });
+    expect(JSON.stringify(sampleService)).toBe(planAsWas);
+
+    // Opening the service again is the order the church planned, because the
+    // changes were never anywhere but this run.
+    session.open(compileDeck(sampleService, lookupFrom(sampleLibrary)), sampleService);
+    expect(session.controlState([]).asPlanned).toBe(true);
+  });
+});
+
 describe("what an output is handed", () => {
   it("gets the words, the label and where it is in the section", () => {
     // The second verse of the second item.

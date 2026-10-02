@@ -10,10 +10,18 @@
  * trackpad disconnected.
  */
 
-import type { Blank, ControlState, CueView, Intent, SlideView } from "@hearth/stage-protocol";
+import type {
+  Blank,
+  ControlState,
+  CueView,
+  Intent,
+  RunChange,
+  SlideView,
+} from "@hearth/stage-protocol";
 import { FitCache } from "../output/fit";
 import { applyTheme, createRuler, renderSlide, sizeFor, coverInto } from "../output/slide";
 import { fillText, plural, t, type MessageKey } from "../shared/text";
+import { icon } from "../shared/icons";
 
 const bridge = window.hearth;
 
@@ -28,6 +36,7 @@ const el = {
   nextMeta: document.getElementById("next-meta") as HTMLElement,
   notes: document.getElementById("notes") as HTMLUListElement,
   keys: document.getElementById("keys") as HTMLElement,
+  resetRun: document.getElementById("reset-run") as HTMLButtonElement,
   slides: document.getElementById("slides") as HTMLButtonElement,
   home: document.getElementById("home") as HTMLButtonElement,
   problems: document.getElementById("problems") as HTMLUListElement,
@@ -309,19 +318,24 @@ function paint(state: ControlState): void {
 
     const cues = document.createElement("ol");
     cues.className = "cues";
-    for (const cueId of cueGroup.cueIds) {
-      const cue = state.cues.find((candidate) => candidate.id === cueId);
+    for (const entryId of cueGroup.entryIds) {
+      const cue = state.cues.find((candidate) => candidate.entryId === entryId);
       if (cue === undefined) continue;
 
       const item = document.createElement("li");
       item.className = "cue";
+      if (cue.skipped) item.dataset["skipped"] = "true";
+      if (cue.repeat) item.dataset["repeat"] = "true";
       if (cue.position === state.position) item.dataset["live"] = "true";
-      if (cue.position === state.position + 1) item.dataset["next"] = "true";
 
       const button = document.createElement("button");
       button.type = "button";
       // Pointer is optional, so every cue is also reachable by tabbing.
-      button.addEventListener("click", () => send({ type: "goToCue", cueId: cue.id }));
+      button.addEventListener("click", () => send({ type: "goToCue", cueId: cue.entryId }));
+      // A cue that is out of this run is not somewhere the service goes. It
+      // stays in the list, visibly, because the operator has to be able to see
+      // what they took out and put it back.
+      button.disabled = cue.skipped;
 
       const tag = document.createElement("span");
       tag.className = "cue-tag";
@@ -331,16 +345,15 @@ function paint(state: ControlState): void {
         cue.kind === "marker"
           ? ""
           : cue.label === null
-            ? "¶"
+            ? "\u00b6"
             : cue.occurrencesTotal > 1
-              ? `${cue.label}·${cue.occurrence}`
+              ? `${cue.label}\u00b7${cue.occurrence}`
               : cue.label;
       button.append(tag);
 
       const text = document.createElement("span");
       text.className = "cue-text";
-      text.textContent =
-        cue.kind === "marker" ? "Nothing on the screen" : (cue.preview ?? "");
+      text.textContent = cue.kind === "marker" ? t("control.nothingOnScreen") : (cue.preview ?? "");
       button.append(text);
 
       if (cue.slideCount > 1) {
@@ -351,14 +364,55 @@ function paint(state: ControlState): void {
       }
 
       item.append(button);
+      item.append(runButtons(cue));
       cues.append(item);
     }
     groupItem.append(cues);
     el.deck.append(groupItem);
   }
 
+  // Shown only once the run has left the set list, so an operator who has
+  // changed nothing has nothing extra on the screen.
+  el.resetRun.hidden = state.asPlanned;
+
   const liveElement = el.deck.querySelector('[data-live="true"]');
   liveElement?.scrollIntoView({ block: "nearest" });
+}
+
+/**
+ * What an operator does to a cue mid service (STG-24, ST5.7).
+ *
+ * Four small buttons on every row, each carrying its name, because the whole
+ * point is that the change is made in the half minute while the preacher is
+ * still talking. None of it reaches the set list.
+ */
+function runButtons(cue: CueView): HTMLElement {
+  const buttons = document.createElement("span");
+  buttons.className = "cue-buttons";
+
+  const kinds: [MessageKey, Parameters<typeof icon>[0], RunChange, boolean][] = [
+    ["run.up", "chevron-up", "up", true],
+    ["run.down", "chevron-down", "down", true],
+    [cue.skipped ? "run.unskip" : "run.skip", "skip", "skip", true],
+    ["run.repeat", "repeat", "repeat", !cue.repeat],
+    ["run.drop", "minus", "drop", cue.repeat],
+  ];
+
+  for (const [name, mark, change, shown] of kinds) {
+    if (!shown) continue;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "icon";
+    button.setAttribute("aria-label", t(name));
+    button.title = t(name);
+    button.append(icon(mark));
+    button.addEventListener("click", () =>
+      send({ type: "runChange", entryId: cue.entryId, change }),
+    );
+    buttons.append(button);
+  }
+
+  return buttons;
 }
 
 function brief(): void {
@@ -434,6 +488,7 @@ brief();
 // changes nothing on the wall, so it is safe to have in reach (ST12.3).
 el.slides.addEventListener("click", () => send({ type: "openEditor" }));
 el.home.addEventListener("click", () => send({ type: "closeService" }));
+el.resetRun.addEventListener("click", () => send({ type: "resetRun" }));
 el.waySlide.addEventListener("click", () => send({ type: "makeSlide" }));
 el.wayLibrary.addEventListener("click", () => send({ type: "openLibrary" }));
 el.waySample.addEventListener("click", () => send({ type: "openSample" }));

@@ -51,7 +51,7 @@ import {
   type SongFields,
   type ThemeChoice,
 } from "@hearth/stage-protocol";
-import { icon } from "./icons";
+import { icon } from "../shared/icons";
 import { fillText, plural, t, type MessageKey } from "../shared/text";
 
 const bridge = window.hearth;
