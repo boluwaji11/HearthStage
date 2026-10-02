@@ -108,6 +108,20 @@ describe("the renderers", () => {
   });
 });
 
+/**
+ * STG-23, ST12.4. Both halves of the repeat guard.
+ *
+ * The session's half is tested against the clock in `session.test.ts`. This is
+ * the other half, which is one line in a window and the kind of line that goes
+ * missing in a refactor without anything failing until a service.
+ */
+describe("a key held down", () => {
+  it("is dropped by the window before it reaches main", () => {
+    const source = readFileSync(join(root, "src/control/control.ts"), "utf8");
+    expect(source).toMatch(/if\s*\(event\.repeat\)\s*return/);
+  });
+});
+
 describe("the main process", () => {
   it("validates every intent on arrival rather than trusting it", () => {
     const source = readFileSync(join(root, "src/main/index.ts"), "utf8");

@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { compileDeck, lookupFrom, type Deck, type ServicePlan } from "@hearth/songs";
 import { sampleLibrary, sampleService } from "@hearth/songs/fixtures";
-import { Session, contentOf, DEFAULT_THEME } from "../src/main/session";
+import { REPEAT_GUARD_MS, Session, contentOf, DEFAULT_THEME } from "../src/main/session";
 
 /** A service with nothing in it, which is what the application starts on. */
 const EMPTY: ServicePlan = {
@@ -22,10 +22,24 @@ const EMPTY: ServicePlan = {
 
 let deck: Deck;
 let session: Session;
+/**
+ * A clock that moves a second on every reading (STG-23).
+ *
+ * The repeat guard refuses a second key inside sixty milliseconds, and a test
+ * presses twice in the same millisecond. Holding time still and moving it on
+ * purpose is how the guard gets tested rather than tripped over.
+ */
+let clock: number;
+
+function tick(): number {
+  clock += 1000;
+  return clock;
+}
 
 beforeEach(() => {
+  clock = 0;
   deck = compileDeck(sampleService, lookupFrom(sampleLibrary));
-  session = new Session(deck, sampleService);
+  session = new Session(deck, sampleService, { now: tick });
 });
 
 describe("moving through a service", () => {
@@ -137,6 +151,97 @@ describe("clearing the room", () => {
     }
     session.apply({ type: "setBlank", blank: "none" });
     expect(session.liveCueId()).toBe(before);
+  });
+});
+
+/**
+ * STG-23, ST12.4. One cue per press, however the press arrives.
+ *
+ * The window drops the repeat the operating system flags, and this is the other
+ * half. A presentation clicker with a tired switch sends two events in a
+ * handful of milliseconds and flags neither, and the room sees two cues go past
+ * for one press of a thumb.
+ */
+describe("a key held down", () => {
+  /** A session on a clock a test moves by hand. */
+  function held(): { session: Session; at: (ms: number) => void } {
+    let at = 1_000_000;
+    const made = new Session(deck, sampleService, { now: () => at });
+    return { session: made, at: (ms: number) => (at = 1_000_000 + ms) };
+  }
+
+  it("moves one cue through two seconds of repeat", () => {
+    const { session: run, at } = held();
+    // What auto-repeat looks like at main: an event every thirty milliseconds
+    // for as long as a finger stays down.
+    for (let ms = 0; ms <= 2000; ms += 30) {
+      at(ms);
+      run.apply({ type: "advance" });
+    }
+    expect(run.controlState([]).position).toBe(1);
+  });
+
+  it("moves again once the presses stop coming", () => {
+    const { session: run, at } = held();
+    at(0);
+    expect(run.apply({ type: "advance" })).toBe(true);
+
+    // A bounce, inside the guard. It is refused, and it counts as a press, so
+    // the gap is measured from it. Otherwise a key held down would walk the
+    // deck at one cue per guard.
+    at(REPEAT_GUARD_MS - 1);
+    expect(run.apply({ type: "advance" })).toBe(false);
+
+    at(REPEAT_GUARD_MS * 2);
+    expect(run.apply({ type: "advance" })).toBe(true);
+    expect(run.controlState([]).position).toBe(2);
+  });
+
+  it("takes a second press at the speed a person presses", () => {
+    const { session: run, at } = held();
+    // Four deliberate presses, a fifth of a second apart, which is a quick
+    // operator rather than a key stuck down.
+    for (let ms = 0; ms < 800; ms += 200) {
+      at(ms);
+      expect(run.apply({ type: "advance" }), `at ${ms}ms`).toBe(true);
+    }
+    expect(run.controlState([]).position).toBe(4);
+  });
+
+  it("holds a reverse to one as well, because a clicker has two buttons", () => {
+    const { session: run, at } = held();
+    at(0);
+    run.apply({ type: "goTo", position: 5 });
+    at(10);
+    run.apply({ type: "reverse" });
+    at(20);
+    run.apply({ type: "reverse" });
+    at(30);
+    run.apply({ type: "reverse" });
+    expect(run.controlState([]).position).toBe(4);
+  });
+
+  it("never guards a cue somebody chose, because there is no repeat in a click", () => {
+    const { session: run, at } = held();
+    at(0);
+    const second = deck.cues[2]?.id ?? "";
+    const third = deck.cues[3]?.id ?? "";
+    expect(run.apply({ type: "goToCue", cueId: second })).toBe(true);
+    expect(run.apply({ type: "goToCue", cueId: third })).toBe(true);
+    expect(run.apply({ type: "goTo", position: 0 })).toBe(true);
+  });
+
+  it("does not leave a stale guard at the end of a service", () => {
+    const { session: run, at } = held();
+    at(0);
+    run.apply({ type: "goTo", position: deck.cues.length - 1 });
+    // Held against the end for a while, then pressed back.
+    for (let ms = 10; ms < 500; ms += 30) {
+      at(ms);
+      run.apply({ type: "advance" });
+    }
+    at(600);
+    expect(run.apply({ type: "reverse" })).toBe(true);
   });
 });
 

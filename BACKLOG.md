@@ -129,7 +129,7 @@ thing a person does with Stage and until now there was no way to do it. See
 |---|---|---|---|
 | STG-21 | Build the control surface: live slide, next slide, the deck, keyboard only | ST12.1, ST12.2 | Resolved |
 | STG-22 | Make black, clear and logo each one keypress, restoring the exact slide. The logo is the church's own file, chosen in Settings | ST6.6 | Resolved |
-| STG-23 | Make advance idempotent under key repeat | ST12.4 | New |
+| STG-23 | Make advance idempotent under key repeat, in the window and again in the session | ST12.4 | Resolved |
 | STG-24 | Reorder, skip and repeat a cue for this run, leaving the set list untouched | ST5.7 | New |
 | STG-25 | Keep the library, import and theme editing out of the live surface | ST12.3, ST2.15 | New |
 | STG-26 | Present a song, a scripture and a countdown with no set list open | ST5.10 | New |
@@ -472,8 +472,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-23**, advance made idempotent under key repeat. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-24**, reordering, skipping and repeating a cue for this run without touching the set list. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1522,3 +1522,33 @@ falls back to the ground rather than putting a broken image on a wall.
 a year and the state goes down behind every keypress, so carrying it there would put a megabyte on the
 wire between a key and a pixel. That makes six channels, and the count is asserted, because a channel
 is the whole surface a sandboxed window can reach.
+
+## STG-23, how to test it
+
+Hold the advance key down for two seconds. The deck moves one cue.
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+- Press **Try a service**, then hold **Space**. One cue. Let go and press again: one more.
+- Hold the **right arrow**, then the **left arrow**. Same on both.
+- Press Space four times quickly, like an operator who is behind. Four cues. A fifth of a second apart
+  is a person, and the guard is nowhere near that.
+- Click four cues in the deck list one after another, as fast as the mouse allows. All four. Choosing a
+  cue is never guarded, because there is no such thing as a repeat in a click.
+
+**Two halves.** The window drops the repeat flag the operating system sets, which is one line and has
+been there since STG-11. The session refuses a second key inside sixty milliseconds, which is the half
+this story adds, because a presentation clicker with a tired switch sends two events in a handful of
+milliseconds and flags neither. A room sees two cues go past for one press of a thumb, and nobody can
+work out why.
+
+**The first version of the guard was wrong, and the test caught it.** It stamped the clock only when a
+cue actually moved, which made it a rate limit rather than a guard: a key held for two seconds walked
+the deck at one cue every sixty milliseconds, thirty three cues in. Stamping on every press, including
+the refused ones, is what makes a held key one cue. The test that found it holds the key for two
+seconds at the rate an operating system actually repeats.
+
+**Six new tests**, and one in the architecture file asserting the window still drops the flag, because
+that line is exactly the kind that goes missing in a refactor with nothing failing until a Sunday.

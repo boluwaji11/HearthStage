@@ -38,7 +38,25 @@ export interface SessionOptions {
    * hand it two themes it made up.
    */
   themes?: (themeId: string | null) => ThemeState;
+  /**
+   * The clock the repeat guard reads (STG-23, ST12.4).
+   *
+   * Passed in so a test can hold time still and send a burst, rather than
+   * sleeping and hoping.
+   */
+  now?: () => number;
 }
+
+/**
+ * Closer together than a person presses twice (STG-23, ST12.4).
+ *
+ * A key auto-repeating fires every thirty milliseconds or so once it starts,
+ * and a presentation clicker with a tired switch sends two in a handful. A
+ * second press from a person is nowhere near this fast, and an operator who
+ * genuinely needs two cues in sixty milliseconds is an operator holding the
+ * key down, which is the thing this exists to catch.
+ */
+export const REPEAT_GUARD_MS = 60;
 
 export class Session {
   private deck: Deck;
@@ -48,12 +66,16 @@ export class Session {
   private position = 0;
   private blank: Blank = "none";
   private revision = 0;
+  private readonly now: () => number;
+  /** When the deck last moved on a key, for the repeat guard (STG-23). */
+  private movedAt = Number.NEGATIVE_INFINITY;
 
   constructor(deck: Deck, plan: ServicePlan | null = null, options: SessionOptions = {}) {
     this.deck = deck;
     this.plan = plan;
     this.theme = options.theme ?? DEFAULT_THEME;
     this.themes = options.themes ?? themeFor;
+    this.now = options.now ?? Date.now;
   }
 
   /**
@@ -81,9 +103,9 @@ export class Session {
   apply(intent: Intent): boolean {
     switch (intent.type) {
       case "advance":
-        return this.moveTo(this.position + 1);
+        return this.step(1);
       case "reverse":
-        return this.moveTo(this.position - 1);
+        return this.step(-1);
       case "goTo":
         return this.moveTo(intent.position);
       case "goToCue": {
@@ -104,6 +126,29 @@ export class Session {
         // what is live, and an intent it does not own changes nothing here.
         return false;
     }
+  }
+
+  /**
+   * One cue, on a key (STG-23, ST12.4).
+   *
+   * Held down, a key repeats, and four cues go past before anybody's finger
+   * comes off it. The window ignores the repeat flag the operating system sets,
+   * and this is the second half: a clicker that bounces, or a remote that sends
+   * its own bursts, does not set that flag and still has to move one cue.
+   *
+   * Jumping to a cue by name or by clicking it is not guarded. Those are a
+   * person choosing, one at a time, and there is no such thing as a repeat.
+   */
+  private step(direction: 1 | -1): boolean {
+    const at = this.now();
+    const stillDown = at - this.movedAt < REPEAT_GUARD_MS;
+    // Stamped on every press, including the ones it refuses. Stamping only the
+    // ones that moved would turn this into a rate limit, and a key held for two
+    // seconds would walk the deck at one cue every sixty milliseconds instead
+    // of moving one cue.
+    this.movedAt = at;
+    if (stillDown) return false;
+    return this.moveTo(this.position + direction);
   }
 
   private moveTo(position: number): boolean {
