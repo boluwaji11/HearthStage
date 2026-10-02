@@ -52,6 +52,7 @@ export {
   type ServiceItem,
   type ServicePlan,
   orderedItems,
+  songPlan,
   plannedSeconds,
   notesFor,
 } from "./service";

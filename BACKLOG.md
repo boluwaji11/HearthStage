@@ -1221,3 +1221,29 @@ pnpm --filter @hearth/stage dev
 **Thirty-three new tests.** The two that matter most: a section always ends up with a label, because a
 sequence refers to labels, and a song always ends up with an arrangement, because a song without one
 cannot present. Both would cost a church a rewrite if they were wrong.
+
+### What testing found, STG-7
+
+Four things, all in the commit that names this section.
+
+**Present did nothing on a song.** `presentNow` looked the id up among presentations only, so a song
+fell through and the service never changed. A song and a set of slides are both a one item service
+now, through `songPlan`, which is the same shape `presentationPlan` already had.
+
+**A song typed in could not present until a restart.** The song lookup was built once on the way up,
+so anything typed afterwards was missing from it. It reads fresh at compile time, which is when a
+service is opened and when a plan changes rather than anywhere near a cue advance.
+
+**No way back to the window that presents.** The editor is its own window and covers the control
+surface on a laptop with one screen. There is a **Service** button at the top left of the library
+now.
+
+**Editing Amazing Grace would have destroyed its Spanish verse.** It carries a translated first verse
+pointing at the English one by id. The editor shows neither the language nor the link, and the save
+path regenerated section ids and set `translationOf` to null, so a church's bilingual hymn would have
+come back as an English verse nobody asked for. Sections are matched to the record being replaced by
+label now, and everything this screen does not ask about is carried across: the id, the kind, the
+language and what it translates. Four tests on it, including one that reorders the sections first.
+
+Nothing on screen said this was happening, which is the point: a save path that quietly drops a field
+is the kind of defect a church finds eighteen months later in a service.

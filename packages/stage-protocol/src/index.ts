@@ -314,6 +314,8 @@ export type Intent =
   | { type: "toggleBlank"; blank: Blank }
   | { type: "reload" }
   | { type: "openEditor" }
+  /** From the editor back to the window that presents (STG-149). */
+  | { type: "showControl" }
   /** First run, the three ways in (STG-149, ST1.2). */
   | { type: "makeSlide" }
   | { type: "openLibrary" }
@@ -407,6 +409,7 @@ export function isIntent(value: unknown): value is Intent {
     case "reverse":
     case "reload":
     case "openEditor":
+    case "showControl":
     case "newPresentation":
     case "makeSlide":
     case "openLibrary":

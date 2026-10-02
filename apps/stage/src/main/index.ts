@@ -22,7 +22,7 @@ import {
   type OutputState,
   type OutputView,
 } from "@hearth/stage-protocol";
-import { compileDeck, lookupFrom, presentationPlan, type ServicePlan } from "@hearth/songs";
+import { compileDeck, lookupFrom, presentationPlan, songPlan, type ServicePlan } from "@hearth/songs";
 import { sampleLibrary, sampleService } from "@hearth/songs/fixtures";
 import { openLibrary } from "@hearth/stage-store";
 import { Presentations } from "./presentations";
@@ -131,7 +131,17 @@ const presentations = new Presentations(store.library);
 
 // Compiled from the library on disk rather than from the fixtures, so what the
 // list shows and what the service presents are the same records.
-const songs = lookupFrom(store.library.all());
+/**
+ * The songs, read when a service is compiled.
+ *
+ * Read fresh rather than once on the way up, because a song typed in during this
+ * session has to present without restarting the application. Compiling happens
+ * when a service is opened and when a plan changes, so this is nowhere near a
+ * cue advance (ST5.11, ST21.1).
+ */
+function songs() {
+  return lookupFrom(store.library.all());
+}
 
 /** A service with nothing in it, which is what the application starts on. */
 const NOTHING_OPEN: ServicePlan = {
@@ -150,7 +160,7 @@ const NOTHING_OPEN: ServicePlan = {
  * explaining itself before it has been asked. The control surface shows the
  * three ways in while no service is open, and the sample is one of them.
  */
-const session = new Session(compileDeck(NOTHING_OPEN, songs), null);
+const session = new Session(compileDeck(NOTHING_OPEN, songs()), null);
 
 /** Which presentation is on the wall, where one is. */
 let presenting: string | null = null;
@@ -191,6 +201,21 @@ function broadcast(): void {
   }
 }
 
+/**
+ * Brings the main window forward (STG-149).
+ *
+ * The editor is its own window, so on a laptop with one screen it covers the
+ * control surface and there is no way back to it from inside the application.
+ */
+function showControl(): void {
+  if (control === null || control.isDestroyed()) {
+    control = createControlWindow();
+    return;
+  }
+  if (control.isMinimized()) control.restore();
+  control.focus();
+}
+
 /** Opens the editor, or brings it forward if it is already open. */
 function openEditor(): void {
   if (editor !== null && !editor.isDestroyed()) {
@@ -204,21 +229,33 @@ function openEditor(): void {
 }
 
 /**
- * Puts one presentation on the wall (STG-145).
+ * Puts one thing on the wall (STG-145, STG-7).
  *
- * It becomes a one item service rather than a second path into the renderer,
- * because everything downstream of the deck compiler already works and a second
- * path would be a second set of bugs.
+ * A song and a set of typed slides are both a one item service rather than a
+ * second path into the renderer, because everything downstream of the deck
+ * compiler already works and a second path would be a second set of bugs.
  */
-function presentNow(presentationId: string): boolean {
+function presentNow(itemId: string): boolean {
   const lookup = presentations.lookup();
-  const one = lookup(presentationId);
-  if (one === undefined) return false;
+  const plan = planFor(itemId, lookup);
+  if (plan === null) return false;
 
-  const plan = presentationPlan(one);
-  session.open(compileDeck(plan, songs, { presentations: lookup }), plan);
-  presenting = presentationId;
+  session.open(compileDeck(plan, songs(), { presentations: lookup }), plan);
+  presenting = itemId;
   return true;
+}
+
+function planFor(
+  itemId: string,
+  lookup: ReturnType<typeof presentations.lookup>,
+): ServicePlan | null {
+  const presentation = lookup(itemId);
+  if (presentation !== undefined) return presentationPlan(presentation);
+
+  const song = store.library.get(itemId);
+  if (song !== null) return songPlan(song);
+
+  return null;
 }
 
 function openOutput(choice: DisplayChoice): void {
@@ -248,6 +285,9 @@ app.whenReady().then(() => {
         openEditor();
         broadcast();
         return;
+      case "showControl":
+        showControl();
+        return;
       case "makeSlide":
         openEditor();
         presentations.apply({ type: "newPresentation" });
@@ -259,7 +299,7 @@ app.whenReady().then(() => {
         return;
       case "openSample":
         session.open(
-          compileDeck(sampleService, songs, { presentations: presentations.lookup() }),
+          compileDeck(sampleService, songs(), { presentations: presentations.lookup() }),
           sampleService,
         );
         presenting = null;

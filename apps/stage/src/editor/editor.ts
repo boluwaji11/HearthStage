@@ -50,6 +50,7 @@ const el = {
   libraryEmpty: document.getElementById("library-empty") as HTMLParagraphElement,
   search: document.getElementById("search") as HTMLInputElement,
   back: document.getElementById("back") as HTMLButtonElement,
+  toService: document.getElementById("to-service") as HTMLButtonElement,
   title: document.getElementById("title") as HTMLInputElement,
   theme: document.getElementById("theme") as HTMLSelectElement,
   credits: document.getElementById("credits") as HTMLElement,
@@ -528,8 +529,8 @@ function paintStatus(): void {
 
   if (copied !== null) parts.push("a slide copied");
   if (draft === null) parts.length = 0;
-  else if (draft.kind === "song") parts.push("a song, read only");
   else if (draft.readOnly) parts.push("from Hearth, read only");
+  else if (draft.kind === "song") parts.push("a song");
   else if (draft.title.trim() === "") parts.push("needs a title");
   else if (saving) parts.push("saving");
   else if (draft.id !== null) parts.push("saved");
@@ -801,6 +802,13 @@ el.publicDomain.addEventListener("change", () => {
 el.back.addEventListener("click", () => {
   commit();
   send({ type: "closeItem" });
+});
+
+// The editor is its own window and covers the one that presents, so there has
+// to be a way back to it from in here.
+el.toService.addEventListener("click", () => {
+  commit();
+  send({ type: "showControl" });
 });
 
 el.theme.addEventListener("change", () => {

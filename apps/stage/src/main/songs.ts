@@ -182,19 +182,31 @@ export function songFrom(draft: SongDraft): WholeSong {
     defaultKey: key,
   };
 
-  const sections: SongSection[] = usable.map((section, index) => ({
-    id: `${id}:section:${index + 1}`,
-    songId: id,
-    sectionType: typeOf(section),
-    label: labels[index] as string,
-    sortOrder: index,
-    lines: section.body
-      .split(/\r\n|\r|\n/)
-      .map((line) => line.replace(/\s+$/, ""))
-      .filter((line) => line.trim() !== ""),
-    language: previous?.song.primaryLanguage ?? "en",
-    translationOf: null,
-  }));
+  const sections: SongSection[] = usable.map((section, index) => {
+    const label = labels[index] as string;
+    // Matched by label, because a label is a section's identity to a person and
+    // the only thing that survives the trip through a window that shows neither
+    // ids nor languages. Everything this screen does not ask about is carried
+    // across from the record being replaced.
+    const before = previous?.sections.find((candidate) => candidate.label === label) ?? null;
+
+    return {
+      id: before?.id ?? `${id}:section:${index + 1}`,
+      songId: id,
+      sectionType: section.sectionType === undefined ? (before?.sectionType ?? "verse") : typeOf(section),
+      label,
+      sortOrder: index,
+      lines: section.body
+        .split(/\r\n|\r|\n/)
+        .map((line) => line.replace(/\s+$/, ""))
+        .filter((line) => line.trim() !== ""),
+      // A translated section keeps its language and what it translates. The
+      // editor shows neither, so regenerating them would turn a church's
+      // bilingual hymn into an English verse nobody asked for (R12.8, ST17.1).
+      language: before?.language ?? previous?.song.primaryLanguage ?? "en",
+      translationOf: before?.translationOf ?? null,
+    };
+  });
 
   // Every section once, in the order they were typed. A song with no
   // arrangement cannot present, and this is the one nobody has to ask for.

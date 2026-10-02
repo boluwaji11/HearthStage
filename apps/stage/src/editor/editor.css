@@ -144,6 +144,10 @@ ol {
   list-style: none;
 }
 
+#to-service {
+  margin-right: var(--space-2);
+}
+
 header .search-field {
   flex: 1;
   max-width: 24rem;

@@ -14,6 +14,7 @@
  */
 
 import type { Key } from "./keys";
+import type { WholeSong } from "./types";
 
 /**
  * A note on an item, optionally addressed to one position.
@@ -124,6 +125,38 @@ export interface ServicePlan {
   /** RFC 3339, where a start time is known. */
   startsAt: string | null;
   items: ServiceItem[];
+}
+
+/**
+ * One song on its own, as a service.
+ *
+ * Presenting one thing immediately is the common case outside a service: a hymn
+ * called from the floor, a song being checked on the wall while it is typed. The
+ * deck compiler takes a plan, so this makes the smallest honest one rather than
+ * adding a second path into the compiler. The same shape as `presentationPlan`,
+ * for the same reason.
+ */
+export function songPlan(whole: WholeSong, options: { date?: string } = {}): ServicePlan {
+  const item: SongItem = {
+    type: "song",
+    id: `item:${whole.song.id}`,
+    sortOrder: 0,
+    title: whole.song.title,
+    durationSeconds: whole.song.typicalDurationSeconds,
+    notes: [],
+    songId: whole.song.id,
+    arrangementId: null,
+    keyOverride: null,
+  };
+
+  return {
+    id: `plan:${whole.song.id}`,
+    source: "set_list",
+    title: whole.song.title,
+    date: options.date ?? new Date().toISOString().slice(0, 10),
+    startsAt: null,
+    items: [item],
+  };
 }
 
 /** Items in the order they are presented, whatever order they are stored in. */

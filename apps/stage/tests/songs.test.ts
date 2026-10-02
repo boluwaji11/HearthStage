@@ -7,7 +7,8 @@
  * arrangement, because a song without one cannot present.
  */
 import { describe, it, expect } from "vitest";
-import { hasErrors, validateWholeSong } from "@hearth/songs";
+import { compileDeck, hasErrors, lookupFrom, songPlan, validateWholeSong } from "@hearth/songs";
+import { amazingGrace } from "@hearth/songs/fixtures";
 import { DEFAULT_ARRANGEMENT_NAME, fieldsOf, labelsFor, sectionDrafts, songFrom } from "../src/main/songs";
 import type { SlideDraft, SongFields } from "@hearth/stage-protocol";
 
@@ -149,5 +150,95 @@ describe("editing a song that already exists", () => {
       first.sections.map((section) => section.lines.join("\n")),
     );
     expect(fieldsOf(first.song)).toEqual(FIELDS);
+  });
+});
+
+describe("what the editor does not show, it does not destroy", () => {
+  it("keeps a translated section's language and what it translates", () => {
+    // Amazing Grace carries a Spanish first verse pointing at the English one.
+    // The editor shows neither language nor the link, so regenerating them
+    // would turn a church's bilingual hymn into an English verse (R12.8).
+    const drafts = sectionDrafts(amazingGrace);
+    const again = songFrom({
+      id: amazingGrace.song.id,
+      title: amazingGrace.song.title,
+      fields: fieldsOf(amazingGrace.song),
+      sections: drafts,
+      existing: amazingGrace,
+    });
+
+    const spanish = again.sections.find((section) => section.label === "V1-es");
+    expect(spanish?.language).toBe("es");
+    expect(spanish?.translationOf).toBe("ag-v1");
+    expect(spanish?.id).toBe("ag-v1-es");
+  });
+
+  it("keeps every section's id, so nothing pointing at one breaks", () => {
+    const again = songFrom({
+      id: amazingGrace.song.id,
+      title: amazingGrace.song.title,
+      fields: fieldsOf(amazingGrace.song),
+      sections: sectionDrafts(amazingGrace),
+      existing: amazingGrace,
+    });
+    expect(again.sections.map((section) => section.id)).toEqual(
+      amazingGrace.sections.map((section) => section.id),
+    );
+  });
+
+  it("survives a reorder, because sections are matched by label", () => {
+    const drafts = sectionDrafts(amazingGrace);
+    const shuffled = [drafts[3], drafts[0], drafts[1], drafts[2]] as typeof drafts;
+
+    const again = songFrom({
+      id: amazingGrace.song.id,
+      title: amazingGrace.song.title,
+      fields: fieldsOf(amazingGrace.song),
+      sections: shuffled,
+      existing: amazingGrace,
+    });
+
+    expect(again.sections[0]?.label).toBe("V1-es");
+    expect(again.sections[0]?.translationOf).toBe("ag-v1");
+    expect(again.sections[0]?.sortOrder).toBe(0);
+    expect(hasErrors(validateWholeSong(again))).toBe(false);
+  });
+
+  it("gives a section nobody has typed a kind for the one it had", () => {
+    const withChorus = {
+      ...amazingGrace,
+      sections: amazingGrace.sections.map((section, index) =>
+        index === 1 ? { ...section, sectionType: "chorus" as const } : section,
+      ),
+    };
+    const again = songFrom({
+      id: withChorus.song.id,
+      title: withChorus.song.title,
+      fields: fieldsOf(withChorus.song),
+      sections: sectionDrafts(withChorus).map(({ sectionType, ...rest }) => rest),
+      existing: withChorus,
+    });
+    expect(again.sections[1]?.sectionType).toBe("chorus");
+  });
+});
+
+describe("presenting one song on its own", () => {
+  it("compiles to a deck of its own words", () => {
+    const plan = songPlan(amazingGrace, { date: "2026-10-04" });
+    const deck = compileDeck(plan, lookupFrom([amazingGrace]));
+
+    expect(deck.problems).toEqual([]);
+    expect(deck.cues.length).toBeGreaterThan(0);
+    expect(deck.cues[0]?.lines?.[0]).toBe("Amazing grace! how sweet the sound");
+    expect(deck.groups[0]?.title).toBe("Amazing Grace");
+    expect(deck.groups[0]?.key).toBe("G");
+  });
+
+  it("follows the song's own arrangement", () => {
+    const plan = songPlan(amazingGrace);
+    const deck = compileDeck(plan, lookupFrom([amazingGrace]));
+    expect(deck.groups[0]?.sequence).toEqual(
+      amazingGrace.arrangements.find((one) => one.isDefault)?.sequence,
+    );
   });
 });
