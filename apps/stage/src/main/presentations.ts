@@ -27,12 +27,13 @@ import type {
   EditorState,
   Intent,
   LibraryItem,
+  OrderDraft,
   SlideDraft,
   SongFields,
   ThemeChoice,
 } from "@hearth/stage-protocol";
 import { BUILT_IN_THEMES, hasTheme } from "./themes";
-import { fieldsOf, sectionDrafts, songFrom } from "./songs";
+import { fieldsOf, orderDrafts, sectionDrafts, songFrom } from "./songs";
 
 /** What this needs from the library. `Library` from the store satisfies it. */
 export interface PresentationLibrary {
@@ -121,7 +122,13 @@ export class Presentations {
         return this.save(intent.presentationId, intent.title, intent.slides, intent.themeId);
 
       case "saveSong":
-        return this.saveSong(intent.songId, intent.title, intent.fields, intent.sections);
+        return this.saveSong(
+          intent.songId,
+          intent.title,
+          intent.fields,
+          intent.sections,
+          intent.orders,
+        );
 
       case "closeItem":
         if (this.editingId === null && !this.drafting && this.problems.length === 0) return false;
@@ -214,6 +221,7 @@ export class Presentations {
     title: string,
     fields: SongFields,
     sections: SlideDraft[],
+    orders?: OrderDraft[],
   ): boolean {
     const id = songId ?? this.nextId("song");
 
@@ -224,7 +232,7 @@ export class Presentations {
     const existing = this.library.get(id);
     if (existing !== null && existing.song.origin !== "local") return false;
 
-    const whole = songFrom({ id, title, fields, sections, existing });
+    const whole = songFrom({ id, title, fields, sections, orders, existing });
     const found = validateWholeSong(whole);
     if (hasErrors(found)) {
       this.problems = found
@@ -295,6 +303,7 @@ export class Presentations {
           slides: slideInputs(presentation),
           themeId: presentation.themeId,
           song: null,
+          orders: [],
           // A synced presentation belongs to the platform, so the laptop shows
           // it and does not write it.
           readOnly: presentation.origin !== "local",
@@ -311,6 +320,7 @@ export class Presentations {
           slides: sectionDrafts(song),
           themeId: null,
           song: fieldsOf(song.song),
+          orders: orderDrafts(song),
           // A synced song belongs to the platform, so the laptop shows it and
           // does not write it (PRD section 2, the two-writer rule).
           readOnly: song.song.origin !== "local",
@@ -327,6 +337,7 @@ export class Presentations {
         slides: [],
         themeId: null,
         song: null,
+        orders: [],
         readOnly: false,
       };
     }

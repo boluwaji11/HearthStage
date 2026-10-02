@@ -9,8 +9,15 @@
 import { describe, it, expect } from "vitest";
 import { compileDeck, hasErrors, lookupFrom, songPlan, validateWholeSong } from "@hearth/songs";
 import { amazingGrace } from "@hearth/songs/fixtures";
-import { DEFAULT_ARRANGEMENT_NAME, fieldsOf, labelsFor, sectionDrafts, songFrom } from "../src/main/songs";
-import type { SlideDraft, SongFields } from "@hearth/stage-protocol";
+import {
+  DEFAULT_ARRANGEMENT_NAME,
+  fieldsOf,
+  labelsFor,
+  orderDrafts,
+  sectionDrafts,
+  songFrom,
+} from "../src/main/songs";
+import type { OrderDraft, SlideDraft, SongFields } from "@hearth/stage-protocol";
 
 const FIELDS: SongFields = {
   author: "John Newton",
@@ -74,7 +81,8 @@ describe("labels, which nobody is asked for", () => {
   });
 
   it("leaves a single section of a kind unnumbered", () => {
-    expect(labelsFor([{ label: null, body: "one", sectionType: "chorus" }])).toEqual(["C"]);
+    const one: SlideDraft[] = [{ label: null, body: "one", sectionType: "chorus" }];
+    expect(labelsFor(one)).toEqual(["C"]);
   });
 
   it("keeps a label somebody typed", () => {
@@ -240,5 +248,154 @@ describe("presenting one song on its own", () => {
     expect(deck.groups[0]?.sequence).toEqual(
       amazingGrace.arrangements.find((one) => one.isDefault)?.sequence,
     );
+  });
+});
+
+/**
+ * STG-9, ST2.3. The ways a song is sung.
+ *
+ * The editor stores itself while somebody types, so every state between two
+ * edits has to be a state the library will take. Most of these tests are that
+ * one idea: a sequence naming a slide that was renamed a second ago, an order
+ * somebody emptied, a name typed twice, a key carried across a save that never
+ * asked about keys.
+ */
+describe("orders", () => {
+  const ORDERS: OrderDraft[] = [
+    { name: "Full", sequence: ["V1", "V2", "V3"], isDefault: true },
+    { name: "Short", sequence: ["V1", "V3"], isDefault: false },
+  ];
+
+  function withOrders(orders: OrderDraft[], existing?: Parameters<typeof songFrom>[0]["existing"]) {
+    return songFrom({
+      id: "song_1",
+      title: "Amazing Grace",
+      fields: FIELDS,
+      sections: SECTIONS,
+      orders,
+      existing,
+    });
+  }
+
+  it("gives a song nobody made one for every section once", () => {
+    const { arrangements } = typed();
+    expect(arrangements).toHaveLength(1);
+    expect(arrangements[0]?.name).toBe(DEFAULT_ARRANGEMENT_NAME);
+    expect(arrangements[0]?.sequence).toEqual(["V1", "V2", "V3"]);
+    expect(arrangements[0]?.isDefault).toBe(true);
+  });
+
+  it("stores the ones somebody made", () => {
+    const { arrangements } = withOrders(ORDERS);
+    expect(arrangements.map((one) => one.name)).toEqual(["Full", "Short"]);
+    expect(arrangements[1]?.sequence).toEqual(["V1", "V3"]);
+  });
+
+  it("is a song the library will take", () => {
+    expect(hasErrors(validateWholeSong(withOrders(ORDERS)))).toBe(false);
+  });
+
+  it("gives exactly one of them the default", () => {
+    const marked = withOrders([
+      { name: "Full", sequence: ["V1"], isDefault: true },
+      { name: "Short", sequence: ["V1"], isDefault: true },
+    ]);
+    expect(marked.arrangements.filter((one) => one.isDefault)).toHaveLength(1);
+    expect(marked.arrangements.find((one) => one.isDefault)?.name).toBe("Full");
+  });
+
+  it("gives the first one the default when nobody marked any", () => {
+    const none = withOrders(ORDERS.map((order) => ({ ...order, isDefault: false })));
+    expect(none.arrangements[0]?.isDefault).toBe(true);
+  });
+
+  it("presents the one marked default", () => {
+    const whole = withOrders([
+      { name: "Full", sequence: ["V1", "V2", "V3"], isDefault: false },
+      { name: "Short", sequence: ["V1", "V3"], isDefault: true },
+    ]);
+    const deck = compileDeck(songPlan(whole), lookupFrom([whole]));
+    expect(deck.problems).toEqual([]);
+    expect(deck.groups[0]?.sequence).toEqual(["V1", "V3"]);
+  });
+
+  it("drops a title the song no longer has, rather than storing a hole", () => {
+    const stale = withOrders([{ name: "Full", sequence: ["V1", "V9", "V2"], isDefault: true }]);
+    expect(stale.arrangements[0]?.sequence).toEqual(["V1", "V2"]);
+    expect(hasErrors(validateWholeSong(stale))).toBe(false);
+  });
+
+  it("drops an order left with nothing in it", () => {
+    const emptied = withOrders([
+      { name: "Full", sequence: ["V1"], isDefault: true },
+      { name: "Gone", sequence: [], isDefault: false },
+    ]);
+    expect(emptied.arrangements.map((one) => one.name)).toEqual(["Full"]);
+  });
+
+  it("names an order nobody named, because a name is how it is referred to", () => {
+    const unnamed = withOrders([{ name: "   ", sequence: ["V1"], isDefault: true }]);
+    expect(unnamed.arrangements[0]?.name).toBe("Order 1");
+  });
+
+  it("moves a name typed twice along, because two cannot share one", () => {
+    const clashing = withOrders([
+      { name: "Short", sequence: ["V1"], isDefault: true },
+      { name: "Short", sequence: ["V2"], isDefault: false },
+    ]);
+    expect(clashing.arrangements.map((one) => one.name)).toEqual(["Short", "Short 2"]);
+    expect(validateWholeSong(clashing).some((p) => p.code === "arrangement.name.duplicate")).toBe(
+      false,
+    );
+  });
+
+  it("carries the key, the tempo and the chart across, because this screen asks for none of them", () => {
+    const before = withOrders(ORDERS);
+    const first = before.arrangements[0];
+    if (first === undefined) throw new Error("no arrangement");
+    const played = {
+      ...before,
+      arrangements: [{ ...first, key: "Bb" as const, tempoBpm: 72, chordpro: "[G]Amazing" }],
+    };
+
+    const again = withOrders([{ name: "Full", sequence: ["V1", "V2"], isDefault: true }], played);
+    expect(again.arrangements[0]?.id).toBe(first.id);
+    expect(again.arrangements[0]?.key).toBe("Bb");
+    expect(again.arrangements[0]?.tempoBpm).toBe(72);
+    expect(again.arrangements[0]?.chordpro).toBe("[G]Amazing");
+  });
+
+  it("keeps the orders a save says nothing about", () => {
+    const before = withOrders(ORDERS);
+    const again = songFrom({
+      id: "song_1",
+      title: "Amazing Grace",
+      fields: FIELDS,
+      sections: SECTIONS,
+      existing: before,
+    });
+    expect(again.arrangements.map((one) => one.name)).toEqual(["Full", "Short"]);
+  });
+
+  it("never gives two of them the same id, whatever order they arrive in", () => {
+    const before = withOrders(ORDERS);
+    const added = withOrders(
+      [
+        { name: "New", sequence: ["V1"], isDefault: false },
+        { name: "Full", sequence: ["V1", "V2"], isDefault: true },
+        { name: "Short", sequence: ["V1"], isDefault: false },
+      ],
+      before,
+    );
+    const ids = added.arrangements.map((one) => one.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("reads back as the window shows them", () => {
+    const whole = withOrders(ORDERS);
+    expect(orderDrafts(whole)).toEqual([
+      { name: "Full", sequence: ["V1", "V2", "V3"], isDefault: true },
+      { name: "Short", sequence: ["V1", "V3"], isDefault: false },
+    ]);
   });
 });

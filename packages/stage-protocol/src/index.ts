@@ -266,6 +266,24 @@ export interface SongFields {
 }
 
 /**
+ * One order a song can be sung in (STG-9, ST2.3).
+ *
+ * A church sings the same song two ways: the whole thing at a conference and
+ * four sections on a Tuesday evening. The order is the sequence of slide
+ * titles, and the default is the one that presents when nobody says otherwise.
+ *
+ * Named rather than identified, because a name is what an order is to a person
+ * and it is the only part of it that survives a trip through a window showing
+ * no ids. Main matches a saved order to its record by name.
+ */
+export interface OrderDraft {
+  name: string;
+  /** Slide titles, in the order they are sung. A title may repeat. */
+  sequence: string[];
+  isDefault: boolean;
+}
+
+/**
  * Everything the slide editor shows.
  *
  * The same shape as the control surface: state down, and the window is a
@@ -297,6 +315,8 @@ export interface EditorState {
     themeId: string | null;
     /** Present on a song, absent on a presentation (STG-7). */
     song: SongFields | null;
+    /** The ways it can be sung (STG-9). Empty on a presentation. */
+    orders: OrderDraft[];
     readOnly: boolean;
   } | null;
   /** What is wrong with the last save attempt, by code (STG-145). */
@@ -340,6 +360,13 @@ export type Intent =
       fields: SongFields;
       /** The sections, in order. An empty box is dropped rather than stored. */
       sections: SlideDraft[];
+      /**
+       * The orders (STG-9). Absent leaves the song's alone.
+       *
+       * Main drops a title the song no longer has, so renaming a slide cannot
+       * leave an order pointing at nothing.
+       */
+      orders?: OrderDraft[];
     }
   /** Back to the library, with nothing open (STG-149). */
   | { type: "closeItem" }
@@ -401,6 +428,7 @@ export function isIntent(value: unknown): value is Intent {
     sections?: unknown;
     songId?: unknown;
     fields?: unknown;
+    orders?: unknown;
     themeId?: unknown;
   };
 
@@ -422,7 +450,8 @@ export function isIntent(value: unknown): value is Intent {
           (typeof candidate.songId === "string" && candidate.songId.length > 0)) &&
         typeof candidate.title === "string" &&
         isSongFields(candidate.fields) &&
-        isSlideDrafts(candidate.sections)
+        isSlideDrafts(candidate.sections) &&
+        (candidate.orders === undefined || isOrderDrafts(candidate.orders))
       );
     case "presentNow":
       return typeof candidate.presentationId === "string" && candidate.presentationId.length > 0;
@@ -483,6 +512,24 @@ function isSlideDrafts(value: unknown): value is SlideDraft[] {
       typeof slide.body === "string" &&
       (slide.note === undefined || slide.note === null || typeof slide.note === "string") &&
       (slide.sectionType === undefined || typeof slide.sectionType === "string")
+    );
+  });
+}
+
+/** More orders than a song will ever be sung in. */
+const MOST_ORDERS = 50;
+
+function isOrderDrafts(value: unknown): value is OrderDraft[] {
+  if (!Array.isArray(value) || value.length > MOST_ORDERS) return false;
+  return value.every((entry) => {
+    if (typeof entry !== "object" || entry === null) return false;
+    const order = entry as { name?: unknown; sequence?: unknown; isDefault?: unknown };
+    return (
+      typeof order.name === "string" &&
+      typeof order.isDefault === "boolean" &&
+      Array.isArray(order.sequence) &&
+      order.sequence.length <= MOST_SLIDES &&
+      order.sequence.every((label) => typeof label === "string")
     );
   });
 }

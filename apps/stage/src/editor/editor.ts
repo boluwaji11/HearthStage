@@ -26,15 +26,27 @@
  * **A song is a thing with slides.** The cards are identical whichever it is.
  * A song carries its credits as well, because a licensed song has to show them,
  * and what kind of section a slide is rides along without being asked about.
+ *
+ * **A song carries its orders** (STG-9). A church sings the same song two ways,
+ * and the order is a list of slide titles. The key and the tempo an order can
+ * hold are not asked for here: nothing transposes yet, so a key on this screen
+ * would be a word in a box.
  */
 
-import { proposeSplit, type SplitProposal } from "@hearth/songs";
+import {
+  formatSequence,
+  labelsFor,
+  parseSequence,
+  proposeSplit,
+  type SplitProposal,
+} from "@hearth/songs";
 import {
   gradientCss,
   type EditorState,
   type Intent,
   type LibraryItem,
   type LibraryKind,
+  type OrderDraft,
   type SlideDraft,
   type SongFields,
   type ThemeChoice,
@@ -62,6 +74,9 @@ const el = {
   slides: document.getElementById("slides") as HTMLOListElement,
   add: document.getElementById("add") as HTMLButtonElement,
   paste: document.getElementById("paste") as HTMLButtonElement,
+  orders: document.getElementById("orders") as HTMLElement,
+  orderList: document.getElementById("order-list") as HTMLOListElement,
+  addOrder: document.getElementById("add-order") as HTMLButtonElement,
   problems: document.getElementById("problems") as HTMLUListElement,
   status: document.getElementById("status") as HTMLParagraphElement,
   undone: document.getElementById("undone") as HTMLParagraphElement,
@@ -79,6 +94,7 @@ interface Draft {
   slides: SlideDraft[];
   themeId: string | null;
   song: SongFields | null;
+  orders: OrderDraft[];
   readOnly: boolean;
 }
 
@@ -155,6 +171,7 @@ function commit(): void {
       title: draft.title,
       fields: draft.song ?? blankFields(),
       sections: draft.slides,
+      orders: draft.orders,
     });
     return;
   }
@@ -276,6 +293,8 @@ function renderSlides(focus?: number): void {
     return;
   }
 
+  const hints = labelHints();
+
   draft.slides.forEach((slide, index) => {
     const item = document.createElement("li");
     item.className = "card";
@@ -311,6 +330,9 @@ function renderSlides(focus?: number): void {
     label.type = "text";
     label.autocomplete = "off";
     label.value = slide.label ?? "";
+    // The name an order refers to, where nobody has typed one. It is the thing
+    // a leader types into an order, so it has to be visible before it is saved.
+    label.placeholder = hints[index] ?? "";
     label.disabled = draft?.readOnly ?? false;
     label.addEventListener("input", () => {
       const value = label.value.trim();
@@ -608,6 +630,191 @@ function refuseProposal(): void {
   commit();
 }
 
+/**
+ * The title each slide goes by, lined up with the boxes on screen.
+ *
+ * Worked out the same way main works it out, from the same model function, so
+ * the title shown on a card is the title the record is stored under. An empty
+ * box gets none, because an empty box is dropped on the way to the library.
+ */
+function labelHints(): (string | null)[] {
+  const current = draft;
+  if (current === null) return [];
+  const filled: number[] = [];
+  current.slides.forEach((slide, index) => {
+    if (slide.body.trim() !== "") filled.push(index);
+  });
+  const labels = labelsFor(filled.map((index) => current.slides[index] as SlideDraft));
+  const out: (string | null)[] = current.slides.map(() => null);
+  filled.forEach((index, n) => {
+    out[index] = labels[n] ?? null;
+  });
+  return out;
+}
+
+/** The titles an order may refer to. */
+function knownTitles(): string[] {
+  return labelHints().filter((label): label is string => label !== null);
+}
+
+/**
+ * The ways a song is sung (STG-9, ST2.3).
+ *
+ * Typed rather than assembled from chips. "V1 C V2 C B C" is how a leader says
+ * it, it reorders by editing one field, and it is the whole order on one line
+ * instead of eleven controls. A title the song does not have is said so under
+ * the field, and main drops it rather than storing a song that cannot present.
+ *
+ * The default is a radio group, so the browser enforces the one thing the
+ * record cannot do without: exactly one of them.
+ */
+let orderSignature = "";
+
+function orderSignatureOf(): string {
+  return `${knownTitles().join(" ")}|${(draft?.orders ?? []).length}|${draft?.serial ?? -1}`;
+}
+
+function renderOrders(): void {
+  orderSignature = orderSignatureOf();
+  el.orderList.replaceChildren();
+
+  const current = draft;
+  if (current === null) return;
+  const titles = new Set(knownTitles());
+  const locked = current.readOnly;
+
+  current.orders.forEach((order, index) => {
+    const item = document.createElement("li");
+    item.className = "order";
+
+    const nameField = document.createElement("div");
+    nameField.className = "field";
+    const nameFor = document.createElement("label");
+    nameFor.htmlFor = `order-name-${index}`;
+    nameFor.textContent = "Name";
+    const name = document.createElement("input");
+    name.id = `order-name-${index}`;
+    name.type = "text";
+    name.autocomplete = "off";
+    name.value = order.name;
+    name.readOnly = locked;
+    name.addEventListener("input", () => {
+      order.name = name.value;
+      schedule();
+    });
+    name.addEventListener("blur", commit);
+    nameField.append(nameFor, name);
+    item.append(nameField);
+
+    const seqField = document.createElement("div");
+    seqField.className = "field grow";
+    const seqFor = document.createElement("label");
+    seqFor.htmlFor = `order-sequence-${index}`;
+    seqFor.textContent = "Slides";
+    const sequence = document.createElement("input");
+    sequence.id = `order-sequence-${index}`;
+    sequence.type = "text";
+    sequence.autocomplete = "off";
+    sequence.spellcheck = false;
+    sequence.className = "order-sequence";
+    sequence.value = formatSequence(order.sequence);
+    sequence.readOnly = locked;
+    sequence.addEventListener("input", () => {
+      order.sequence = parseSequence(sequence.value);
+      paintOrderProblems();
+      schedule();
+    });
+    sequence.addEventListener("blur", commit);
+    seqField.append(seqFor, sequence);
+    item.append(seqField);
+
+    const mark = document.createElement("label");
+    mark.className = "check";
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "default-order";
+    radio.checked = order.isDefault;
+    radio.disabled = locked;
+    radio.addEventListener("change", () => {
+      for (const other of current.orders) other.isDefault = other === order;
+      commit();
+    });
+    mark.append(radio, document.createTextNode("Default"));
+    item.append(mark);
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "icon";
+    remove.setAttribute("aria-label", "Remove order");
+    remove.title = "Remove order";
+    remove.append(icon("trash"));
+    // The last one stays. A song with no order cannot present, and taking it
+    // away would put one back under a name nobody chose.
+    remove.disabled = locked || current.orders.length < 2;
+    remove.addEventListener("click", () => removeOrder(index));
+    item.append(remove);
+
+    const wrong = document.createElement("p");
+    wrong.className = "order-problem";
+    wrong.id = `order-problem-${index}`;
+    wrong.textContent = unknownIn(order, titles);
+    item.append(wrong);
+
+    el.orderList.append(item);
+  });
+}
+
+/** The titles an order names that the song does not have. */
+function unknownIn(order: OrderDraft, titles: Set<string>): string {
+  const missing = [...new Set(order.sequence.filter((label) => !titles.has(label)))];
+  if (missing.length === 0) return "";
+  return missing.length === 1
+    ? `${missing[0]} is not a slide title`
+    : `${missing.join(", ")} are not slide titles`;
+}
+
+function paintOrderProblems(): void {
+  const titles = new Set(knownTitles());
+  (draft?.orders ?? []).forEach((order, index) => {
+    const line = el.orderList.querySelector<HTMLElement>(`#order-problem-${index}`);
+    if (line !== null) line.textContent = unknownIn(order, titles);
+  });
+}
+
+function addOrder(): void {
+  if (draft === null || draft.readOnly) return;
+  // Every slide once, so the person takes slides out rather than typing them
+  // all in. Taking four out of six is the thing they came here to do.
+  draft.orders.push({
+    name: `Order ${draft.orders.length + 1}`,
+    sequence: knownTitles(),
+    isDefault: false,
+  });
+  renderOrders();
+  el.orderList.querySelector<HTMLInputElement>(`#order-name-${draft.orders.length - 1}`)?.focus();
+  commit();
+}
+
+function removeOrder(index: number): void {
+  if (draft === null || draft.readOnly || draft.orders.length < 2) return;
+  const [gone] = draft.orders.splice(index, 1);
+  // The default cannot leave with it, so the first one takes it.
+  if (gone?.isDefault === true && draft.orders[0] !== undefined) {
+    for (const order of draft.orders) order.isDefault = order === draft.orders[0];
+  }
+  renderOrders();
+  commit();
+}
+
+/** Shown on a song. A sheet of notices is written for one week. */
+function paintOrders(): void {
+  const song = draft !== null && draft.kind === "song";
+  el.orders.hidden = !song;
+  el.addOrder.disabled = draft === null || draft.readOnly;
+  if (!song) return;
+  if (orderSignatureOf() !== orderSignature) renderOrders();
+}
+
 function paintStatus(): void {
   const slides = draft?.slides.filter((slide) => slide.body.trim() !== "").length ?? 0;
   const onScreen = (draft?.slides ?? [])
@@ -638,6 +845,8 @@ function paintStatus(): void {
 
   el.undone.hidden = removed === null;
   el.undoneWhat.textContent = removed === null ? "" : `${removed.what} removed`;
+
+  paintOrders();
 }
 
 /**
@@ -818,12 +1027,14 @@ function paint(next: EditorState): void {
       slides: next.editing.slides.map((slide) => ({ ...slide })),
       themeId: next.editing.themeId,
       song: next.editing.song,
+      orders: next.editing.orders.map((order) => ({ ...order, sequence: [...order.sequence] })),
       readOnly: next.editing.readOnly,
     };
     removed = null;
     noteOpen.clear();
     el.title.value = draft.title;
     renderCredits();
+    renderOrders();
     renderSlides();
   } else {
     // The same presentation coming back from a save. The id is picked up, and
@@ -913,6 +1124,7 @@ el.theme.addEventListener("change", () => {
 el.search.addEventListener("input", renderLibrary);
 el.add.addEventListener("click", () => addSlide());
 el.paste.addEventListener("click", pasteSlide);
+el.addOrder.addEventListener("click", addOrder);
 el.undo.addEventListener("click", undoRemoval);
 el.newButton.addEventListener("click", () => {
   commit();

@@ -53,6 +53,7 @@ describe("the first ten minutes", () => {
     expect(state.editing).toEqual({
       id: null,
       kind: "plain",
+      orders: [],
       serial: state.editing?.serial,
       title: "",
       slides: [],
@@ -611,6 +612,44 @@ describe("typing a song in, through the editor", () => {
     expect(editing?.readOnly).toBe(false);
     expect(editing?.song?.author).toBe("John Newton");
     expect(editing?.slides[0]?.label).toBe("V1");
+  });
+
+  /**
+   * STG-9, ST2.3. A second order, through the whole path.
+   *
+   * Written by the editor's intent, stored, and read back as the window shows
+   * it, because the three steps have been wrong separately before.
+   */
+  it("keeps a second order, and presents the one marked default", () => {
+    opened.library.save(amazingGrace);
+    presentations.apply({ type: "openItem", itemId: "song-amazing-grace" });
+    const open = presentations.state().editing;
+    if (open === null) throw new Error("nothing open");
+
+    expect(open.orders.map((order) => order.isDefault)).toContain(true);
+
+    presentations.apply({
+      type: "saveSong",
+      songId: "song-amazing-grace",
+      title: open.title,
+      fields: open.song ?? FIELDS,
+      sections: open.slides,
+      orders: [
+        ...open.orders.map((order) => ({ ...order, isDefault: false })),
+        { name: "Short", sequence: ["V1", "V3"], isDefault: true },
+      ],
+    });
+
+    expect(presentations.state().problems).toEqual([]);
+    const stored = opened.library.get("song-amazing-grace");
+    if (stored === null) throw new Error("not stored");
+    const short = stored.arrangements.find((one) => one.name === "Short");
+    expect(short?.sequence).toEqual(["V1", "V3"]);
+    expect(stored.arrangements.filter((one) => one.isDefault)).toEqual([short]);
+
+    // The window shows the default first, which is the one that presents.
+    presentations.apply({ type: "openItem", itemId: "song-amazing-grace" });
+    expect(presentations.state().editing?.orders[0]?.name).toBe("Short");
   });
 
   it("refuses to write a song over a presentation's id", () => {

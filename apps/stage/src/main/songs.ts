@@ -17,15 +17,16 @@
  * section nobody has typed a type for is a verse. Setting types is part of
  * arrangements, STG-9, where they start to matter.
  *
- * **A song gets an arrangement whether or not anybody asked.** A song with no
- * arrangement cannot present, and the arrangement nobody asked for is the
- * obvious one: every section once, in the order they were typed. Making,
- * naming and reordering arrangements is STG-9.
+ * **A song gets an order whether or not anybody asked.** A song with no order
+ * cannot present, and the order nobody asked for is the obvious one: every
+ * section once, in the order they were typed. A church that wants a second one
+ * makes it in the window, and STG-9 is what carries it here.
  */
 
 import {
   SECTION_TYPES,
   isKey,
+  labelsFor,
   type Arrangement,
   type Key,
   type SectionType,
@@ -33,24 +34,14 @@ import {
   type SongSection,
   type WholeSong,
 } from "@hearth/songs";
-import type { SlideDraft, SongFields } from "@hearth/stage-protocol";
+import type { OrderDraft, SlideDraft, SongFields } from "@hearth/stage-protocol";
+
+export { labelsFor };
 
 /** The arrangement a typed song gets, which STG-9 lets a church change. */
 export const DEFAULT_ARRANGEMENT_NAME = "As written";
 
 const TYPES = new Set<string>(SECTION_TYPES);
-
-/** The short form a label takes, by section type. */
-const PREFIX: Record<SectionType, string> = {
-  intro: "I",
-  verse: "V",
-  pre_chorus: "P",
-  chorus: "C",
-  bridge: "B",
-  tag: "T",
-  instrumental: "M",
-  ending: "E",
-};
 
 export function fieldsOf(song: Song): SongFields {
   return {
@@ -77,45 +68,23 @@ export function sectionDrafts(whole: WholeSong): SlideDraft[] {
     }));
 }
 
+/**
+ * A song's orders as the window shows them (STG-9, ST2.3).
+ *
+ * Default first, which is the order the store returns them in, because the one
+ * that presents is the one a person is looking for.
+ */
+export function orderDrafts(whole: WholeSong): OrderDraft[] {
+  return whole.arrangements.map((arrangement) => ({
+    name: arrangement.name,
+    sequence: [...arrangement.sequence],
+    isDefault: arrangement.isDefault,
+  }));
+}
+
 function typeOf(draft: SlideDraft): SectionType {
   const given = draft.sectionType ?? "";
   return TYPES.has(given) ? (given as SectionType) : "verse";
-}
-
-/**
- * Labels for a set of sections, filling in the ones nobody typed.
- *
- * Numbered per type, so three verses are V1 V2 V3 and a single chorus is C
- * rather than C1. A label somebody typed is kept as it is, and a clash with a
- * generated one is resolved by moving the generated one along, because a
- * sequence refers to labels and two sections cannot share one.
- */
-export function labelsFor(drafts: SlideDraft[]): string[] {
-  const taken = new Set(
-    drafts.map((draft) => (draft.label ?? "").trim()).filter((label) => label !== ""),
-  );
-  const counts = new Map<SectionType, number>();
-  const used = new Set<string>();
-
-  return drafts.map((draft) => {
-    const typed = (draft.label ?? "").trim();
-    if (typed !== "" && !used.has(typed)) {
-      used.add(typed);
-      return typed;
-    }
-
-    const type = typeOf(draft);
-    const sameType = drafts.filter((other) => typeOf(other) === type).length;
-    let n = (counts.get(type) ?? 0) + 1;
-    let label = sameType === 1 ? PREFIX[type] : `${PREFIX[type]}${n}`;
-    while (taken.has(label) || used.has(label)) {
-      n += 1;
-      label = `${PREFIX[type]}${n}`;
-    }
-    counts.set(type, n);
-    used.add(label);
-    return label;
-  });
 }
 
 /** The fields a song has that nothing on this screen asks about, yet. */
@@ -147,6 +116,8 @@ export interface SongDraft {
   title: string;
   fields: SongFields;
   sections: SlideDraft[];
+  /** The ways it is sung (STG-9). Absent keeps the record's own. */
+  orders?: OrderDraft[];
   /** The record being replaced, where there is one. */
   existing?: WholeSong | null;
 }
@@ -208,25 +179,103 @@ export function songFrom(draft: SongDraft): WholeSong {
     };
   });
 
-  // Every section once, in the order they were typed. A song with no
-  // arrangement cannot present, and this is the one nobody has to ask for.
-  const arrangement: Arrangement = {
-    id: `${id}:arrangement:1`,
-    songId: id,
-    name: DEFAULT_ARRANGEMENT_NAME,
-    key: key ?? "C",
-    tempoBpm: previous?.arrangements.find((one) => one.isDefault)?.tempoBpm ?? null,
-    sequence: labels,
-    chordpro: previous?.arrangements.find((one) => one.isDefault)?.chordpro ?? null,
-    isDefault: true,
-  };
-
   return {
     song,
     sections,
-    arrangements: sections.length === 0 ? [] : [arrangement],
+    arrangements:
+      sections.length === 0 ? [] : ordersInto(id, draft.orders, labels, key, previous),
     media: [],
   };
+}
+
+/**
+ * The orders a song is sung in (STG-9, ST2.3).
+ *
+ * Three things happen here rather than in the window.
+ *
+ * **A title the song no longer has comes out of the sequence.** Renaming a
+ * slide while an order points at the old name would otherwise store a record
+ * that cannot present, and the editor stores itself as somebody types, so the
+ * moment between the two edits is a moment that has to be survivable. An order
+ * left with nothing in it comes out with it.
+ *
+ * **Exactly one is default.** The one marked, or the first. Presenting a song
+ * nobody has chosen an order for takes the default (ST5.2), so there has to be
+ * one and there cannot be two.
+ *
+ * **A song with no orders gets the obvious one.** Every section once, in the
+ * order they were typed. A song with none cannot present at all.
+ */
+function ordersInto(
+  id: string,
+  orders: OrderDraft[] | undefined,
+  labels: string[],
+  key: Key | null,
+  previous: WholeSong | null,
+): Arrangement[] {
+  const known = new Set(labels);
+  const taken = new Set<string>();
+  const names = new Set<string>();
+
+  const kept = (orders ?? orderDrafts(previous ?? blankWhole(id)))
+    .map((order) => ({
+      name: order.name.trim(),
+      sequence: order.sequence.map((label) => label.trim()).filter((label) => known.has(label)),
+      isDefault: order.isDefault,
+    }))
+    .filter((order) => order.sequence.length > 0);
+
+  if (kept.length === 0) {
+    kept.push({ name: DEFAULT_ARRANGEMENT_NAME, sequence: labels, isDefault: true });
+  }
+
+  // Names are an order's identity to a person, so two cannot share one. The
+  // second "Short" becomes "Short 2" rather than being refused, because this
+  // runs on every keystroke and refusing would lose what somebody typed.
+  const named = kept.map((order, index) => {
+    let name = order.name === "" ? `Order ${index + 1}` : order.name;
+    let n = 2;
+    while (names.has(name)) name = `${order.name === "" ? `Order ${index + 1}` : order.name} ${n++}`;
+    names.add(name);
+    return { ...order, name };
+  });
+
+  const matched = named.map((order) => {
+    const before = previous?.arrangements.find((candidate) => candidate.name === order.name) ?? null;
+    if (before !== null) taken.add(before.id);
+    return { order, before };
+  });
+
+  // The first one marked default wins, and a set with none marked gives it to
+  // the first, because the record has to have exactly one.
+  const chosen = named.findIndex((order) => order.isDefault);
+  const defaultAt = chosen === -1 ? 0 : chosen;
+
+  let n = 1;
+  return matched.map(({ order, before }, index) => {
+    let fresh = `${id}:arrangement:${n}`;
+    while (before === null && taken.has(fresh)) fresh = `${id}:arrangement:${++n}`;
+    if (before === null) taken.add(fresh);
+
+    return {
+      id: before?.id ?? fresh,
+      songId: id,
+      name: order.name,
+      // The key and the tempo are an order's, and nothing on this screen asks
+      // for either. They are carried across untouched, and they start to matter
+      // with the chord chart in STG-44.
+      key: before?.key ?? key ?? "C",
+      tempoBpm: before?.tempoBpm ?? null,
+      sequence: order.sequence,
+      chordpro: before?.chordpro ?? null,
+      isDefault: index === defaultAt,
+    };
+  });
+}
+
+/** A stand-in, so an absent record and an absent order read the same way. */
+function blankWhole(id: string): WholeSong {
+  return { song: blankSong(id), sections: [], arrangements: [], media: [] };
 }
 
 function blankToNull(value: string): string | null {

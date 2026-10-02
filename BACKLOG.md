@@ -100,7 +100,7 @@ thing a person does with Stage and until now there was no way to do it. See
 | STG-6 | Build the local library store: songs, sections, arrangements, durable and backed up on write | ST2.1, ST19.5 | Resolved |
 | STG-7 | Type a song in: title, the copyright fields, and lyrics as labelled sections | ST2.1, ST2.2 | Resolved |
 | STG-8 | Offer a section split when a plain lyric block is pasted, confirmed by the operator | ST2.2 | Resolved |
-| STG-9 | Create arrangements with a key, a tempo and a sequence, one of them default | ST2.3 | New |
+| STG-9 | Orders on a song: named sequences of slide titles, one of them default. The key and the tempo an order can hold are deferred to STG-44, where something transposes | ST2.3 | Resolved |
 | STG-10 | Ship a public-domain sample song set, and offer it on first run. The two bundled hymns already land in an empty library, from STG-146 | ST1.2 | New |
 
 ### SF1. The Electron shell
@@ -171,7 +171,7 @@ The release a church with a 300 song ProPresenter library can actually adopt. No
 |---|---|---|---|
 | STG-42 | Search the library across title, author, lyrics, themes and CCLI number, under 100ms at 2,000 songs | ST2.4, ST21.10 | New |
 | STG-43 | Edit and archive a song, keeping its usage history | ST2.5 | New |
-| STG-44 | Hold a ChordPro chart per arrangement, transposable, and show it | ST2.6 | New |
+| STG-44 | Hold a ChordPro chart per order, transposable, and show it. Carries the key and the tempo fields STG-9 left off the screen | ST2.6 | New |
 | STG-45 | Attach reference audio and practice tracks to an arrangement | ST2.7 | New |
 | STG-46 | **Build a set list**: named, dated, ordered songs, scripture and markers | ST2.8 | New |
 | STG-47 | Duplicate a set list from a previous week, carrying structure | ST2.9 | New |
@@ -472,8 +472,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-9**, arrangements with a key, a tempo and a sequence, then STG-10 the sample set offered rather than seeded. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-10**, the sample set offered rather than seeded, then STG-11 onward. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1297,3 +1297,56 @@ middle of a verse on a wall, and the person who pasted it would have no idea why
 **A heading gives the kind of section for nothing.** `Chorus` sets the section's kind as well as its
 title, so a pasted hymn arrives with its structure even though nothing on the screen ever asks about
 section kinds. That is the same field STG-7 carries through the window untouched.
+
+## STG-9, how to test it
+
+A church sings the same song two ways: the whole thing at a conference, and four sections on a
+Tuesday evening. An order is a named list of slide titles, and the default is the one that goes on
+the wall when nobody says otherwise.
+
+**Two of the three fields the story asked for are not on the screen.** A key does nothing until
+there is a chord chart to transpose, and a tempo does nothing until something follows a click. Both
+are carried in the record untouched and both get a field in STG-44, where they start to do work. A
+key in a box that nothing reads is a thing a volunteer fills in and wonders about.
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+- Press **Slides** and open a hymn. **Orders** is under the slides, with one order in it called
+  **As written**.
+- Look at the cards above. Each **Slide title** box now shows the name that order refers to: `V1`,
+  `V2`, `C`.
+- Press **Add order**. A second row appears, named **Order 2**, holding every slide once.
+- Call it **Short** and cut its **Slides** field down to `V1 C V3`. Type it the way you would say it,
+  separated by spaces.
+- Press **Default** on the Short row.
+- Press **Present**. The wall shows three sections in that order.
+- Type `V9` into a Slides field. It says **V9 is not a slide title** underneath, and the stored order
+  leaves it out.
+- Rename a slide while an order still refers to its old title. The order loses that title rather
+  than breaking.
+- The **Remove order** button on the last remaining order is dead, because a song with no order
+  cannot present at all.
+
+**Sixteen new tests.** What they defend:
+
+1. **Every state between two edits has to be storable.** The editor stores itself a second after
+   typing stops, so a sequence naming a slide that was renamed a moment ago turns up at the library
+   constantly. Those titles come out of the sequence, and an order left with nothing comes out with
+   them.
+2. **Exactly one default.** The one marked, or the first. A record with none cannot decide what to
+   present, and a record with two is the same problem wearing a hat. The radio group on screen
+   enforces it as well.
+3. **A name typed twice moves along.** The second `Short` is stored as `Short 2`, because an order is
+   referred to by its name.
+4. **The key, the tempo and the chart survive a save that asks about none of them.** Matched by
+   name, the way STG-7 matches a section by its label. This is the same defect class as the Spanish
+   verse STG-7 nearly destroyed.
+5. **Ids never collide.** Adding an order in front of two existing ones used to hand the new one an
+   id an existing one already held, and the store writes arrangements by deleting and inserting.
+6. **A song nobody made an order for still presents**, with every section once.
+
+**Orders are on a song and not on a sheet of notices.** A song is in the library for years and gets
+reordered weekly. The notices are written for one week, and the cards are dragged into the order they
+are read in. The cards and the editor are the same for both.

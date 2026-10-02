@@ -594,3 +594,67 @@ footer {
   margin-left: auto;
   font-size: 0.75rem;
 }
+
+/* The ways a song is sung (STG-9). */
+
+.orders {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.orders h2 {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--quiet);
+  margin: 0;
+}
+
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.order {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+}
+
+.order:focus-within {
+  border-color: var(--stone-700);
+}
+
+.order .field {
+  min-width: 8rem;
+}
+
+.order .check {
+  padding-bottom: var(--space-2);
+}
+
+.order-sequence {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.order-problem {
+  flex-basis: 100%;
+  color: var(--ember-500);
+  font-size: 0.8125rem;
+  min-height: 0;
+}
+
+.order-problem:empty {
+  display: none;
+}

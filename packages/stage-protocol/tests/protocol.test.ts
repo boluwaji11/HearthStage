@@ -52,6 +52,43 @@ describe("isIntent", () => {
     expect(isIntent({ type: "goTo", position: 2, smooth: true })).toBe(true);
   });
 
+  /** STG-9. Orders cross the boundary with a song, so they are checked there. */
+  it("checks the orders on a song", () => {
+    const fields = {
+      author: "",
+      composer: "",
+      copyrightLine: "",
+      ccliNumber: "",
+      year: "",
+      isPublicDomain: false,
+      defaultKey: "",
+    };
+    const song = {
+      type: "saveSong",
+      songId: null,
+      title: "Be Thou My Vision",
+      fields,
+      sections: [{ label: null, body: "Be Thou my vision" }],
+    };
+
+    expect(isIntent(song)).toBe(true);
+    expect(isIntent({ ...song, orders: [] })).toBe(true);
+    expect(
+      isIntent({ ...song, orders: [{ name: "Short", sequence: ["V1"], isDefault: true }] }),
+    ).toBe(true);
+
+    for (const orders of [
+      "Short",
+      [{ name: "Short", sequence: ["V1"] }],
+      [{ name: "Short", sequence: "V1", isDefault: true }],
+      [{ name: 2, sequence: ["V1"], isDefault: true }],
+      [{ name: "Short", sequence: [1, 2], isDefault: true }],
+      Array.from({ length: 51 }, () => ({ name: "n", sequence: ["V1"], isDefault: false })),
+    ]) {
+      expect(isIntent({ ...song, orders }), JSON.stringify(orders).slice(0, 60)).toBe(false);
+    }
+  });
+
   it("refuses a prototype-polluting payload", () => {
     expect(isIntent(JSON.parse('{"__proto__":{"type":"advance"}}'))).toBe(false);
   });

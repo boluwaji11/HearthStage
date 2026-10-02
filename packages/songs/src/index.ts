@@ -89,6 +89,8 @@ export {
   presentationPlan,
 } from "./presentation";
 
+export { labelsFor, type Labelled } from "./labels";
+
 export {
   proposeSplit,
   headingOf,
