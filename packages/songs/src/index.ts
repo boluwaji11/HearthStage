@@ -90,6 +90,15 @@ export {
 } from "./presentation";
 
 export {
+  proposeSplit,
+  headingOf,
+  type SplitProposal,
+  type SplitReason,
+  type SplitOptions,
+  type ProposedSection,
+} from "./paste";
+
+export {
   splitSection,
   splitLines,
   splitBilingual,

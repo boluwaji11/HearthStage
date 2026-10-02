@@ -28,7 +28,7 @@
  * and what kind of section a slide is rides along without being asked about.
  */
 
-import { parseSlides } from "@hearth/songs";
+import { proposeSplit, type SplitProposal } from "@hearth/songs";
 import {
   gradientCss,
   type EditorState,
@@ -100,6 +100,8 @@ let dropAt: number | null = null;
  * belongs to.
  */
 let copied: SlideDraft | null = null;
+/** A pasted block, waiting for somebody to say whether the split is right. */
+let proposal: { index: number; split: SplitProposal; text: string } | null = null;
 /** Slides whose note box is open although the note is still empty. */
 const noteOpen = new Set<number>();
 
@@ -425,6 +427,7 @@ function renderSlides(focus?: number): void {
     }
 
     item.append(note(slide));
+    proposalInto(item, index);
     el.slides.append(item);
   });
 
@@ -488,30 +491,120 @@ function onSlideKey(event: KeyboardEvent, index: number, body: HTMLTextAreaEleme
 }
 
 /**
- * A sermon outline dropped in from a document.
+ * A block of words dropped in from somewhere else (STG-8, ST2.2).
  *
- * Only into an empty box, and only when the text has a gap in it. There is
- * nothing in an empty box to be surprised by, and a paste into a box that
- * already has words behaves the way a paste behaves everywhere else.
+ * Only into an empty box. A paste into a box that already has words behaves the
+ * way a paste behaves everywhere else, and there is nothing in an empty box to
+ * be surprised by.
+ *
+ * **It proposes and waits.** The split is shown with what it was based on, and
+ * nothing happens until somebody presses one of the two buttons. A splitter
+ * that guessed silently would put a chorus in the middle of a verse on a wall,
+ * and the person who pasted it would have no idea why.
  */
 function onPaste(event: ClipboardEvent, index: number, body: HTMLTextAreaElement): void {
   if (draft === null || draft.readOnly) return;
   if (body.value !== "") return;
 
   const text = event.clipboardData?.getData("text/plain") ?? "";
-  if (!/\n[ \t]*\n/.test(text)) return;
-
-  const parsed = parseSlides(text, { presentationId: "paste" });
-  if (parsed.length < 2) return;
+  const split = proposeSplit(text);
+  if (split.sections.length < 2) return;
 
   event.preventDefault();
+  proposal = { index, split, text };
+  renderSlides(index);
+}
+
+/** What the split was based on, said plainly. */
+function reasonSays(split: SplitProposal): string {
+  switch (split.reason) {
+    case "markers":
+      return "Split where the words said Verse and Chorus";
+    case "blank-lines":
+      return "Split at the blank lines";
+    case "line-count":
+      return `Split every four lines, which is a guess`;
+    default:
+      return "";
+  }
+}
+
+/** The proposal, under the box it was pasted into. */
+function proposalInto(item: HTMLElement, index: number): void {
+  if (proposal === null || proposal.index !== index) return;
+  const { split } = proposal;
+
+  const panel = document.createElement("div");
+  panel.className = "proposal";
+  if (split.guessed) panel.dataset["guessed"] = "true";
+
+  const what = document.createElement("p");
+  what.className = "proposal-what";
+  what.textContent = `${split.sections.length} slides. ${reasonSays(split)}`;
+  panel.append(what);
+
+  const list = document.createElement("ol");
+  list.className = "proposal-list";
+  for (const section of split.sections) {
+    const row = document.createElement("li");
+    if (section.label !== null) {
+      const label = document.createElement("span");
+      label.className = "proposal-label";
+      label.textContent = section.label;
+      row.append(label);
+    }
+    row.append(document.createTextNode(section.lines[0] ?? ""));
+    list.append(row);
+  }
+  panel.append(list);
+
+  const buttons = document.createElement("div");
+  buttons.className = "proposal-buttons";
+
+  const accept = document.createElement("button");
+  accept.type = "button";
+  accept.className = "primary";
+  accept.textContent = `Use these ${split.sections.length} slides`;
+  accept.addEventListener("click", acceptProposal);
+
+  const refuse = document.createElement("button");
+  refuse.type = "button";
+  refuse.textContent = "Keep as one";
+  refuse.addEventListener("click", refuseProposal);
+
+  buttons.append(accept, refuse);
+  panel.append(buttons);
+  item.append(panel);
+}
+
+function acceptProposal(): void {
+  if (draft === null || proposal === null) return;
+  const { index, split } = proposal;
+
   draft.slides.splice(
     index,
     1,
-    ...parsed.map((slide) => ({ label: slide.label, body: slide.lines.join("\n") })),
+    ...split.sections.map((section) => ({
+      label: section.label,
+      body: section.lines.join("\n"),
+      note: null,
+      ...(section.sectionType === null ? {} : { sectionType: section.sectionType }),
+    })),
   );
+  proposal = null;
   removed = null;
-  renderSlides(index + parsed.length - 1);
+  noteOpen.clear();
+  renderSlides(index + split.sections.length - 1);
+  commit();
+}
+
+function refuseProposal(): void {
+  if (draft === null || proposal === null) return;
+  const { index, text } = proposal;
+  const slide = draft.slides[index];
+  if (slide !== undefined) slide.body = text.trim();
+  proposal = null;
+  renderSlides(index);
   commit();
 }
 

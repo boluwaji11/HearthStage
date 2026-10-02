@@ -99,7 +99,7 @@ thing a person does with Stage and until now there was no way to do it. See
 | STG-168 | Name the application properly, so its data lives in "Hearth Stage" rather than in a folder named after a package, and move an existing library across | ST19.5 | Resolved |
 | STG-6 | Build the local library store: songs, sections, arrangements, durable and backed up on write | ST2.1, ST19.5 | Resolved |
 | STG-7 | Type a song in: title, the copyright fields, and lyrics as labelled sections | ST2.1, ST2.2 | Resolved |
-| STG-8 | Offer a section split when a plain lyric block is pasted, confirmed by the operator | ST2.2 | New |
+| STG-8 | Offer a section split when a plain lyric block is pasted, confirmed by the operator | ST2.2 | Resolved |
 | STG-9 | Create arrangements with a key, a tempo and a sequence, one of them default | ST2.3 | New |
 | STG-10 | Ship a public-domain sample song set, and offer it on first run. The two bundled hymns already land in an empty library, from STG-146 | ST1.2 | New |
 
@@ -472,8 +472,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-8**, offering a split when a block of lyrics is pasted, then STG-9 arrangements and STG-10 the sample set offered rather than seeded. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-9**, arrangements with a key, a tempo and a sequence, then STG-10 the sample set offered rather than seeded. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1247,3 +1247,53 @@ language and what it translates. Four tests on it, including one that reorders t
 
 Nothing on screen said this was happening, which is the point: a save path that quietly drops a field
 is the kind of defect a church finds eighteen months later in a service.
+
+---
+
+## STG-8, how to test it
+
+Lyrics arrive from a web page, a Word document or an old presenter's export, and they arrive as a
+wall of text. The schema needs ordered labelled sections, so something has to turn one into the
+other, and the honest options are to ask the person to do it by hand or to propose something they can
+look at.
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+- Press **Slides**, **New**, give it a title, and press **Add slide**.
+- Copy a whole hymn off a lyrics site and paste it into the empty box.
+- A panel appears **under that box**, saying how many slides it would make and what it went on, with
+  the first line of each one listed. Nothing has changed yet.
+- Press **Use these 6 slides** and they appear. Press **Keep as one** and the whole block stays in the
+  one box.
+
+Three things to try, because the three ways in behave differently:
+
+| What you paste | What it says |
+|---|---|
+| Lyrics with `Verse 1`, `Chorus` and `Bridge` on their own lines | Split where the words said Verse and Chorus. The headings come off the slides and become the slide titles. |
+| Lyrics with blank lines between stanzas and no headings | Split at the blank lines. |
+| A solid block with neither | Split every four lines, which is a guess. The panel is quieter, because it is. |
+
+**Eighteen new tests.** What they defend:
+
+1. **A lyric that begins with a section word is a lyric.** "Chorus of angels sing" and "Verse after
+   verse of mercy" are words to sing, so the whole line has to match. A rule that read the start of a
+   line would break a hymn in half.
+2. **A heading is read however it is decorated**: `[Chorus]`, `(Chorus)`, `CHORUS:`, `Chorus -`, and
+   the short forms `V2` and `C` a church types into a sequence.
+3. **It never loses a line.** Checked by flattening the proposal and comparing it to what went in,
+   for headings and for a solid block.
+4. **A single heading at the top says what a block is** rather than where it breaks, so a chorus
+   pasted on its own stays one slide.
+5. **Words above the first heading are kept** as a section of their own rather than thrown away.
+6. **A guess says it is a guess**, on the proposal and in the panel.
+
+**Somebody agrees with the split before anything is stored.** It is shown with what it was based on,
+and the two buttons are the only things that change the boxes. A splitter that guessed silently would put a chorus in the
+middle of a verse on a wall, and the person who pasted it would have no idea why.
+
+**A heading gives the kind of section for nothing.** `Chorus` sets the section's kind as well as its
+title, so a pasted hymn arrives with its structure even though nothing on the screen ever asks about
+section kinds. That is the same field STG-7 carries through the window untouched.

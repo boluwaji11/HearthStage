@@ -493,6 +493,54 @@ body[data-themed="true"] .card-body {
   padding: var(--space-1) var(--space-2);
 }
 
+/*
+ * A pasted block, waiting to be agreed with (STG-8, ST2.2).
+ *
+ * Under the box it was pasted into rather than in a dialogue over the window,
+ * because the thing being decided about is that box and a dialogue would cover
+ * it.
+ */
+.proposal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--ember-500);
+  border-radius: var(--radius);
+  background: var(--sunk);
+}
+
+.proposal[data-guessed="true"] {
+  border-color: var(--stone-700);
+}
+
+.proposal-what {
+  font-weight: 500;
+}
+
+.proposal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--quiet);
+  font-size: 0.8125rem;
+  max-height: 11rem;
+  overflow-y: auto;
+}
+
+.proposal-label {
+  display: inline-block;
+  min-width: 2rem;
+  color: var(--ember-500);
+  font-weight: 600;
+  font-size: 0.6875rem;
+}
+
+.proposal-buttons {
+  display: flex;
+  gap: var(--space-2);
+}
+
 .card-note {
   font-size: 0.75rem;
 }
