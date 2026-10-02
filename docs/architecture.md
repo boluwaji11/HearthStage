@@ -1,7 +1,7 @@
 # Hearth Stage architecture
 
-How Stage is built. [PRD-STAGE.md](../PRD-STAGE.md) says what it does.
-[stage-sync-contract.md](stage-sync-contract.md) says how it talks to the platform when a church pairs it.
+How Stage is built. [PRD.md](../PRD.md) says what it does.
+[hearth-sync-contract.md](hearth-sync-contract.md) says how it talks to the platform when a church pairs it.
 
 **Stage runs on its own.** It holds its own song library, imports the library a church already has,
 and presents a service with nothing of ours on the network. Pairing with Hearth adds a second source
@@ -161,7 +161,7 @@ Three stores, and the split is the thing that makes a standalone presenter safe 
 
 **`library.db` and `cache.db` are never the same table.** A resync truncates and rebuilds `cache.db`
 and cannot reach a song the church typed in (ST4.3), and a corrupt cache therefore costs a download
-rather than a library (ST19.4). It is also what enforces the two-origin rule in PRD-STAGE section 2:
+rather than a library (ST19.4). It is also what enforces the two-origin rule in PRD section 2:
 a song's origin is which file it lives in, so "Stage cannot edit a `hearth` song" is a property of the
 storage rather than a check somebody has to remember to write.
 

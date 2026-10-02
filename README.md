@@ -52,7 +52,7 @@ packages/
   colour             OKLCH and WCAG contrast, for the legibility floor
 ```
 
-`packages/songs` is the song schema from Hearth's PRD section 9.4, implemented
+`packages/songs` is the song schema from Hearth's the platform PRD section 9.4, implemented
 once. The platform consumes it too, so a slide on a wall and a chord chart on a
 music stand can never disagree about what `V1 C V2 C B C C` means.
 

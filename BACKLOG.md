@@ -3,7 +3,7 @@
 The Stage board. Separate from [BACKLOG.md](BACKLOG.md) so the platform and the presenter can be built
 in parallel without two people editing one table.
 
-Requirement IDs (`ST5.2`, `ST19.1`) point at [PRD-STAGE.md](PRD-STAGE.md) and say **what** to build.
+Requirement IDs (`ST5.2`, `ST19.1`) point at [PRD.md](PRD.md) and say **what** to build.
 Work item IDs (`STG-14`) say **when** it is being built and whether it is finished.
 
 > **Draft 2, October 2026.** Draft 1 made Stage a thin client of the platform, which put a Hearth
@@ -18,7 +18,7 @@ Same four levels, same states, and the same rules as the platform board.
 | Level | Meaning | ID |
 |---|---|---|
 | **Epic** | A Stage release. Defined by what a church can do on a Sunday with it. | `SE1` to `SE6` |
-| **Feature** | A PRD-STAGE domain inside that release. | `SF1` to `SF21` |
+| **Feature** | A PRD domain inside that release. | `SF1` to `SF21` |
 | **Story** | One deliverable. Built, then tested, then closed. | `STG-n` |
 | **Task** | Steps inside a story. In the story's checklist. | |
 
@@ -49,8 +49,8 @@ board. **Resolved is not Closed.** A story sits in Resolved until Boluwaji has u
 | `packages/song-import/**` | `PRD.md`, `BACKLOG.md`, `ROADMAP.md` |
 | `packages/stage-store/**` | |
 | `apps/stage/**` | |
-| `PRD-STAGE.md`, `BACKLOG-STAGE.md` | `docs/architecture.md`, `docs/data-model.md`, `docs/design-system.md` |
-| `docs/stage-architecture.md`, `docs/stage-sync-contract.md`, `docs/stage-journeys.md` | |
+| `PRD.md`, `BACKLOG.md` | `docs/architecture.md`, `docs/data-model.md`, `docs/design-system.md` |
+| `docs/architecture.md`, `docs/hearth-sync-contract.md`, `docs/journeys.md` | |
 
 Shared, and touched with care: `pnpm-workspace.yaml`, `turbo.json`, root `package.json`,
 `packages/ui/**` (read by Stage, changed by the platform), `packages/i18n` catalogue (Stage adds its
@@ -58,14 +58,14 @@ own namespace rather than editing web keys).
 
 `packages/songs` and `packages/song-import` are owned here because Stage builds them first and is their
 only consumer until the platform's song library screens (0.4) and importers (R20.10) arrive. The schema
-in [PRD.md section 9.4](PRD.md) is the contract between the two, and a change to it is a platform story.
+in [the platform PRD, section 9.4](https://github.com/boluwaji11/ChurchManagement/blob/main/PRD.md) is the contract between the two, and a change to it is a platform story.
 
 ---
 
 ## SE1. The slide (S0.1)
 
 A presenter a worship leader can type four songs into and run. No platform dependency. Exit criteria in
-[PRD-STAGE.md section 5](PRD-STAGE.md).
+[PRD.md section 5](PRD.md).
 
 **Order corrected, 1 October 2026.** This epic originally put the song entry stories (STG-7 to
 STG-10) ahead of the Electron shell (STG-11 to STG-15). Typing a song in needs a screen to type it
@@ -76,7 +76,7 @@ comes before everything, because the deck compiler is what a window renders.
 
 | ID | Story | Req | State |
 |---|---|---|---|
-| STG-1 | Scaffold `packages/songs` with the song, section, arrangement and usage types from PRD section 9.4, and no runtime dependencies | ST2.1 | Resolved |
+| STG-1 | Scaffold `packages/songs` with the song, section, arrangement and usage types from the platform PRD section 9.4, and no runtime dependencies | ST2.1 | Resolved |
 | STG-2 | Resolve an arrangement sequence into an ordered list of sections, failing loudly on a missing label | ST5.2 | Resolved |
 | STG-3 | Split a section into slides on the theme's line limit, breaking between lines | ST6.1 | Resolved |
 | STG-4 | Compile a set list into a deck of cue groups, deterministically, with golden fixtures | ST5.1, ST5.4 | Resolved |
@@ -408,20 +408,20 @@ Public launch of Stage.
 
 ## What the platform owes Stage
 
-Specified in full in [docs/stage-sync-contract.md](docs/stage-sync-contract.md). These become stories
+Specified in full in [docs/hearth-sync-contract.md](docs/hearth-sync-contract.md). These become stories
 on the **platform** board with `HRT-n` IDs when platform 0.4 is planned. **SE4 is blocked until all six
 land. SE1, SE2, SE3 and most of SE5 are not.**
 
 | Owed | Platform requirement | Note |
 |---|---|---|
-| The song schema: sections ordered and labelled, sequences as data, translations section aligned | R12.1 to R12.7, R12.9 | PRD section 9.4. Stage uses it locally from STG-1, so a real renderer exercises it before the platform's own screens exist. |
+| The song schema: sections ordered and labelled, sequences as data, translations section aligned | R12.1 to R12.7, R12.9 | the platform PRD section 9.4. Stage uses it locally from STG-1, so a real renderer exercises it before the platform's own screens exist. |
 | Service plans readable as data: ordered items, arrangement and key, resolved scripture text, notes per position | R11.1 to R11.6, R11.14 | |
 | `change_seq` on every synced table, from a per-tenant sequence | R11.14 | Set by the trigger that already writes the audit entry |
 | The device principal: table, token hashing, scope enforced in the query layer, pairing code UI, device list with revoke | R11.14, R1.5, R1.10 | Sits beside the active session list, which exists |
 | The routes under `/api/stage/v1`, including the song promotion endpoint | R11.14, R12.13 | |
 | Idempotent `song_usage` insert keyed on the client id, feeding the CCLI export | R12.9, R12.10 | Stage's local export (STG-53) is validated against the same fixture, so the two agree |
 
-One correction is owed in the other direction: **PRD.md section 9.6** says Stage is "a client of a
+One correction is owed in the other direction: **the platform PRD section 9.6** says Stage is "a client of a
 versioned sync API, not a second application with a second database", which draft 2 contradicts. PRD.md
 belongs to the platform board, so that line is corrected there.
 
@@ -475,8 +475,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Blocked** | **SE4** only, on the six platform deliverables above. Fifty-two stories sit in front of it. |
 | **Branch** | Stage work is on the `stage` branch, in a git worktree at `../hearth-stage`, so the two windows no longer share a HEAD. Everything up to `da167d8` is on `main`. |
-| **Watch** | `packages/songs` is read by the platform's song library screens in 0.4, and `packages/song-import` by its R20.10 importers. The schema in PRD section 9.4 is the contract, and a change to it is a platform story. |
-| **Owed elsewhere** | The PRD.md section 9.6 correction, on the platform board. |
+| **Watch** | `packages/songs` is read by the platform's song library screens in 0.4, and `packages/song-import` by its R20.10 importers. The schema in the platform PRD section 9.4 is the contract, and a change to it is a platform story. |
+| **Owed elsewhere** | The the platform PRD section 9.6 correction, on the platform board. |
 
 ---
 
@@ -516,14 +516,14 @@ Thirty-three tests, three files. What each one is defending:
    database, framework or store is referenced. Stated as a test because a README does not fail a
    build.
 
-Worth reading rather than running: `src/types.ts` is the schema from PRD section 9.4 written out, and
+Worth reading rather than running: `src/types.ts` is the schema from the platform PRD section 9.4 written out, and
 it is the one file where being wrong is expensive. Two things in it are decisions rather than
 transcription, and both are open to being overruled now while nothing depends on them.
 
 - **`tenantId` is absent.** The platform holds these records with a tenant and row-level security,
   and Stage holds them with no tenant at all, so tenancy belongs to each store rather than to the
   shared type.
-- **`origin` is present**, `local` or `hearth`, carrying the two-writer rule from PRD-STAGE section 2
+- **`origin` is present**, `local` or `hearth`, carrying the two-writer rule from PRD section 2
   into the type itself.
 
 The sample library is two public-domain hymns. Stage offers them on first run so a church starting
@@ -666,7 +666,7 @@ What it shows, in order:
    blob wearing an array cannot reach the disk, and therefore cannot reach
    Phase 2.
 4. **A synced song is refused.** `library.db` holds what Stage owns. The
-   two-writer rule from PRD-STAGE section 2 is now a property of which file a
+   two-writer rule from PRD section 2 is now a property of which file a
    row is in, rather than a check somebody has to remember.
 5. **Archiving takes a song off the list and keeps the record.** The list shows
    one, the file still holds two.
@@ -690,7 +690,7 @@ What it shows, in order:
   restoring a backup is already having a bad day.
 - A backup that is not a readable library is refused before it is offered.
 
-**One documented decision changed.** `docs/stage-architecture.md` said Drizzle
+**One documented decision changed.** `docs/architecture.md` said Drizzle
 would be the query layer against SQLite too. It is now prepared statements and a
 hand written migrator, for the reasons set out in that file: four tables, data a
 church cannot get back, and an interrupted upgrade that has to be provably safe.

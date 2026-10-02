@@ -5,7 +5,7 @@
  * church types in and imports, with the synced cache beside it.
  *
  * Split by durability and by who writes it, which is the decision that makes
- * the two-writer rule in PRD-STAGE section 2 a property of the filesystem
+ * the two-writer rule in PRD section 2 a property of the filesystem
  * rather than a check somebody has to remember:
  *
  * - `library.db` is the church's own work, written by Stage, backed up on every
@@ -13,7 +13,7 @@
  * - `cache.db` is synced from the platform, read-only in Stage, and rebuilt by
  *   a resync. It arrives with STG-91.
  *
- * See docs/stage-architecture.md, "Local store".
+ * See docs/architecture.md, "Local store".
  */
 
 export { openDatabase, type Db, type Durability, type OpenOptions } from "./open";

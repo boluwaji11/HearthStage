@@ -2,7 +2,7 @@
  * STG-12. What the main process and its windows say to each other.
  *
  * The traffic is one-directional in meaning, which is the decision the whole
- * application rests on (docs/stage-architecture.md, "IPC"):
+ * application rests on (docs/architecture.md, "IPC"):
  *
  * - **Down: state.** `OutputState` is the complete description of what one
  *   output should show. A renderer diffs it against what it is showing and
@@ -150,7 +150,7 @@ export type IntentType = Intent["type"];
  *
  * An allowlist rather than a prefix rule, because a renderer paints church
  * lyrics from a local cache and has no business reaching anything else
- * (docs/stage-architecture.md, "Security").
+ * (docs/architecture.md, "Security").
  */
 export const CHANNELS = {
   /** Renderer to main: an intent. */

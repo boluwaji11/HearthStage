@@ -10,15 +10,15 @@ two cannot disagree about what `V1 C V2 C B C C` means.
 from an Electron main process, from a worker thread reading a ProPresenter file, and from a test.
 Anything it imports, all four have to carry, so it imports nothing. A test enforces that.
 
-- [PRD.md section 9.4](../../PRD.md) is the schema's specification.
-- [PRD-STAGE.md](../../PRD-STAGE.md) is what Stage does with it.
-- Work tracked on [BACKLOG-STAGE.md](../../BACKLOG-STAGE.md) as `STG-n`.
+- [the platform PRD section 9.4](../../PRD.md) is the schema's specification.
+- [PRD.md](../../PRD.md) is what Stage does with it.
+- Work tracked on [BACKLOG.md](../../BACKLOG.md) as `STG-n`.
 
 ## What lives here
 
 | File | Contents |
 |---|---|
-| `src/types.ts` | The records from PRD section 9.4, as TypeScript |
+| `src/types.ts` | The records from the platform PRD section 9.4, as TypeScript |
 | `src/keys.ts` | Musical keys: the ones that appear on a chart, parsed and normalised |
 | `src/validate.ts` | Whether a song is well formed, as machine-readable problems |
 | `src/fixtures.ts` | Public-domain songs used by the tests, and by Stage's first run |

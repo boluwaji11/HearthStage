@@ -13,7 +13,7 @@
  * 2. **Only a `local` song is written here.** `library.db` is the half of the
  *    world Stage owns. A `hearth` song is the platform's and lives in the
  *    synced cache, so this store refuses one outright. That is the two-writer
- *    rule from PRD-STAGE section 2, enforced by which file a row is in.
+ *    rule from PRD section 2, enforced by which file a row is in.
  */
 
 import {

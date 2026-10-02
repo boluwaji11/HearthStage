@@ -4,7 +4,7 @@
  * Every song here is in the public domain, which is a requirement rather than a
  * convenience: Stage ships with no copyrighted lyrics of any kind, because
  * lyrics are the church's CCLI responsibility and bundling any would make them
- * ours (PRD-STAGE section 4).
+ * ours (PRD section 4).
  *
  * These are well formed on purpose. The broken cases live in the tests, built
  * from `blankSong` so that what is wrong with each one is visible at the place

@@ -1,6 +1,6 @@
 # Hearth Stage sync contract, v1
 
-The versioned interface between the platform and Hearth Stage. [PRD.md section 9.6](../PRD.md)
+The versioned interface between the platform and Hearth Stage. [the platform PRD, section 9.6](https://github.com/boluwaji11/ChurchManagement/blob/main/PRD.md)
 settles that this contract exists and that it is a Phase 1 deliverable. This document is the
 specification both sides build against.
 
@@ -9,14 +9,14 @@ specification both sides build against.
 | **Server side** | Platform release 0.4, requirements R11.14 and R12.13. Built on the platform board as `HRT-n`. |
 | **Client side** | Stage release S0.4, requirements ST1.3 to ST1.10 and ST4.x. Built on the Stage board as `STG-n`. |
 | **Optional** | **Pairing is an upgrade.** Stage holds its own library and presents a full service without ever reaching this API. Nothing in Stage releases S0.1 to S0.3 touches it. |
-| **Shape of the data** | [PRD.md section 9.4](../PRD.md) is the source of truth for the song schema. This document does not redefine it. |
+| **Shape of the data** | [the platform PRD, section 9.4](https://github.com/boluwaji11/ChurchManagement/blob/main/PRD.md) is the source of truth for the song schema. This document does not redefine it. |
 
 ## The one idea
 
 **One writer per record.**
 
 Stage holds two kinds of song, and the difference is which store the row lives in
-([stage-architecture.md](stage-architecture.md), "Local store").
+([architecture.md](architecture.md), "Local store").
 
 | Origin | Writer | Over this interface |
 |---|---|---|
@@ -40,7 +40,7 @@ is refused.
 ## Transport
 
 - REST over HTTPS, under `/api/stage/v1`.
-- JSON bodies, `snake_case` field names, matching the database column names in PRD section 9.4.
+- JSON bodies, `snake_case` field names, matching the database column names in the platform PRD section 9.4.
 - Timestamps are RFC 3339 with an offset, generated server side. Stage never sends a timestamp it
   authored for ordering purposes, because a church laptop's clock is not trustworthy.
 - `Accept-Encoding: gzip` expected. Payloads are mostly text and compress by roughly 80%.
@@ -405,10 +405,10 @@ These are platform stories with platform IDs. They are written on [BACKLOG.md](.
 
 **None of them blocks Stage releases S0.1 to S0.3.** Those are a complete standalone presenter. This
 interface gates exactly one Stage epic, SE4, which is tracked on
-[BACKLOG-STAGE.md](../BACKLOG-STAGE.md).
+[BACKLOG.md](../BACKLOG.md).
 
 ### One correction owed in PRD.md
 
 Section 9.6 reads "Stage is a client of a versioned sync API, not a second application with a second
 database." Stage holds a real library of its own, so the line needs replacing. PRD.md belongs to the
-platform board, and the replacement wording is in [PRD-STAGE.md](../PRD-STAGE.md) section 2.
+platform board, and the replacement wording is in [PRD.md](../PRD.md) section 2.

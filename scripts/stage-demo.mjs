@@ -73,7 +73,7 @@ console.log(bold("Hearth Stage, so far"));
 console.log(
   dim(
     "The shared song domain and the library on disk. No window yet: that is STG-11.\n" +
-      "Specification in PRD-STAGE.md, the board in BACKLOG-STAGE.md.",
+      "Specification in PRD.md, the board in BACKLOG.md.",
   ),
 );
 

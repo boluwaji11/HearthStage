@@ -3,14 +3,14 @@
 | | |
 |---|---|
 | **Product** | Hearth Stage, a worship presenter. Free, and it runs on its own. |
-| **Phase** | Phase 2. Outline in [PRD.md section 8.23](PRD.md). This document is the build specification. |
+| **Phase** | Phase 2. Outline in [the platform PRD, section 8.23](https://github.com/boluwaji11/ChurchManagement/blob/main/PRD.md). This document is the build specification. |
 | **Status** | Draft 2, October 2026. Written before any Stage code. |
-| **Board** | [BACKLOG-STAGE.md](BACKLOG-STAGE.md) |
-| **Architecture** | [docs/stage-architecture.md](docs/stage-architecture.md) |
-| **Pairing with Hearth** | [docs/stage-sync-contract.md](docs/stage-sync-contract.md) |
-| **Journeys** | [docs/stage-journeys.md](docs/stage-journeys.md), what people actually do end to end |
+| **Board** | [BACKLOG.md](BACKLOG.md) |
+| **Architecture** | [docs/architecture.md](docs/architecture.md) |
+| **Pairing with Hearth** | [docs/hearth-sync-contract.md](docs/hearth-sync-contract.md) |
+| **Journeys** | [docs/journeys.md](docs/journeys.md), what people actually do end to end |
 
-Requirement IDs are `ST<domain>.<n>`. The eighteen `S1` to `S18` items in PRD.md section 8.23 are the
+Requirement IDs are `ST<domain>.<n>`. The eighteen `S1` to `S18` items in the platform PRD section 8.23 are the
 outline those IDs expand, and section 23 maps every one of them to the requirements that deliver it.
 
 > **Draft 2 changed the shape of this document.** Draft 1 specified Stage as a thin client of the
@@ -111,7 +111,7 @@ the product rather than discovered by a church in week three.
 through S0.3 are a complete presenter, buildable start to finish with no platform work at all.
 
 What does **not** change: the song schema. Stage's local library uses the schema in
-[PRD.md section 9.4](PRD.md) exactly, through the shared `packages/songs` package, which is why a
+[the platform PRD, section 9.4](https://github.com/boluwaji11/ChurchManagement/blob/main/PRD.md) exactly, through the shared `packages/songs` package, which is why a
 locally authored song promotes into Hearth as an insert rather than a translation.
 
 ---
@@ -142,11 +142,11 @@ must not require them, and must not insult them when they show up.
 |---|---|---|
 | Standalone | **Stage installs and presents without ever signing in to anything.** Offline, with no server of ours involved. | It competes with OpenLP and ProPresenter, which is where the users are. A presenter that needs a ChMS account has no users. |
 | Pairing | Optional, additive, reversible. | Pairing is the upgrade that closes the loop. It is never the price of entry. |
-| Price | Free, like the rest of Hearth. | Settled in PRD.md section 2. No paid tier for Stage, ever. |
+| Price | Free, like the rest of Hearth. | Settled in the platform PRD section 2. No paid tier for Stage, ever. |
 | Delivery | Electron desktop, macOS, Windows, Linux. | The output drives real displays, holds a video decode pipeline, and runs with the network off. |
 | Offline | Offline always. The network is an optional extra. | The building's internet is not a Sunday dependency. |
 | Library | Stage holds a real library. Songs are `local` or `hearth`, with one writer each (section 2). | Independence without a merge problem. |
-| Song schema | The schema in PRD section 9.4, through `packages/songs`, in both products. | A locally authored song promotes into Hearth as an insert. |
+| Song schema | The schema in the platform PRD section 9.4, through `packages/songs`, in both products. | A locally authored song promotes into Hearth as an insert. |
 | Scripture | Public-domain translations bundled. Licensed text comes from a paired church's own licence. | We cannot redistribute the NIV, and pretending otherwise is a lawsuit. |
 | Data direction | Stage reads plans and `hearth` songs. It writes usage and promotes `local` songs on request. | One writer per record, everywhere. |
 | Licence | AGPL-3.0, same as the platform. | |
@@ -302,7 +302,7 @@ the inventory this correction came out of.
 
 | ID | Rel | Requirement |
 |---|---|---|
-| ST2.1 | S0.1 | **A song is the schema in PRD section 9.4**, held locally: title, authors, CCLI number, copyright line, themes, tempo, time signature, default key, and ordered labelled sections. |
+| ST2.1 | S0.1 | **A song is the schema in the platform PRD section 9.4**, held locally: title, authors, CCLI number, copyright line, themes, tempo, time signature, default key, and ordered labelled sections. |
 | ST2.2 | S0.1 | **Lyrics are entered as labelled sections**, each with a type and a label, with lines kept as lines. A paste of a plain lyric block is offered a split into sections, and the operator confirms it. |
 | ST2.3 | S0.1 | **Arrangements**: several per song, each with a name, key, tempo, and a sequence of section labels. One is default. |
 | ST2.4 | S0.2 | Library search across title, alternate titles, author, lyrics, themes and CCLI number, returning in under 100ms at 2,000 songs. |
@@ -667,7 +667,7 @@ than an empty half.
 
 | ID | Rel | Requirement |
 |---|---|---|
-| ST18.1 | S0.4 | **Song usage pushed back** as `SongUsage` rows with song, arrangement, key used, service and date, with `source = stage` (PRD section 9.4). |
+| ST18.1 | S0.4 | **Song usage pushed back** as `SongUsage` rows with song, arrangement, key used, service and date, with `source = stage` (the platform PRD section 9.4). |
 | ST18.2 | S0.4 | Pushed usage carries the same rule as the local log in ST2.10: written when a song was shown, so the platform's report reflects the service rather than the intention. |
 | ST18.3 | S0.4 | Usage queued offline is pushed on reconnect, idempotently, and a double push does not double count. |
 | ST18.4 | S0.4 | A song added live and absent from the plan is still reported, because that is exactly the usage a church forgets and gets fined for. |
@@ -741,7 +741,7 @@ the build if any sampled text region falls below 7:1.
 
 ---
 
-## 27. Traceability to PRD.md section 8.23
+## 27. Traceability to the platform PRD section 8.23
 
 | Outline | Subject | Delivered by | Release |
 |---|---|---|---|
@@ -775,11 +775,11 @@ S0.4, because it is additive rather than foundational.
 **S0.1 to S0.3 need nothing from the platform board.** S0.4 is the only release that does, and it needs
 two things, both already Phase 1 requirements in platform release 0.4.
 
-1. **The song schema** (R12.1 to R12.7, R12.9, PRD section 9.4). Stage uses it locally from its first
+1. **The song schema** (R12.1 to R12.7, R12.9, the platform PRD section 9.4). Stage uses it locally from its first
    commit, which means the schema is exercised by a real renderer before the platform's own screens
    are built. If it is wrong, Stage finds out first, which is worth something.
 2. **The sync contract** (R11.14, R12.13), specified in full in
-   [docs/stage-sync-contract.md](docs/stage-sync-contract.md), including the six server-side pieces
+   [docs/hearth-sync-contract.md](docs/hearth-sync-contract.md), including the six server-side pieces
    platform 0.4 has to carry.
 
 Stage owes a paired platform the usage rows that make the CCLI export honest, and the songs an operator
@@ -791,7 +791,7 @@ taken through the platform board.
 
 ### One correction owed to PRD.md
 
-[PRD.md section 9.6](PRD.md) reads "Stage is a client of a versioned sync API, not a second application
+[the platform PRD, section 9.6](https://github.com/boluwaji11/ChurchManagement/blob/main/PRD.md) reads "Stage is a client of a versioned sync API, not a second application
 with a second database." Draft 2 contradicts it: Stage holds a real library of its own, and sync is one
 of two ways songs get into it. PRD.md is the platform board's file, so the line is corrected there
 rather than here. The replacement is in section 2 of this document.
@@ -811,4 +811,4 @@ rather than here. The replacement is in section 2 of this document.
 | Scope creep from the production volunteer | Medium | The non-goals in section 4 are settled. NDI and alpha key are in, mixing and lighting are out. |
 | An operator breaking a service by pressing the wrong key | High | ST12.3 and ST12.7. The live surface has nothing destructive in it. |
 | The local library is the only copy and a laptop dies | High | ST19.5 backup and restore, ST2.12 ungated export. A paired church also has the platform. |
-| Two windows of work colliding in one repository | Medium | File ownership in [BACKLOG-STAGE.md](BACKLOG-STAGE.md). Stage owns `apps/stage` and `packages/songs`. |
+| Two windows of work colliding in one repository | Medium | File ownership in [BACKLOG.md](BACKLOG.md). Stage owns `apps/stage` and `packages/songs`. |

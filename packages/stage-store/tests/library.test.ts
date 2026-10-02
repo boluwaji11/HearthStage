@@ -143,7 +143,7 @@ describe("what it refuses to write", () => {
   });
 
   it("refuses a synced song, because the library holds what Stage owns", () => {
-    // PRD-STAGE section 2. One writer per record, enforced by which file the
+    // PRD section 2. One writer per record, enforced by which file the
     // row would be in.
     const synced: WholeSong = {
       ...amazingGrace,

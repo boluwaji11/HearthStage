@@ -1,5 +1,5 @@
 /**
- * STG-1. The song schema from [PRD.md section 9.4](../../../PRD.md), as types.
+ * STG-1. The song schema from [the platform PRD, section 9.4](https://github.com/boluwaji11/ChurchManagement/blob/main/PRD.md), as types.
  *
  * Three properties of this shape are load bearing, and each one exists for a
  * reason that only shows up later:
@@ -99,7 +99,7 @@ export interface ArrangementMedia {
 /**
  * Where a song came from, which decides who may write it.
  *
- * PRD-STAGE section 2. A `local` song was typed into Stage or imported there,
+ * PRD section 2. A `local` song was typed into Stage or imported there,
  * and Stage owns it. A `hearth` song was synced from the platform, and is
  * read-only on the laptop. One writer per record, so nothing merges.
  *

@@ -1,7 +1,7 @@
 /**
  * STG-1, R12.4, R12.5, R12.8.
  *
- * The schema in PRD section 9.4 makes three promises, and this file is where
+ * The schema in the platform PRD section 9.4 makes three promises, and this file is where
  * they stop being prose. Lyrics are sections rather than a blob, a sequence
  * resolves against real labels, and a translation is aligned to its primary.
  */

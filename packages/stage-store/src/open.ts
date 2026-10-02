@@ -3,7 +3,7 @@
  * loses its library.
  *
  * Two databases, two different answers about durability, because they hold
- * different things (docs/stage-architecture.md, "Local store"):
+ * different things (docs/architecture.md, "Local store"):
  *
  * - **`library.db` is the church's own work.** For an unpaired church it is the
  *   only copy. Writes are rare and human paced, so it runs with
