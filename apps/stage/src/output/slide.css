@@ -1,0 +1,82 @@
+/*
+ * STG-21. One slide, in one stylesheet.
+ *
+ * Loaded by the output window and by the control surface's live and next panes,
+ * so what the operator is looking at is the room's slide at a smaller size. Two
+ * stylesheets would drift, and the first anybody would hear of the drift is
+ * somebody saying the screen looked different from the preview.
+ *
+ * Every value comes from the theme through custom properties, so changing a
+ * theme is changing data rather than editing this file (ST8.2). Sizes are in
+ * `em` off the slide's own font size, which is set in pixels from the
+ * measurement, so one rule is right at nine feet and in a panel.
+ */
+
+.slide {
+  width: 100%;
+  height: 100%;
+  padding: var(--safe-area, 7.5%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: var(--justify, center);
+  gap: 0.6em;
+  font-family: var(--font-family, serif);
+  font-weight: var(--font-weight, 500);
+  font-size: var(--text-size, 7.2vh);
+  line-height: var(--line-height, 1.28);
+  color: var(--colour, #fff);
+  text-align: var(--text-align, center);
+  text-shadow: var(--text-shadow, none);
+  text-wrap: balance;
+}
+
+.lines {
+  width: 100%;
+}
+
+.lines p {
+  /* A line is a line. It wraps only when the screen genuinely cannot hold it,
+     and a wrapped continuation is indented so it reads as one line (ST6.1). */
+  text-indent: 0;
+}
+
+.lines.translation {
+  font-size: 0.78em;
+  opacity: 0.86;
+}
+
+.scripture p {
+  font-size: 0.82em;
+  text-align: left;
+  max-width: 48ch;
+}
+
+.reference {
+  margin-top: 0.8em;
+  font-size: 0.52em;
+  opacity: 0.72;
+  letter-spacing: 0.04em;
+}
+
+/* Black, clear and logo cover the output without disturbing the slide behind
+   it, so coming back restores the exact slide (ST6.6). */
+.cover {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition, 200ms) ease-in-out;
+}
+
+.cover[data-blank="black"] {
+  background: #000;
+  opacity: 1;
+}
+
+.cover[data-blank="clear"],
+.cover[data-blank="logo"] {
+  background-color: var(--background-colour, #000);
+  background-image: var(--background, none);
+  opacity: 1;
+}

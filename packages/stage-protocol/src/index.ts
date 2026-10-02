@@ -154,9 +154,26 @@ export interface OutputView {
   live: boolean;
 }
 
+/**
+ * One slide, as a window paints it (STG-21).
+ *
+ * The control surface gets these so its live and next panes are the room's
+ * slide at a smaller size. An operator deciding whether to advance is deciding
+ * about what the room can see, and a first line in the window's own font
+ * answers a different question.
+ */
+export interface SlideView {
+  content: OutputContent;
+  theme: ThemeState;
+}
+
 /** Everything the control surface shows. Also what the remote will show. */
 export interface ControlState {
   revision: number;
+  /** What is on the screen now, cover and all. Null at the end of the deck. */
+  live: SlideView | null;
+  /** What the next keypress puts there. Shown without the cover. */
+  next: SlideView | null;
   service: { id: string; title: string; date: string; source: "set_list" | "plan" } | null;
   groups: GroupView[];
   cues: CueView[];
@@ -268,6 +285,10 @@ export type Intent =
   | { type: "toggleBlank"; blank: Blank }
   | { type: "reload" }
   | { type: "openEditor" }
+  /** First run, the three ways in (STG-149, ST1.2). */
+  | { type: "makeSlide" }
+  | { type: "openLibrary" }
+  | { type: "openSample" }
   | { type: "newPresentation" }
   | { type: "openItem"; itemId: string }
   | {
@@ -344,6 +365,9 @@ export function isIntent(value: unknown): value is Intent {
     case "reload":
     case "openEditor":
     case "newPresentation":
+    case "makeSlide":
+    case "openLibrary":
+    case "openSample":
       return true;
     case "presentNow":
       return typeof candidate.presentationId === "string" && candidate.presentationId.length > 0;

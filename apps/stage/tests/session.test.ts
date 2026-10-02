@@ -283,3 +283,94 @@ describe("what a compile problem says to the operator", () => {
     ]);
   });
 });
+
+describe("what the operator's panes are handed", () => {
+  const deck = compileDeck(sampleService, lookupFrom(sampleLibrary));
+
+  it("gives the live pane the whole slide, rather than a first line", () => {
+    const session = new Session(deck, sampleService);
+    session.apply({ type: "goTo", position: 1 });
+
+    const state = session.controlState([]);
+    const live = session.outputState("display:1");
+
+    // The same content object the room is painting from, so the two cannot say
+    // different things.
+    expect(state.live?.content).toEqual(live.content);
+    expect(state.live?.theme).toEqual(live.theme);
+  });
+
+  it("gives the next pane the slide one keypress away", () => {
+    const session = new Session(deck, sampleService);
+    session.apply({ type: "goTo", position: 1 });
+
+    const after = new Session(deck, sampleService);
+    after.apply({ type: "goTo", position: 2 });
+
+    expect(session.controlState([]).next?.content).toEqual(
+      after.outputState("display:1").content,
+    );
+  });
+
+  it("has no next at the end of the service", () => {
+    const session = new Session(deck, sampleService);
+    session.apply({ type: "goTo", position: deck.cues.length - 1 });
+    expect(session.controlState([]).next).toBeNull();
+  });
+
+  it("keeps the slide under a cover, so the operator sees what the room sees", () => {
+    const session = new Session(deck, sampleService);
+    session.apply({ type: "goTo", position: 1 });
+    const before = session.controlState([]).live?.content;
+
+    session.apply({ type: "setBlank", blank: "black" });
+    const after = session.controlState([]);
+
+    // The slide is still there and the cover is reported, which is how the pane
+    // can show black and come back to the exact slide (ST6.6).
+    expect(after.blank).toBe("black");
+    expect(after.live?.content).toEqual(before);
+  });
+});
+
+describe("before anything is open", () => {
+  const nothing: ServicePlan = {
+    id: "nothing",
+    source: "set_list",
+    title: "",
+    date: "",
+    startsAt: null,
+    items: [],
+  };
+
+  it("reports no service, which is what puts the three ways in on the screen", () => {
+    const session = new Session(compileDeck(nothing, lookupFrom([])), null);
+    const state = session.controlState([]);
+
+    expect(state.service).toBeNull();
+    expect(state.cues).toEqual([]);
+    expect(state.live).toBeNull();
+    expect(state.next).toBeNull();
+    expect(state.problems).toEqual([]);
+  });
+
+  it("puts nothing on the output, rather than something left over", () => {
+    const session = new Session(compileDeck(nothing, lookupFrom([])), null);
+    expect(session.outputState("display:1").content).toEqual({ kind: "nothing" });
+  });
+
+  it("ignores an advance, so a key pressed at nothing changes nothing", () => {
+    const session = new Session(compileDeck(nothing, lookupFrom([])), null);
+    expect(session.apply({ type: "advance" })).toBe(false);
+  });
+
+  it("opens a service when one is chosen, and reports it", () => {
+    const session = new Session(compileDeck(nothing, lookupFrom([])), null);
+    session.open(compileDeck(sampleService, lookupFrom(sampleLibrary)), sampleService);
+
+    const state = session.controlState([]);
+    expect(state.service?.title).toBe("Morning Service");
+    expect(state.cues.length).toBeGreaterThan(0);
+    expect(state.live).not.toBeNull();
+  });
+});

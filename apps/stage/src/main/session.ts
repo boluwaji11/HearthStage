@@ -20,6 +20,7 @@ import {
   type OutputContent,
   type OutputState,
   type OutputView,
+  type SlideView,
   type ThemeState,
 } from "@hearth/stage-protocol";
 import type { Cue, CueGroup, Deck, ServicePlan } from "@hearth/songs";
@@ -140,13 +141,24 @@ export class Session {
    * never needed and a slide is never rewritten to restyle it.
    */
   private liveTheme(): ThemeState {
-    const cue = this.deck.cues[this.position];
+    return this.themeAt(this.position);
+  }
+
+  private themeAt(position: number): ThemeState {
+    const cue = this.deck.cues[position];
     if (cue === undefined) return this.theme;
     const group: CueGroup | undefined = this.deck.groups.find(
       (candidate) => candidate.id === cue.groupId,
     );
     if (group?.themeId == null) return this.theme;
     return this.themes(group.themeId);
+  }
+
+  /** One cue, as the control surface paints it in its live and next panes. */
+  private slideView(position: number): SlideView | null {
+    const cue = this.deck.cues[position];
+    if (cue === undefined) return null;
+    return { content: contentOf(cue, this.deck), theme: this.themeAt(position) };
   }
 
   outputState(outputId: string): OutputState {
@@ -162,6 +174,8 @@ export class Session {
   controlState(outputs: OutputView[]): ControlState {
     return {
       revision: this.revision,
+      live: this.slideView(this.position),
+      next: this.slideView(this.position + 1),
       service:
         this.plan === null
           ? null

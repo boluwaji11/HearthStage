@@ -23,7 +23,19 @@
 
     <ul id="problems" class="problems" aria-label="Problems with this service"></ul>
 
-    <main>
+    <section id="start" class="start" aria-label="Start" hidden>
+      <div class="start-inner">
+        <h2>Hearth Stage</h2>
+        <p class="start-line">Put words on a screen.</p>
+        <div class="start-ways">
+          <button id="way-slide" type="button" class="way">Make a slide</button>
+          <button id="way-library" type="button" class="way">Open a song</button>
+          <button id="way-sample" type="button" class="way">Try a service</button>
+        </div>
+      </div>
+    </section>
+
+    <main id="running">
       <section class="deck" aria-label="Deck">
         <ol id="deck"></ol>
       </section>
@@ -31,12 +43,12 @@
       <section class="stage" aria-label="What is live">
         <div class="pane">
           <h2>Live</h2>
-          <div id="live" class="slide live"></div>
+          <div id="live" class="screen live"></div>
           <p id="live-meta" class="quiet"></p>
         </div>
         <div class="pane">
           <h2>Next</h2>
-          <div id="next" class="slide next"></div>
+          <div id="next" class="screen next"></div>
           <p id="next-meta" class="quiet"></p>
         </div>
         <div class="pane notes">

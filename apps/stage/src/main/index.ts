@@ -22,7 +22,7 @@ import {
   type OutputState,
   type OutputView,
 } from "@hearth/stage-protocol";
-import { compileDeck, lookupFrom, presentationPlan } from "@hearth/songs";
+import { compileDeck, lookupFrom, presentationPlan, type ServicePlan } from "@hearth/songs";
 import { sampleLibrary, sampleService } from "@hearth/songs/fixtures";
 import { openLibrary } from "@hearth/stage-store";
 import { Presentations } from "./presentations";
@@ -91,10 +91,25 @@ const presentations = new Presentations(store.library);
 // Compiled from the library on disk rather than from the fixtures, so what the
 // list shows and what the service presents are the same records.
 const songs = lookupFrom(store.library.all());
-const session = new Session(
-  compileDeck(sampleService, songs, { presentations: presentations.lookup() }),
-  sampleService,
-);
+
+/** A service with nothing in it, which is what the application starts on. */
+const NOTHING_OPEN: ServicePlan = {
+  id: "nothing",
+  source: "set_list",
+  title: "",
+  date: "",
+  startsAt: null,
+  items: [],
+};
+
+/**
+ * A service opens when somebody opens one (STG-149, ST1.2).
+ *
+ * Landing a new church in a demo service they did not build is a product
+ * explaining itself before it has been asked. The control surface shows the
+ * three ways in while no service is open, and the sample is one of them.
+ */
+const session = new Session(compileDeck(NOTHING_OPEN, songs), null);
 
 /** Which presentation is on the wall, where one is. */
 let presenting: string | null = null;
@@ -190,6 +205,23 @@ app.whenReady().then(() => {
     switch (payload.type) {
       case "openEditor":
         openEditor();
+        broadcast();
+        return;
+      case "makeSlide":
+        openEditor();
+        presentations.apply({ type: "newPresentation" });
+        broadcast();
+        return;
+      case "openLibrary":
+        openEditor();
+        broadcast();
+        return;
+      case "openSample":
+        session.open(
+          compileDeck(sampleService, songs, { presentations: presentations.lookup() }),
+          sampleService,
+        );
+        presenting = null;
         broadcast();
         return;
       case "presentNow":

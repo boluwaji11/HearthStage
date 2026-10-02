@@ -95,7 +95,7 @@ thing a person does with Stage and until now there was no way to do it. See
 | STG-146 | Hold a presentation's kind, so a song, a reading, plain slides and a media item are one list | ST2.16 | Resolved |
 | STG-147 | Duplicating a slide, moving one between presentations, and the per-slide note | ST2.16, ST2.19 | Resolved |
 | STG-148 | Apply a theme to a presentation, and change it without touching the content | ST8.1 | Resolved |
-| STG-149 | First run: one line saying what to do, and three ways in | ST1.2 | New |
+| STG-149 | First run: one line saying what to do, and three ways in | ST1.2 | Resolved |
 | STG-168 | Name the application properly, so its data lives in "Hearth Stage" rather than in a folder named after a package, and move an existing library across | ST19.5 | New |
 | STG-6 | Build the local library store: songs, sections, arrangements, durable and backed up on write | ST2.1, ST19.5 | Resolved |
 | STG-7 | Type a song in: title, the copyright fields, and lyrics as labelled sections | ST2.1, ST2.2 | New |
@@ -127,7 +127,7 @@ thing a person does with Stage and until now there was no way to do it. See
 
 | ID | Story | Req | State |
 |---|---|---|---|
-| STG-21 | Build the control surface: live slide, next slide, the deck, keyboard only | ST12.1, ST12.2 | New |
+| STG-21 | Build the control surface: live slide, next slide, the deck, keyboard only | ST12.1, ST12.2 | Resolved |
 | STG-22 | Make black, clear and logo each one keypress, restoring the exact slide | ST6.6 | New |
 | STG-23 | Make advance idempotent under key repeat | ST12.4 | New |
 | STG-24 | Reorder, skip and repeat a cue for this run, leaving the set list untouched | ST5.7 | New |
@@ -472,8 +472,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-7**, typing a song in, because the one list now shows songs and a song row opens read only. Then **STG-168**, which found itself: the application's data sits in a folder named `@hearth/stage`, after the package rather than after the product. Then STG-147 duplicating and per-slide notes, STG-148 themes, STG-149 first run, and the measurements STG-28 and STG-29. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-168**, the application's name and where it keeps a library, then **STG-7** to **STG-10**, the song side: typing a song in, pasted lyrics, arrangements, and the sample set offered rather than seeded. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1071,3 +1071,53 @@ behind the words, and that is the media library: **STG-151** and **STG-67**, in 
 gradients stand in for that rather than compete with it. Separate looks per content kind (ST8.3) and
 previewing at the real output resolution (ST8.4) are S0.3. Editing a theme inside Stage with a
 contrast check that refuses to save below 7:1 is ST8.6, in S1.0.
+
+---
+
+## STG-21 and STG-149, how to test them
+
+Two things, both about the first minute: what the operator is looking at, and what a church sees
+when they have nothing yet.
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+### The live and next panes are the room
+
+- Open a presentation from **Slides** and press **Present**.
+- The **Live** pane is now the slide itself: the theme's ground, the theme's font, every line, at
+  sixteen by nine. The **Next** pane is the slide one keypress away.
+- Change the **Look** in the editor. Both panes change with the output window.
+- Press **B**. The live pane goes black along with the room. Press **Esc** and the exact slide comes
+  back, in both.
+- Advance into the sermon marker. The pane says which item it is and that the screen is meant to be
+  empty, rather than showing an empty screen that reads as a fault.
+- A long slide shrinks in the pane the same way it shrinks on the wall, because the measurement is
+  the same code at a different size.
+
+The reason it was wrong is worth recording. The panes drew their own preview from the first line of
+a cue, in the control surface's own font, with no ground. The fix is one renderer and one stylesheet
+used by both windows: `src/output/slide.ts` and `src/output/slide.css`. Two implementations drift,
+and the first anybody hears of the drift is somebody saying the screen looked different from the
+preview.
+
+### The three ways in
+
+- Quit Stage and open it again. The control surface says **Hearth Stage**, **Put words on a screen**,
+  and three things to press.
+- **Make a slide** opens the editor with an empty presentation ready to type.
+- **Open a song** opens the editor on the library.
+- **Try a service** loads the sample service, and the deck, the panes and the keys all come alive.
+- Make something of your own and press Present. The ways in go, because a service is open.
+
+**The launch no longer opens a service.** Landing a new church in a demo service they did not build is
+a product explaining itself before it has been asked. The sample is one of the three ways in instead.
+
+**Nine new tests**: the panes are handed the same content and theme the output is handed, the next
+pane is the slide one keypress away, a cover leaves the slide underneath it intact, and a session
+with nothing open reports no service, puts nothing on the output and ignores an advance.
+
+**What ST1.2 still owes.** It asks for a first run that offers to import an existing library. The
+importers are STG-33 and after, in SF3, so the third way in is the sample service for now and the
+import takes its place when those land.

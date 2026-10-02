@@ -10,7 +10,9 @@
  * trackpad disconnected.
  */
 
-import type { Blank, ControlState, CueView, Intent } from "@hearth/stage-protocol";
+import type { Blank, ControlState, CueView, Intent, SlideView } from "@hearth/stage-protocol";
+import { FitCache } from "../output/fit";
+import { applyTheme, createRuler, renderSlide, sizeFor } from "../output/slide";
 
 const bridge = window.hearth;
 
@@ -27,6 +29,11 @@ const el = {
   keys: document.getElementById("keys") as HTMLElement,
   slides: document.getElementById("slides") as HTMLButtonElement,
   problems: document.getElementById("problems") as HTMLUListElement,
+  start: document.getElementById("start") as HTMLElement,
+  running: document.getElementById("running") as HTMLElement,
+  waySlide: document.getElementById("way-slide") as HTMLButtonElement,
+  wayLibrary: document.getElementById("way-library") as HTMLButtonElement,
+  waySample: document.getElementById("way-sample") as HTMLButtonElement,
 };
 
 /**
@@ -82,34 +89,65 @@ function send(intent: Intent): void {
   bridge?.send(intent);
 }
 
-function slideInto(target: HTMLElement, cue: CueView | null, state: ControlState): void {
+const fitCache = new FitCache();
+const ruler = createRuler();
+
+/**
+ * A pane painted as the room's slide, at the pane's size (STG-21).
+ *
+ * Same stylesheet, same renderer, same measured fit as the output window, and
+ * the box is 16 by 9 so the proportions are the screen's. An operator deciding
+ * whether to advance is deciding about what the room can see, and a first line
+ * set in this window's own font answers a different question.
+ */
+function paintPane(target: HTMLElement, view: SlideView | null, blank: Blank): void {
   target.replaceChildren();
-  if (cue === null) {
+
+  if (view === null) {
     target.dataset["empty"] = "end";
+    target.removeAttribute("style");
     return;
   }
   delete target.dataset["empty"];
 
-  if (cue.kind === "marker") {
-    const marker = document.createElement("p");
-    marker.className = "marker";
-    marker.textContent = groupTitle(state, cue.groupId);
-    target.append(marker);
-    const quiet = document.createElement("p");
-    quiet.className = "marker-quiet";
-    quiet.textContent = "Nothing on the screen";
-    target.append(quiet);
-    return;
-  }
+  applyTheme(target, view.theme);
 
-  // The preview is one line. The whole slide is what the output received, and
-  // the control surface shows the shape of it rather than reproducing it.
-  const lines = document.createElement("div");
-  lines.className = "slide-lines";
-  const first = document.createElement("p");
-  first.textContent = cue.preview ?? "";
-  lines.append(first);
-  target.append(lines);
+  const box = target.getBoundingClientRect();
+  const size = sizeFor(view.content, view.theme, { width: box.width, height: box.height }, fitCache, ruler);
+  if (size !== null) target.style.setProperty("--text-size", `${size}px`);
+
+  target.append(renderSlide(view.content));
+
+  // The cover goes on the live pane only. The next pane is what the keypress
+  // will put there, which is the slide rather than the black over it.
+  const cover = document.createElement("div");
+  cover.className = "cover";
+  cover.dataset["blank"] = blank;
+  target.append(cover);
+}
+
+/**
+ * What a marker puts in a pane.
+ *
+ * A marker puts nothing on the wall, so the pane would be an empty screen and
+ * an empty screen looks like a fault. The operator is told which item it is and
+ * that the screen is meant to be empty (ST5.4).
+ */
+function markerInto(target: HTMLElement, cue: CueView | null, state: ControlState): void {
+  if (cue === null || cue.kind !== "marker") return;
+
+  const marker = document.createElement("p");
+  marker.className = "marker";
+  marker.textContent = groupTitle(state, cue.groupId);
+
+  const quiet = document.createElement("p");
+  quiet.className = "marker-quiet";
+  quiet.textContent = "Nothing on the screen";
+
+  const over = document.createElement("div");
+  over.className = "pane-marker";
+  over.append(marker, quiet);
+  target.append(over);
 }
 
 function groupTitle(state: ControlState, groupId: string): string {
@@ -134,7 +172,14 @@ function metaFor(state: ControlState, cue: CueView | null): string {
 }
 
 function paint(state: ControlState): void {
-  el.service.textContent = state.service?.title ?? "No service open";
+  // Nothing open means a church that has not started yet, or one between
+  // services. Either way the three ways in belong on the screen rather than an
+  // empty deck (STG-149, ST1.2).
+  const open = state.service !== null;
+  el.start.hidden = open;
+  el.running.hidden = !open;
+
+  el.service.textContent = state.service?.title ?? "Nothing open";
   el.serviceDetail.textContent =
     state.service === null
       ? ""
@@ -179,8 +224,10 @@ function paint(state: ControlState): void {
 
   const live = state.cues[state.position] ?? null;
   const next = state.cues[state.position + 1] ?? null;
-  slideInto(el.live, live, state);
-  slideInto(el.next, next, state);
+  paintPane(el.live, state.live, state.blank);
+  paintPane(el.next, state.next, "none");
+  markerInto(el.live, live, state);
+  markerInto(el.next, next, state);
   el.liveMeta.textContent = metaFor(state, live);
   el.nextMeta.textContent = metaFor(state, next);
 
@@ -365,6 +412,9 @@ brief();
 // The one thing on this surface that is not an advance. It opens a window and
 // changes nothing on the wall, so it is safe to have in reach (ST12.3).
 el.slides.addEventListener("click", () => send({ type: "openEditor" }));
+el.waySlide.addEventListener("click", () => send({ type: "makeSlide" }));
+el.wayLibrary.addEventListener("click", () => send({ type: "openLibrary" }));
+el.waySample.addEventListener("click", () => send({ type: "openSample" }));
 window.addEventListener("keydown", onKey);
 
 if (bridge !== undefined) {
