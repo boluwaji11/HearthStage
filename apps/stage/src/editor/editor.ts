@@ -59,7 +59,7 @@ const el = {
   libraryView: document.getElementById("library-view") as HTMLElement,
   editView: document.getElementById("edit-view") as HTMLElement,
   tiles: document.getElementById("tiles") as HTMLOListElement,
-  libraryEmpty: document.getElementById("library-empty") as HTMLElement,
+  libraryEmpty: document.getElementById("library-empty") as HTMLParagraphElement,
   addSamples: document.getElementById("add-samples") as HTMLButtonElement,
   search: document.getElementById("search") as HTMLInputElement,
   back: document.getElementById("back") as HTMLButtonElement,
@@ -949,19 +949,15 @@ function renderLibrary(): void {
   el.tiles.replaceChildren();
   for (const row of shown) el.tiles.append(tileFor(row, themes));
 
-  const words = el.libraryEmpty.querySelector("p");
-  if (words !== null) {
-    words.textContent = rows.length === 0 ? "Nothing saved yet" : "Nothing matches that";
-  }
+  el.libraryEmpty.hidden = shown.length > 0;
+  el.libraryEmpty.textContent = rows.length === 0 ? "Nothing saved yet" : "Nothing matches that";
 
-  // The hymns Stage carries, offered where a church feels the absence of them
-  // (STG-10, ST1.2). Nothing is written until this is pressed. A church with a
-  // sheet of notices and no songs still has nothing to sing from, so it is the
-  // absence of songs that brings the offer rather than an empty library.
+  // The hymns Stage carries (STG-10, ST1.2). It sits beside New, because a
+  // church looking for something to sing is in this window, and it stays there
+  // until somebody presses it. Nothing is written before that.
   const samples = latest?.samples ?? 0;
-  el.addSamples.hidden = samples === 0 || rows.some((row) => row.kind === "song");
+  el.addSamples.hidden = samples === 0;
   el.addSamples.textContent = `Add ${samples} hymns`;
-  el.libraryEmpty.hidden = shown.length > 0 && el.addSamples.hidden;
 }
 
 function tileFor(row: LibraryItem, themes: ThemeChoice[]): HTMLLIElement {
