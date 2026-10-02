@@ -408,8 +408,7 @@ main {
   background: var(--stone-950);
 }
 
-.screen[data-empty]::after {
-  content: "End of the service";
+.screen-empty {
   color: var(--quiet);
   font-size: 0.8125rem;
 }

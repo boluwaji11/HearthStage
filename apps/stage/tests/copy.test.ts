@@ -148,6 +148,31 @@ describe("copy in a window", () => {
    * checks `t("...")`. Without this, a renamed key is a blank button that
    * nothing reports.
    */
+  /**
+   * A `content` rule puts words on a screen as surely as `textContent` does,
+   * and a translator reading the catalogue would never find them.
+   */
+  it("is never written into a stylesheet", () => {
+    const offences: Offence[] = [];
+
+    for (const area of WINDOWS) {
+      for (const file of filesUnder(join(root, area), /\.css$/)) {
+        const source = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+        for (const match of source.matchAll(/\bcontent:\s*(["'])((?:[^"'\\]|\\.)*)\1/g)) {
+          const copy = match[2] ?? "";
+          if (!/[A-Za-z]{2}/.test(copy)) continue;
+          offences.push({
+            where: relative(root, file),
+            line: source.slice(0, match.index).split("\n").length,
+            copy,
+          });
+        }
+      }
+    }
+
+    expect(offences).toEqual([]);
+  });
+
   it("names a key the catalogue has, everywhere in the markup", () => {
     const missing: { where: string; key: string }[] = [];
 

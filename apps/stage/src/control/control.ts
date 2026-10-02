@@ -121,6 +121,12 @@ function paintPane(target: HTMLElement, view: SlideView | null, blank: Blank): v
   if (view === null) {
     target.dataset["empty"] = "end";
     target.removeAttribute("style");
+    // Said here rather than in the stylesheet. Copy in a `content` rule is copy
+    // a translator cannot reach (STG-13).
+    const end = document.createElement("p");
+    end.className = "screen-empty";
+    end.textContent = t("control.endOfService");
+    target.append(end);
     return;
   }
   delete target.dataset["empty"];
@@ -129,7 +135,15 @@ function paintPane(target: HTMLElement, view: SlideView | null, blank: Blank): v
 
   const box = target.getBoundingClientRect();
   const size = sizeFor(view.content, view.theme, { width: box.width, height: box.height }, fitCache, ruler);
-  if (size !== null) target.style.setProperty("--text-size", `${size}px`);
+  // Always in pixels, and always worked out from the pane rather than from this
+  // window. A theme's own size is a fraction of the output's height, which the
+  // output window turns into `vh`. In here `vh` is the control window and a
+  // percentage is the parent's font size, so a cue nothing measures, a reading
+  // or a marker, came out at a fraction of a pixel.
+  target.style.setProperty(
+    "--text-size",
+    `${size ?? view.theme.textSize * box.height}px`,
+  );
 
   target.append(renderSlide(view.content));
 
