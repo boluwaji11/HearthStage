@@ -195,7 +195,15 @@ export class Session {
       outputs,
       problems: this.deck.problems.map((problem) => ({
         code: problem.code,
-        detail: "title" in problem ? problem.title : "",
+        // What the item is called, which is the only part of a compile problem
+        // an operator can act on. A scripture item that failed has a reference
+        // rather than a title.
+        detail:
+          "title" in problem
+            ? problem.title
+            : "reference" in problem
+              ? problem.reference
+              : "",
       })),
     };
   }

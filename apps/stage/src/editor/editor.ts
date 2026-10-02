@@ -194,9 +194,7 @@ function renderSlides(focus?: number): void {
     const labelFor = document.createElement("label");
     labelFor.className = "card-label-name";
     labelFor.htmlFor = `label-${index}`;
-    // The field says where it shows up, because that is the only thing anybody
-    // needs to know about it.
-    labelFor.textContent = "For the operator";
+    labelFor.textContent = "Slide title";
     head.append(labelFor);
 
     const label = document.createElement("input");

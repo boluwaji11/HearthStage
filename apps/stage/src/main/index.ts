@@ -66,17 +66,22 @@ const store = openLibrary(join(app.getPath("userData"), "library.db"), {
 });
 
 /**
- * A library that has never been opened gets the bundled hymns (STG-146).
+ * The bundled hymns, for a library that does not have them (STG-146).
  *
- * Only when there is nothing at all in it, which is a church starting cold.
- * They are public domain, they are archivable like anything else, and without
- * them the one list has one kind of thing in it and the list is a claim rather
- * than a screen. Offering the fuller sample set on first run is STG-10.
+ * Checked one song at a time rather than by asking whether the library is
+ * empty. A church that has typed a set of slides and no songs has a library
+ * that is not empty and still has nothing to present from, which is how the
+ * sample service came up with three missing songs during testing.
+ *
+ * An archived song still exists, so a church that puts one away keeps it away.
+ * They are public domain. Offering the fuller sample set with a choice on first
+ * run is STG-10, and this goes when that arrives.
  */
 function seed(): void {
-  if (store.library.count({ includeArchived: true }) > 0) return;
-  if (store.library.countPresentations({ includeArchived: true }) > 0) return;
-  for (const whole of sampleLibrary) store.library.save(whole);
+  for (const whole of sampleLibrary) {
+    if (store.library.get(whole.song.id) !== null) continue;
+    store.library.save(whole);
+  }
 }
 
 seed();

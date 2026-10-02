@@ -26,7 +26,42 @@ const el = {
   notes: document.getElementById("notes") as HTMLUListElement,
   keys: document.getElementById("keys") as HTMLElement,
   slides: document.getElementById("slides") as HTMLButtonElement,
+  problems: document.getElementById("problems") as HTMLUListElement,
 };
+
+/**
+ * What a compile problem says to the person running the service (ST5.2).
+ *
+ * A code is for a log. The operator is sixteen and the service starts in two
+ * minutes, so each one says which item and what is wrong with it. Written here
+ * rather than in `packages/i18n` because this window is plain DOM, and wiring
+ * the typed catalogue in is part of the render stories.
+ */
+function problemSays(code: string, item: string): string {
+  const named = item === "" ? "An item" : `"${item}"`;
+  switch (code) {
+    case "item.song.missing":
+      return `${named} is not in the library`;
+    case "item.presentation.missing":
+      return `${named} is not in the library`;
+    case "item.song.noSlides":
+      return `${named} has no words to put on the screen`;
+    case "item.presentation.noSlides":
+      return `${named} has no slides yet`;
+    case "item.scripture.empty":
+      return `${named} has no text`;
+    case "arrangement.none":
+      return `${named} has no arrangement`;
+    case "arrangement.unknown":
+      return `${named} asks for an arrangement that is not there`;
+    case "sequence.empty":
+      return `${named} has an arrangement with no order in it`;
+    case "sequence.unknownLabel":
+      return `${named} has an order naming a section it does not have`;
+    default:
+      return `${named} has a problem (${code})`;
+  }
+}
 
 /**
  * The operator brief, on the screen rather than in a manual (ST12.10).
@@ -132,8 +167,14 @@ function paint(state: ControlState): void {
     const chip = document.createElement("span");
     chip.className = "chip problem";
     chip.textContent = `${state.problems.length} problem${state.problems.length === 1 ? "" : "s"}`;
-    chip.title = state.problems.map((problem) => `${problem.code} ${problem.detail}`).join("\n");
     el.status.append(chip);
+  }
+
+  el.problems.replaceChildren();
+  for (const problem of state.problems) {
+    const item = document.createElement("li");
+    item.textContent = problemSays(problem.code, problem.detail);
+    el.problems.append(item);
   }
 
   const live = state.cues[state.position] ?? null;

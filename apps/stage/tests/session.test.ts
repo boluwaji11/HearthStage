@@ -6,7 +6,7 @@
  * of it.
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import { compileDeck, lookupFrom, type Deck } from "@hearth/songs";
+import { compileDeck, lookupFrom, type Deck, type ServicePlan } from "@hearth/songs";
 import { sampleLibrary, sampleService } from "@hearth/songs/fixtures";
 import { Session, contentOf, DEFAULT_THEME } from "../src/main/session";
 
@@ -223,5 +223,63 @@ describe("an empty deck", () => {
 describe("contentOf", () => {
   it("turns nothing into nothing", () => {
     expect(contentOf(null)).toEqual({ kind: "nothing" });
+  });
+});
+
+describe("what a compile problem says to the operator", () => {
+  it("names the item on a scripture passage with no text, which has no title", () => {
+    const plan: ServicePlan = {
+      id: "plan-1",
+      source: "set_list",
+      title: "Morning Service",
+      date: "2026-10-04",
+      startsAt: null,
+      items: [
+        {
+          type: "scripture",
+          id: "item-reading",
+          sortOrder: 0,
+          title: "Psalm 23",
+          durationSeconds: null,
+          notes: [],
+          reference: "Psalm 23:1-6",
+          translation: "KJV",
+          verses: [],
+        },
+      ],
+    };
+
+    const session = new Session(compileDeck(plan, lookupFrom([])), plan);
+    expect(session.controlState([]).problems).toEqual([
+      { code: "item.scripture.empty", detail: "Psalm 23:1-6" },
+    ]);
+  });
+
+  it("names the song a service asks for and the library does not have", () => {
+    const plan: ServicePlan = {
+      id: "plan-2",
+      source: "set_list",
+      title: "Morning Service",
+      date: "2026-10-04",
+      startsAt: null,
+      items: [
+        {
+          type: "song",
+          id: "item-song",
+          sortOrder: 0,
+          title: "Holy, Holy, Holy",
+          durationSeconds: null,
+          notes: [],
+          songId: "song-holy",
+          arrangementId: null,
+          keyOverride: null,
+        },
+      ],
+    };
+
+    const session = new Session(compileDeck(plan, lookupFrom([])), plan);
+    expect(session.controlState([]).problems).toEqual([
+      { code: "item.song.missing", detail: "Holy, Holy, Holy" },
+    ]);
   });
 });

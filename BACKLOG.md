@@ -96,6 +96,7 @@ thing a person does with Stage and until now there was no way to do it. See
 | STG-147 | Duplicating a slide, moving one between presentations, and the per-slide note | ST2.16, ST2.19 | New |
 | STG-148 | Apply a theme to a presentation, and change it without touching the content | ST8.1 | New |
 | STG-149 | First run: one line saying what to do, and three ways in | ST1.2 | New |
+| STG-168 | Name the application properly, so its data lives in "Hearth Stage" rather than in a folder named after a package, and move an existing library across | ST19.5 | New |
 | STG-6 | Build the local library store: songs, sections, arrangements, durable and backed up on write | ST2.1, ST19.5 | Resolved |
 | STG-7 | Type a song in: title, the copyright fields, and lyrics as labelled sections | ST2.1, ST2.2 | New |
 | STG-8 | Offer a section split when a plain lyric block is pasted, confirmed by the operator | ST2.2 | New |
@@ -472,7 +473,7 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 |---|---|
 | **Active** | Nothing |
 | **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-7**, typing a song in, because the one list now shows songs and a song row opens read only. Then STG-147 duplicating and per-slide notes, STG-148 themes, STG-149 first run, and the measurements STG-28 and STG-29. |
+| **Next** | **STG-7**, typing a song in, because the one list now shows songs and a song row opens read only. Then **STG-168**, which found itself: the application's data sits in a folder named `@hearth/stage`, after the package rather than after the product. Then STG-147 duplicating and per-slide notes, STG-148 themes, STG-149 first run, and the measurements STG-28 and STG-29. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -855,7 +856,8 @@ In the window:
   one without reaching for the mouse.
 - Each box has **Up**, **Down** and **Remove**. Removing one offers **Undo** in the footer.
 - Backspace in an empty box takes the box away.
-- The **Label** on a box, something like `Point 2`, shows to the operator and never reaches the wall.
+- **Slide title** on a box, something like `Point 2`, shows in the deck list during the service and
+  stays off the wall.
 - There is no save button. The footer says `3 slides · saved`. Close the window mid sentence, reopen
   it, and the words are there.
 - Press **Present**. The output window shows slide one. Back on the control surface, **space**
@@ -924,8 +926,8 @@ They are public domain. Offering the fuller sample set with a choice is still ST
 - **Up**, **down** and **remove** are icons now, each carrying its name for a screen reader and a
   tooltip for everyone else. Up and down stay because WCAG 2.2 requires a way round dragging for
   anybody who cannot drag.
-- The label field now says **For the operator**, which is the only thing anybody needs to know about
-  it: it shows in the deck list during the service and never reaches the wall.
+- The label field is now **Slide title**. It shows in the deck list during the service, so the
+  operator can find "Point 2" mid sermon, and it stays off the wall.
 
 **Eleven new tests.** What they defend:
 
@@ -937,3 +939,23 @@ They are public domain. Offering the fuller sample set with a choice is still ST
    boundary rather than written, because writing it would put a song and a presentation in the
    library under one id. This was a real defect the test found.
 5. **Opening a presentation after a song replaces the boxes**, which is the serial doing its job.
+
+---
+
+## What testing found, 1 October 2026
+
+Two defects, both from the same session, both fixed in the commit that names this section.
+
+**Three problems on the control surface.** The sample service wanted the two bundled hymns and the
+library did not have them, so every song item failed to compile. The seed from STG-146 only ran on a
+library with nothing at all in it, and a church that had typed a set of slides first had a library
+that was not empty and still had no songs. It now checks one song at a time, so a library missing a
+bundled hymn gets it and an archived one stays away.
+
+**A compile problem read like a log line.** `item.song.missing Holy, Holy, Holy` was in a tooltip on
+a chip. Two things wrong with that: it is a code rather than a sentence, and it was reachable only by
+pointing at something. Problems now read as sentences (`"Holy, Holy, Holy" is not in the library`) in
+a strip under the header, visible from the moment the service is opened, which is the whole point of
+finding them at compile time (ST5.2).
+
+**One piece of copy.** The slide label field said "For the operator". It is now **Slide title**.
