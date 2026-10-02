@@ -186,6 +186,21 @@ export interface SlideDraft {
 }
 
 /**
+ * One look a presentation can be given (STG-148, ST8.1).
+ *
+ * The picker needs a name and enough colour to draw a swatch. The whole theme
+ * goes to the output in `OutputState`, so this carries no more than the choice
+ * needs.
+ */
+export interface ThemeChoice {
+  id: string;
+  name: string;
+  background: string;
+  colour: string;
+  fontFamily: string;
+}
+
+/**
  * Everything the slide editor shows.
  *
  * The same shape as the control surface: state down, and the window is a
@@ -196,6 +211,8 @@ export interface SlideDraft {
 export interface EditorState {
   revision: number;
   library: LibraryItem[];
+  /** The looks on offer. Built in for now, synced from Hearth with ST8.5. */
+  themes: ThemeChoice[];
   /** What is open in the editor. Null before anything is chosen. */
   editing: {
     /** Null until the first save, which is when the library gets a row. */
@@ -211,6 +228,8 @@ export interface EditorState {
     serial: number;
     title: string;
     slides: SlideDraft[];
+    /** Null takes the service's theme (ST8.1). */
+    themeId: string | null;
     readOnly: boolean;
   } | null;
   /** What is wrong with the last save attempt, by code (STG-145). */
@@ -237,6 +256,8 @@ export type Intent =
       title: string;
       /** Every slide, in order. An empty box is dropped rather than stored. */
       slides: SlideDraft[];
+      /** The look. Null takes the service's theme, and absent leaves it alone. */
+      themeId?: string | null;
     }
   | { type: "presentNow"; presentationId: string };
 
@@ -293,6 +314,7 @@ export function isIntent(value: unknown): value is Intent {
     itemId?: unknown;
     title?: unknown;
     slides?: unknown;
+    themeId?: unknown;
   };
 
   switch (candidate.type) {
@@ -311,7 +333,10 @@ export function isIntent(value: unknown): value is Intent {
         (candidate.presentationId === null ||
           (typeof candidate.presentationId === "string" && candidate.presentationId.length > 0)) &&
         typeof candidate.title === "string" &&
-        isSlideDrafts(candidate.slides)
+        isSlideDrafts(candidate.slides) &&
+        (candidate.themeId === undefined ||
+          candidate.themeId === null ||
+          typeof candidate.themeId === "string")
       );
     case "goTo":
       return Number.isInteger(candidate.position) && (candidate.position as number) >= 0;

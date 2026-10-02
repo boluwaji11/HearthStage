@@ -22,7 +22,14 @@ import {
   type WholeSong,
 } from "@hearth/songs";
 import type { LibraryItem as StoredItem } from "@hearth/stage-store";
-import type { EditorState, Intent, LibraryItem, SlideDraft } from "@hearth/stage-protocol";
+import type {
+  EditorState,
+  Intent,
+  LibraryItem,
+  SlideDraft,
+  ThemeChoice,
+} from "@hearth/stage-protocol";
+import { BUILT_IN_THEMES, hasTheme } from "./themes";
 
 /** What this needs from the library. `Library` from the store satisfies it. */
 export interface PresentationLibrary {
@@ -103,7 +110,7 @@ export class Presentations {
       }
 
       case "savePresentation":
-        return this.save(intent.presentationId, intent.title, intent.slides);
+        return this.save(intent.presentationId, intent.title, intent.slides, intent.themeId);
 
       default:
         return false;
@@ -119,7 +126,12 @@ export class Presentations {
    * the state rather than as an exception, so a person who left the title empty
    * sees the reason beside the field instead of losing what they typed.
    */
-  private save(presentationId: string | null, title: string, slides: SlideDraft[]): boolean {
+  private save(
+    presentationId: string | null,
+    title: string,
+    slides: SlideDraft[],
+    themeId?: string | null,
+  ): boolean {
     // Null means create. The window sends the open presentation's id when there
     // is one, so "save" and "save a copy" cannot be confused here.
     const id = presentationId ?? this.nextId();
@@ -131,11 +143,21 @@ export class Presentations {
 
     const existing = this.library.getPresentation(id);
 
+    // A theme this build does not have is refused rather than stored, so a
+    // window with a stale list cannot write an id nothing can resolve.
+    const look =
+      themeId === undefined
+        ? (existing?.themeId ?? null)
+        : themeId === null || hasTheme(themeId)
+          ? themeId
+          : (existing?.themeId ?? null);
+
     const presentation: Presentation = {
       ...(existing ?? newPresentation(id)),
       id,
       title: title.trim(),
       slides: slidesFrom(id, slides),
+      themeId: look,
     };
 
     const found = validatePresentation(presentation);
@@ -163,6 +185,15 @@ export class Presentations {
   state(presentingId: string | null = null): EditorState {
     return {
       revision: this.revision,
+      themes: BUILT_IN_THEMES.map(
+        (entry): ThemeChoice => ({
+          id: entry.theme.id,
+          name: entry.name,
+          background: entry.theme.background,
+          colour: entry.theme.colour,
+          fontFamily: entry.theme.fontFamily,
+        }),
+      ),
       library: this.library.items().map(
         (row): LibraryItem => ({
           id: row.id,
@@ -196,6 +227,7 @@ export class Presentations {
           serial: this.serial,
           title: presentation.title,
           slides: slideInputs(presentation),
+          themeId: presentation.themeId,
           // A synced presentation belongs to the platform, so the laptop shows
           // it and does not write it.
           readOnly: presentation.origin !== "local",
@@ -212,6 +244,7 @@ export class Presentations {
           slides: [...song.sections]
             .sort((left, right) => left.sortOrder - right.sortOrder)
             .map((section) => ({ label: section.label, body: section.lines.join("\n") })),
+          themeId: null,
           readOnly: true,
         };
       }
@@ -224,6 +257,7 @@ export class Presentations {
         serial: this.serial,
         title: "",
         slides: [],
+        themeId: null,
         readOnly: false,
       };
     }

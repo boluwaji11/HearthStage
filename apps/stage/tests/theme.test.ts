@@ -10,12 +10,62 @@
  */
 import { describe, it, expect } from "vitest";
 import { contrast } from "@hearth/colour";
-import { DEFAULT_THEME } from "../src/main/session";
+import { BUILT_IN_THEMES, DEFAULT_THEME, themeFor, hasTheme } from "../src/main/themes";
 
 /** `contrast` parses its own arguments, so colours go in as written. */
 function ratio(a: string, b: string): number {
   return contrast(a, b) as number;
 }
+
+describe.each(BUILT_IN_THEMES)("the $name theme", ({ theme }) => {
+  it("clears 7:1 against its own background", () => {
+    // The station floor from docs/design-system.md, which is the right bar for
+    // an output: a sign read from the back of a dark room.
+    expect(ratio(theme.colour, theme.background)).toBeGreaterThanOrEqual(7);
+  });
+
+  it("has cap height at or above 4% of output height", () => {
+    expect(theme.textSize).toBeGreaterThanOrEqual(0.04);
+  });
+
+  it("has body weight at or above 400", () => {
+    expect(theme.fontWeight).toBeGreaterThanOrEqual(400);
+  });
+
+  it("keeps a safe area, because projectors clip edges", () => {
+    expect(theme.safeArea).toBeGreaterThan(0);
+    expect(theme.safeArea).toBeLessThan(0.2);
+  });
+
+  it("dissolves rather than cuts, and quickly enough to feel immediate", () => {
+    expect(theme.transitionMs).toBeGreaterThan(0);
+    expect(theme.transitionMs).toBeLessThanOrEqual(400);
+  });
+
+  it("has an id nothing else has", () => {
+    expect(BUILT_IN_THEMES.filter((other) => other.theme.id === theme.id)).toHaveLength(1);
+  });
+});
+
+describe("choosing a theme by id", () => {
+  it("finds every built-in one", () => {
+    for (const entry of BUILT_IN_THEMES) {
+      expect(themeFor(entry.theme.id)).toBe(entry.theme);
+      expect(hasTheme(entry.theme.id)).toBe(true);
+    }
+  });
+
+  it("falls back to the default for an id this build does not have", () => {
+    // A library outlives a release, so a presentation can name a theme that is
+    // gone. Wrong font beats blank screen.
+    expect(themeFor("from-a-later-version")).toBe(DEFAULT_THEME);
+    expect(hasTheme("from-a-later-version")).toBe(false);
+  });
+
+  it("falls back to the default for nothing at all", () => {
+    expect(themeFor(null)).toBe(DEFAULT_THEME);
+  });
+});
 
 describe("the built-in theme", () => {
   it("clears 7:1 against its own background", () => {

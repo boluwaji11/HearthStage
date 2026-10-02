@@ -21,7 +21,13 @@
  */
 
 import { parseSlides } from "@hearth/songs";
-import type { EditorState, Intent, LibraryKind, SlideDraft } from "@hearth/stage-protocol";
+import type {
+  EditorState,
+  Intent,
+  LibraryKind,
+  SlideDraft,
+  ThemeChoice,
+} from "@hearth/stage-protocol";
 import { icon } from "./icons";
 
 const bridge = window.hearth;
@@ -31,6 +37,7 @@ const el = {
   libraryEmpty: document.getElementById("library-empty") as HTMLParagraphElement,
   search: document.getElementById("search") as HTMLInputElement,
   title: document.getElementById("title") as HTMLInputElement,
+  theme: document.getElementById("theme") as HTMLSelectElement,
   slides: document.getElementById("slides") as HTMLOListElement,
   add: document.getElementById("add") as HTMLButtonElement,
   paste: document.getElementById("paste") as HTMLButtonElement,
@@ -49,6 +56,7 @@ interface Draft {
   kind: LibraryKind;
   title: string;
   slides: SlideDraft[];
+  themeId: string | null;
   readOnly: boolean;
 }
 
@@ -120,6 +128,7 @@ function commit(): void {
     presentationId: draft.id,
     title: draft.title,
     slides: draft.slides,
+    themeId: draft.themeId,
   });
 }
 
@@ -492,6 +501,46 @@ function paintStatus(): void {
   el.undoneWhat.textContent = removed === null ? "" : `${removed.what} removed`;
 }
 
+/**
+ * The looks on offer (STG-148, ST8.1).
+ *
+ * The list comes down with the state, so the window never holds a copy of the
+ * themes and a theme added in main turns up here without a change to this file.
+ * Changing it writes one field, which is the whole point of the story: the look
+ * and the words are different things, and restyling cannot touch a slide.
+ */
+function renderThemes(): void {
+  const themes: ThemeChoice[] = latest?.themes ?? [];
+  const chosen = draft?.themeId ?? "";
+
+  if (el.theme.dataset["built"] !== String(themes.length)) {
+    el.theme.replaceChildren();
+    const service = document.createElement("option");
+    service.value = "";
+    service.textContent = "The service's look";
+    el.theme.append(service);
+    for (const theme of themes) {
+      const option = document.createElement("option");
+      option.value = theme.id;
+      option.textContent = theme.name;
+      el.theme.append(option);
+    }
+    el.theme.dataset["built"] = String(themes.length);
+  }
+
+  el.theme.value = chosen;
+  el.theme.disabled = draft === null || draft.readOnly;
+
+  // The cards are painted in the look they will be presented in, so the choice
+  // is a thing somebody sees rather than a word they have to imagine.
+  const live = themes.find((theme) => theme.id === draft?.themeId);
+  const root = document.documentElement;
+  root.style.setProperty("--slide-background", live?.background ?? "");
+  root.style.setProperty("--slide-colour", live?.colour ?? "");
+  root.style.setProperty("--slide-font", live?.fontFamily ?? "");
+  document.body.dataset["themed"] = live === undefined ? "false" : "true";
+}
+
 /** What each kind is called in the list (STG-146). */
 const KINDS: Record<LibraryKind, string> = {
   song: "Song",
@@ -594,9 +643,11 @@ function paint(next: EditorState): void {
       kind: next.editing.kind,
       title: next.editing.title,
       slides: next.editing.slides.map((slide) => ({ ...slide })),
+      themeId: next.editing.themeId,
       readOnly: next.editing.readOnly,
     };
     removed = null;
+    noteOpen.clear();
     el.title.value = draft.title;
     renderSlides();
   } else {
@@ -607,6 +658,7 @@ function paint(next: EditorState): void {
     draft.readOnly = next.editing.readOnly;
   }
 
+  renderThemes();
   renderLibrary();
 
   el.problems.replaceChildren();
@@ -638,6 +690,12 @@ el.title.addEventListener("keydown", (event) => {
   else first.focus();
 });
 
+el.theme.addEventListener("change", () => {
+  if (draft === null) return;
+  draft.themeId = el.theme.value === "" ? null : el.theme.value;
+  renderThemes();
+  commit();
+});
 el.search.addEventListener("input", renderLibrary);
 el.add.addEventListener("click", () => addSlide());
 el.paste.addEventListener("click", pasteSlide);

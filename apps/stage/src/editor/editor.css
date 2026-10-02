@@ -246,6 +246,26 @@ ol {
   gap: var(--space-1);
 }
 
+.field.grow {
+  flex: 1;
+}
+
+.heading {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+select {
+  font: inherit;
+  color: var(--text);
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  min-width: 11rem;
+}
+
 label {
   color: var(--quiet);
   font-size: 0.75rem;
@@ -368,6 +388,18 @@ textarea:read-only {
   line-height: 1.45;
   font-size: 0.9375rem;
   min-height: 3.5rem;
+}
+
+/*
+ * The slide boxes wear the look they will be presented in, so a theme is
+ * something a person sees rather than a word they have to imagine (ST8.4 does
+ * this properly, at the real output resolution).
+ */
+body[data-themed="true"] .card-body {
+  background: var(--slide-background);
+  color: var(--slide-colour);
+  font-family: var(--slide-font);
+  border-color: transparent;
 }
 
 .card-note-field {

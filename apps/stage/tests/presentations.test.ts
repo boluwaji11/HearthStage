@@ -14,6 +14,7 @@ import { amazingGrace } from "@hearth/songs/fixtures";
 import { openLibrary, type OpenLibrary } from "@hearth/stage-store";
 import { Presentations } from "../src/main/presentations";
 import { Session } from "../src/main/session";
+import { DEFAULT_THEME } from "../src/main/themes";
 
 /** What somebody types, one box per slide. */
 const NOTICES = [
@@ -55,6 +56,7 @@ describe("the first ten minutes", () => {
       serial: state.editing?.serial,
       title: "",
       slides: [],
+      themeId: null,
       readOnly: false,
     });
   });
@@ -425,5 +427,101 @@ describe("a note on a slide", () => {
 
     expect(deck.cues).toHaveLength(2);
     expect(deck.cues.map((cue) => cue.note)).toEqual(["Read it slowly", "Read it slowly"]);
+  });
+});
+
+describe("the look, and the words", () => {
+  beforeEach(() => {
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: null,
+      title: "Notices",
+      slides: NOTICES,
+    });
+  });
+
+  it("starts on the service's look", () => {
+    expect(presentations.state().editing?.themeId).toBeNull();
+  });
+
+  it("offers every built-in look, with a name and a swatch", () => {
+    const themes = presentations.state().themes;
+    expect(themes.length).toBeGreaterThan(1);
+    expect(themes.map((theme) => theme.name)).toContain("Daylight");
+    expect(themes.every((theme) => theme.background !== "" && theme.colour !== "")).toBe(true);
+  });
+
+  it("changes the look without touching a word", () => {
+    const before = JSON.stringify(presentations.lookup()("pres_1")?.slides);
+
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: "pres_1",
+      title: "Notices",
+      slides: NOTICES,
+      themeId: "hearth-daylight",
+    });
+
+    expect(presentations.state().editing?.themeId).toBe("hearth-daylight");
+    expect(JSON.stringify(presentations.lookup()("pres_1")?.slides)).toBe(before);
+  });
+
+  it("refuses a look this build does not have, and keeps the one it had", () => {
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: "pres_1",
+      title: "Notices",
+      slides: NOTICES,
+      themeId: "hearth-daylight",
+    });
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: "pres_1",
+      title: "Notices",
+      slides: NOTICES,
+      themeId: "from-a-later-version",
+    });
+    expect(presentations.lookup()("pres_1")?.themeId).toBe("hearth-daylight");
+  });
+
+  it("leaves the look alone on a save that does not mention it", () => {
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: "pres_1",
+      title: "Notices",
+      slides: NOTICES,
+      themeId: "hearth-strong",
+    });
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: "pres_1",
+      title: "Notices",
+      slides: NOTICES,
+    });
+    expect(presentations.lookup()("pres_1")?.themeId).toBe("hearth-strong");
+  });
+
+  it("paints the output in the look the presentation asks for", () => {
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: "pres_1",
+      title: "Notices",
+      slides: NOTICES,
+      themeId: "hearth-strong",
+    });
+
+    const lookup = presentations.lookup();
+    const plan = presentationPlan(lookup("pres_1")!);
+    const session = new Session(compileDeck(plan, lookupFrom([]), { presentations: lookup }), plan);
+
+    expect(session.outputState("display:1").theme.id).toBe("hearth-strong");
+  });
+
+  it("takes the service's look when it asks for none", () => {
+    const lookup = presentations.lookup();
+    const plan = presentationPlan(lookup("pres_1")!);
+    const session = new Session(compileDeck(plan, lookupFrom([]), { presentations: lookup }), plan);
+
+    expect(session.outputState("display:1").theme.id).toBe(DEFAULT_THEME.id);
   });
 });

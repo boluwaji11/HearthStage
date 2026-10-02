@@ -87,6 +87,13 @@ export interface CueGroup {
   notes: ItemNote[];
   /** The arrangement's sequence, for the confidence monitor. */
   sequence: string[];
+  /**
+   * The look this item asks for (STG-148, ST8.1).
+   *
+   * Null takes the service's theme. Resolved at paint time rather than stored
+   * on each cue, so changing a theme touches no words and needs no recompile.
+   */
+  themeId: string | null;
   cues: Cue[];
 }
 
@@ -202,6 +209,7 @@ function compileItem(
       durationSeconds: item.durationSeconds,
       notes: item.notes,
       sequence: [],
+      themeId: null,
       cues: [
         {
           id: `${groupId}:marker`,
@@ -242,6 +250,7 @@ function compileItem(
       durationSeconds: item.durationSeconds,
       notes: item.notes,
       sequence: [],
+      themeId: null,
       cues,
     };
   }
@@ -309,6 +318,7 @@ function compileItem(
     durationSeconds: item.durationSeconds,
     notes: item.notes,
     sequence: resolved.arrangement.sequence,
+    themeId: null,
     cues,
   };
 }
@@ -430,6 +440,7 @@ function compilePresentation(
     durationSeconds: item.durationSeconds,
     notes: item.notes,
     sequence: [],
+    themeId: presentation.themeId,
     cues,
   };
 }

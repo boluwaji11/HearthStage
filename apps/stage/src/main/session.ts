@@ -22,40 +22,28 @@ import {
   type OutputView,
   type ThemeState,
 } from "@hearth/stage-protocol";
-import type { Cue, Deck, ServicePlan } from "@hearth/songs";
+import type { Cue, CueGroup, Deck, ServicePlan } from "@hearth/songs";
+import { DEFAULT_THEME, themeFor } from "./themes";
 
-/**
- * The built-in theme, good enough to use unmodified during a service (ST8.1).
- *
- * Sizes are a fraction of output height, so the same theme is right on a 1080p
- * projector and on a 4K foyer screen. `textSize` is cap height at 0.072, which
- * clears the 0.04 legibility floor in ST20.4 with room to spare, because the
- * floor is a floor rather than a target.
- */
-export const DEFAULT_THEME: ThemeState = {
-  id: "hearth-default",
-  fontFamily:
-    '"Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif',
-  fontWeight: 500,
-  textSize: 0.072,
-  lineHeight: 1.28,
-  colour: "oklch(0.985 0.003 75)",
-  background: "oklch(0.142 0.008 75)",
-  textAlign: "center",
-  verticalAlign: "middle",
-  safeArea: 0.075,
-  transitionMs: 200,
-  textShadow: "0 0.08em 0.3em oklch(0 0 0 / 0.55)",
-};
+export { DEFAULT_THEME };
 
 export interface SessionOptions {
+  /** The service's theme, used by anything that does not name its own. */
   theme?: ThemeState;
+  /**
+   * How to find a theme a presentation names (STG-148).
+   *
+   * Passed in so the session stays free of the built-in list and a test can
+   * hand it two themes it made up.
+   */
+  themes?: (themeId: string | null) => ThemeState;
 }
 
 export class Session {
   private deck: Deck;
   private plan: ServicePlan | null;
   private theme: ThemeState;
+  private readonly themes: (themeId: string | null) => ThemeState;
   private position = 0;
   private blank: Blank = "none";
   private revision = 0;
@@ -64,6 +52,7 @@ export class Session {
     this.deck = deck;
     this.plan = plan;
     this.theme = options.theme ?? DEFAULT_THEME;
+    this.themes = options.themes ?? themeFor;
   }
 
   /**
@@ -142,13 +131,31 @@ export class Session {
     return this.apply({ type: "goToCue", cueId });
   }
 
+  /**
+   * The theme the live cue should be painted in (STG-148, ST8.1).
+   *
+   * A presentation can name its own, and anything that does not takes the
+   * service's. The look is resolved here rather than stored on the cue, so
+   * changing a theme is a different act from touching the words: a recompile is
+   * never needed and a slide is never rewritten to restyle it.
+   */
+  private liveTheme(): ThemeState {
+    const cue = this.deck.cues[this.position];
+    if (cue === undefined) return this.theme;
+    const group: CueGroup | undefined = this.deck.groups.find(
+      (candidate) => candidate.id === cue.groupId,
+    );
+    if (group?.themeId == null) return this.theme;
+    return this.themes(group.themeId);
+  }
+
   outputState(outputId: string): OutputState {
     return {
       outputId,
       revision: this.revision,
       blank: this.blank,
       content: contentOf(this.deck.cues[this.position] ?? null, this.deck),
-      theme: this.theme,
+      theme: this.liveTheme(),
     };
   }
 

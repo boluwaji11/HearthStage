@@ -94,7 +94,7 @@ thing a person does with Stage and until now there was no way to do it. See
 | STG-145 | **Type a presentation of plain slides and present it**: a title, three notices, a sermon outline | ST2.16 | Resolved |
 | STG-146 | Hold a presentation's kind, so a song, a reading, plain slides and a media item are one list | ST2.16 | Resolved |
 | STG-147 | Duplicating a slide, moving one between presentations, and the per-slide note | ST2.16, ST2.19 | Resolved |
-| STG-148 | Apply a theme to a presentation, and change it without touching the content | ST8.1 | New |
+| STG-148 | Apply a theme to a presentation, and change it without touching the content | ST8.1 | Resolved |
 | STG-149 | First run: one line saying what to do, and three ways in | ST1.2 | New |
 | STG-168 | Name the application properly, so its data lives in "Hearth Stage" rather than in a folder named after a package, and move an existing library across | ST19.5 | New |
 | STG-6 | Build the local library store: songs, sections, arrangements, durable and backed up on write | ST2.1, ST19.5 | Resolved |
@@ -472,7 +472,7 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
 | **Next** | **STG-7**, typing a song in, because the one list now shows songs and a song row opens read only. Then **STG-168**, which found itself: the application's data sits in a folder named `@hearth/stage`, after the package rather than after the product. Then STG-147 duplicating and per-slide notes, STG-148 themes, STG-149 first run, and the measurements STG-28 and STG-29. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
@@ -1000,3 +1000,55 @@ the other two live in the window. What they defend:
 reloading it, so a copy survives the trip, and closing the window loses it, which is what a person
 expects of a clipboard. Duplicating and copying are checked by hand rather than by a test, because
 testing a renderer needs the harness in STG-28.
+
+---
+
+## STG-148, how to test it
+
+The look and the words are different things. Changing one has to be incapable of touching the other,
+and the way to show that is to change the look and see that nothing moved.
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+- Press **Slides** and open a presentation. There is a **Look** picker beside the title.
+- It offers **The service's look**, then **Hearth**, **Plain**, **Daylight** and **Strong**.
+- Pick **Daylight**. The slide boxes turn to dark words on warm paper as you watch. Pick **Strong**:
+  white on black, bigger and heavier.
+- The words do not move, the titles stay, the notes stay. It saves on the spot.
+- Press **Present**. The output window is in that look. Press **space** through the slides.
+- Open a different presentation and give it a different look. Present each in turn: the output
+  changes look as the service moves from one item to the other.
+- Pick **The service's look** again and the presentation goes back to following the service.
+
+### The four
+
+| Name | For |
+|---|---|
+| Hearth | The default. A serif on ink, good enough to use at a service untouched (ST8.1). |
+| Plain | Notices and a sermon outline, where a serif reads as a hymn board. |
+| Daylight | Dark words on a light ground, for a lobby screen or an overflow room read in daylight. A dark slide in a lit room is a mirror. |
+| Strong | A projector that has lost its contrast. Bigger, heavier, white on black. A church with a fifteen year old projector and no budget has this problem, and the answer every other product gives is to buy a projector. |
+
+**Thirty-four new tests.** What they defend:
+
+1. **Every look clears 7:1 against its own background**, checked with the platform's own OKLCH
+   contrast maths rather than by eye. The next person to add a theme will be choosing colours they
+   like, so the floor is a test rather than a note.
+2. **Every look clears the other floors too**: cap height at or above 4% of output height, weight at
+   or above 400, a safe area because projectors clip edges, and a dissolve under 400ms.
+3. **Changing a look touches no words.** Asserted by comparing every slide before and after, byte for
+   byte.
+4. **A look is resolved when a slide is painted** rather than stored on a cue, so restyling needs no
+   recompile and can never rewrite a slide.
+5. **A look this build does not have falls back to the default.** A library outlives a release and a
+   synced theme can be missing, so the words go up in the wrong font rather than failing to go up.
+   Writing such an id is refused, so a window with a stale list cannot store one.
+6. **A save that does not mention the look leaves it alone**, which is what lets the editor save on
+   every keystroke pause without touching the theme.
+
+**Still to come on themes.** Separate looks per content kind (ST8.3) and previewing at the real
+output resolution (ST8.4) are S0.3. Editing a theme inside Stage with a contrast check that refuses
+to save below 7:1 is ST8.6, in S1.0. Daylight carries no text shadow, which is right on a solid
+background and will need revisiting when video backgrounds arrive in ST9.x.
