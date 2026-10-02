@@ -94,12 +94,30 @@ describe("the live surface", () => {
 
 /**
  * ST12.3 again, from the other side: the one act in the editor that changes
- * what a room is looking at asks first.
+ * what a room is looking at asks first, and asks in the application's own
+ * voice.
  */
 describe("putting something else on the screen", () => {
   it("asks before it replaces a service that is running", () => {
-    const source = readFileSync(join(root, "src/main/index.ts"), "utf8");
+    const source = readFileSync(join(root, "src/editor/editor.ts"), "utf8");
     expect(source).toContain("present.replace.title");
-    expect(source).toMatch(/showMessageBox/);
+    // Named by the service it is about to take down. A confirmation that
+    // cannot say what it is replacing is not one.
+    expect(source).toContain("present.replace.detail");
+    expect(source).toMatch(/showModal\(\)/);
+  });
+
+  it("asks in the application's own dialog rather than the operating system's", () => {
+    for (const file of ["src/main/index.ts", "src/editor/editor.ts"]) {
+      expect(readFileSync(join(root, file), "utf8"), file).not.toMatch(/showMessageBox/);
+    }
+  });
+
+  it("has one dialog, never stacked, and it closes on Escape", () => {
+    const markup = readFileSync(join(root, "src/editor/index.html"), "utf8");
+    expect([...markup.matchAll(/<dialog/g)]).toHaveLength(1);
+    // A native dialog element closes on Escape and traps focus without a line
+    // of script, which is why it is one rather than a div.
+    expect(markup).toMatch(/<dialog id="ask"/);
   });
 });

@@ -121,6 +121,20 @@
       </footer>
     </section>
 
+    <!--
+      Asking, in the application's own voice (STG-25). A native box is the
+      operating system speaking, and the one thing it is ever used for here is
+      taking a church's service off the screen.
+    -->
+    <dialog id="ask" class="ask">
+      <h2 id="ask-title"></h2>
+      <p id="ask-detail"></p>
+      <div class="ask-buttons">
+        <button id="ask-keep" type="button"></button>
+        <button id="ask-confirm" type="button" class="primary"></button>
+      </div>
+    </dialog>
+
     <script type="module" src="./editor.ts"></script>
   </body>
 </html>

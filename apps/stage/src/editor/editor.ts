@@ -93,6 +93,11 @@ const el = {
   chooseLogo: document.getElementById("choose-logo") as HTMLButtonElement,
   removeLogo: document.getElementById("remove-logo") as HTMLButtonElement,
   logoPreview: document.getElementById("logo-preview") as HTMLImageElement,
+  ask: document.getElementById("ask") as HTMLDialogElement,
+  askTitle: document.getElementById("ask-title") as HTMLHeadingElement,
+  askDetail: document.getElementById("ask-detail") as HTMLParagraphElement,
+  askConfirm: document.getElementById("ask-confirm") as HTMLButtonElement,
+  askKeep: document.getElementById("ask-keep") as HTMLButtonElement,
   present: document.getElementById("present") as HTMLButtonElement,
 };
 
@@ -1089,6 +1094,44 @@ function paint(next: EditorState): void {
 }
 
 /**
+ * Asks, and says what happens (STG-25).
+ *
+ * The one confirmation in Stage, and it is here rather than in a native box
+ * because a box drawn by the operating system is the operating system asking.
+ * Escape and the backdrop both mean keep, which is the safe answer.
+ */
+function ask(options: {
+  title: string;
+  detail: string;
+  confirm: string;
+  keep: string;
+}): Promise<boolean> {
+  el.askTitle.textContent = options.title;
+  el.askDetail.textContent = options.detail;
+  el.askConfirm.textContent = options.confirm;
+  el.askKeep.textContent = options.keep;
+
+  return new Promise((settle) => {
+    const done = (answer: boolean): void => {
+      el.askConfirm.removeEventListener("click", yes);
+      el.askKeep.removeEventListener("click", no);
+      el.ask.removeEventListener("close", closed);
+      if (el.ask.open) el.ask.close();
+      settle(answer);
+    };
+    const yes = (): void => done(true);
+    const no = (): void => done(false);
+    const closed = (): void => done(false);
+
+    el.askConfirm.addEventListener("click", yes);
+    el.askKeep.addEventListener("click", no);
+    el.ask.addEventListener("close", closed);
+    el.ask.showModal();
+    el.askKeep.focus();
+  });
+}
+
+/**
  * This machine (STG-14, ST1.9).
  *
  * The box is left alone while somebody is typing in it, the same rule the
@@ -1218,10 +1261,34 @@ el.newButton.addEventListener("click", () => {
   send({ type: "newPresentation" });
 });
 el.present.addEventListener("click", () => {
+  void present();
+});
+
+/**
+ * Puts what is open on the screen (STG-25, ST12.3).
+ *
+ * A church running a service should not lose it to a button pressed in another
+ * window, so where one is running this asks first and names it. Putting the
+ * same thing up twice replaces nothing, and asks nothing.
+ */
+async function present(): Promise<void> {
   commit();
   const id = draft?.id;
-  if (id !== undefined && id !== null) send({ type: "presentNow", presentationId: id });
-});
+  if (id === undefined || id === null) return;
+
+  const service = latest?.service ?? null;
+  if (service !== null && latest?.presentingId !== id) {
+    const agreed = await ask({
+      title: t("present.replace.title", { item: draft?.title ?? "" }),
+      detail: t("present.replace.detail", { service }),
+      confirm: t("present.replace.confirm"),
+      keep: t("present.replace.keep"),
+    });
+    if (!agreed) return;
+  }
+
+  send({ type: "presentNow", presentationId: id });
+}
 
 window.addEventListener("keydown", (event) => {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {

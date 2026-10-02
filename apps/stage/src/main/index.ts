@@ -31,7 +31,6 @@ import { APP_NAME, OLD_FOLDER, relocation } from "./userdata";
 import { Session } from "./session";
 import { hostname } from "node:os";
 import { openDevice, renameDevice } from "./device";
-import { t } from "@hearth/stage-i18n";
 import { readLogo, removeLogo, setLogo } from "./branding";
 import {
   createControlWindow,
@@ -257,7 +256,7 @@ function broadcast(): void {
     control.webContents.send(CHANNELS.controlState, state);
   }
   if (editor !== null && !editor.isDestroyed()) {
-    const state: EditorState = presentations.state(presenting);
+    const state: EditorState = presentations.state(presenting, session.controlState([]).service?.title ?? null);
     editor.webContents.send(CHANNELS.editorState, state);
   }
 }
@@ -309,37 +308,12 @@ function presentNow(itemId: string): boolean {
 /**
  * Putting one thing on the screen while a service is running (STG-25, ST12.3).
  *
- * Present is in the editor rather than on the live surface, and it replaces
- * what the room is looking at. A church running a service on a Sunday morning
- * should not lose it to a button somebody pressed in another window, so this is
- * the one place Stage asks first. It says what happens, because that is what a
- * confirmation is for.
+ * Present is in the editor and it replaces what the room is looking at, so a
+ * church running a service should not lose it to a button somebody pressed in
+ * another window. The asking is in that window, in the application's own
+ * dialog, because a confirmation that looks like the operating system is a
+ * confirmation from somewhere else.
  */
-async function presentAsked(itemId: string): Promise<void> {
-  const open = session.controlState([]).service;
-  const already = presenting === itemId;
-
-  if (open !== null && !already) {
-    const item = presentations.lookup()(itemId)?.title ?? store.library.get(itemId)?.song.title;
-    const parent = editor ?? control;
-    const asked = {
-      type: "question" as const,
-      message: t("present.replace.title", { item: item ?? "" }),
-      detail: t("present.replace.detail", { service: open.title }),
-      buttons: [t("present.replace.confirm"), t("present.replace.keep")],
-      defaultId: 0,
-      cancelId: 1,
-    };
-    const answer =
-      parent === null || parent.isDestroyed()
-        ? await dialog.showMessageBox(asked)
-        : await dialog.showMessageBox(parent, asked);
-    if (answer.response !== 0) return;
-  }
-
-  if (presentNow(itemId)) broadcast();
-}
-
 function planFor(
   itemId: string,
   lookup: ReturnType<typeof presentations.lookup>,
@@ -430,7 +404,7 @@ app.whenReady().then(() => {
         return;
       }
       case "presentNow":
-        void presentAsked(payload.presentationId);
+        if (presentNow(payload.presentationId)) broadcast();
         return;
       case "newPresentation":
       case "openItem":
@@ -460,7 +434,7 @@ app.whenReady().then(() => {
     return {
       output: null,
       control: fromEditor ? null : session.controlState(outputViews()),
-      editor: fromEditor ? presentations.state(presenting) : null,
+      editor: fromEditor ? presentations.state(presenting, session.controlState([]).service?.title ?? null) : null,
     };
   });
 

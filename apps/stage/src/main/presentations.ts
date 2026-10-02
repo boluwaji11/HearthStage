@@ -285,7 +285,7 @@ export class Presentations {
   }
 
   /** What the editor window paints. */
-  state(presentingId: string | null = null): EditorState {
+  state(presentingId: string | null = null, service: string | null = null): EditorState {
     return {
       revision: this.revision,
       themes: BUILT_IN_THEMES.map(
@@ -317,6 +317,7 @@ export class Presentations {
       samples: this.samplesLeft(),
       problems: this.problems,
       presentingId,
+      service,
     };
   }
 

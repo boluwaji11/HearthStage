@@ -359,6 +359,13 @@ export interface EditorState {
   problems: { code: string; detail: string }[];
   /** Which presentation is live on the output, where one is. */
   presentingId: string | null;
+  /**
+   * The service running on the other window, by name (STG-25).
+   *
+   * The editor asks before it takes a church's service off the screen, and a
+   * confirmation that cannot name what it is replacing is not one.
+   */
+  service: string | null;
 }
 
 export type Intent =
