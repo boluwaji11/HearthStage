@@ -1,0 +1,21 @@
+{
+  "name": "@hearth/songs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./fixtures": "./src/fixtures.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "deck": "tsx scripts/show-deck.ts",
+    "chart": "tsx scripts/show-chart.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "vitest": "^2.1.8",
+    "tsx": "^4.19.2"
+  }
+}

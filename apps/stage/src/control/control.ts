@@ -1,0 +1,318 @@
+/**
+ * STG-11, STG-21, STG-22. The operator's surface.
+ *
+ * The person here is sixteen years old, has opened Stage twice, and the service
+ * starts in two minutes. So: what is live, what is next, where we are in the
+ * service, and four keys. Nothing destructive is reachable (ST12.3), because
+ * the only thing this window can do is send an intent.
+ *
+ * Keyboard first and pointer optional (ST12.1). A full service runs with the
+ * trackpad disconnected.
+ */
+
+import type { Blank, ControlState, CueView, Intent } from "@hearth/stage-protocol";
+
+const bridge = window.hearth;
+
+const el = {
+  service: document.getElementById("service") as HTMLElement,
+  serviceDetail: document.getElementById("service-detail") as HTMLElement,
+  status: document.getElementById("status") as HTMLElement,
+  deck: document.getElementById("deck") as HTMLOListElement,
+  live: document.getElementById("live") as HTMLElement,
+  liveMeta: document.getElementById("live-meta") as HTMLElement,
+  next: document.getElementById("next") as HTMLElement,
+  nextMeta: document.getElementById("next-meta") as HTMLElement,
+  notes: document.getElementById("notes") as HTMLUListElement,
+  keys: document.getElementById("keys") as HTMLElement,
+};
+
+/**
+ * The operator brief, on the screen rather than in a manual (ST12.10).
+ *
+ * This is what the sixteen year old reads at 10:28, so it is four keys and it
+ * is always visible.
+ */
+const KEYS: [string, string][] = [
+  ["Space  or  →", "Next"],
+  ["←", "Back"],
+  ["B", "Black the screen"],
+  ["C", "Clear the words"],
+  ["L", "Logo"],
+  ["Esc", "Back to the slide"],
+];
+
+function send(intent: Intent): void {
+  bridge?.send(intent);
+}
+
+function slideInto(target: HTMLElement, cue: CueView | null, state: ControlState): void {
+  target.replaceChildren();
+  if (cue === null) {
+    target.dataset["empty"] = "end";
+    return;
+  }
+  delete target.dataset["empty"];
+
+  if (cue.kind === "marker") {
+    const marker = document.createElement("p");
+    marker.className = "marker";
+    marker.textContent = groupTitle(state, cue.groupId);
+    target.append(marker);
+    const quiet = document.createElement("p");
+    quiet.className = "marker-quiet";
+    quiet.textContent = "Nothing on the screen";
+    target.append(quiet);
+    return;
+  }
+
+  // The preview is one line. The whole slide is what the output received, and
+  // the control surface shows the shape of it rather than reproducing it.
+  const lines = document.createElement("div");
+  lines.className = "slide-lines";
+  const first = document.createElement("p");
+  first.textContent = cue.preview ?? "";
+  lines.append(first);
+  target.append(lines);
+}
+
+function groupTitle(state: ControlState, groupId: string): string {
+  return state.groups.find((group) => group.id === groupId)?.title ?? "";
+}
+
+function metaFor(state: ControlState, cue: CueView | null): string {
+  if (cue === null) return "End of the service";
+  const group = state.groups.find((candidate) => candidate.id === cue.groupId);
+  const parts: string[] = [];
+  if (group !== undefined) parts.push(group.title);
+  if (cue.label !== null) {
+    parts.push(
+      cue.occurrencesTotal > 1
+        ? `${cue.label}, ${cue.occurrence} of ${cue.occurrencesTotal}`
+        : cue.label,
+    );
+  }
+  if (cue.slideCount > 1) parts.push(`slide ${cue.slideIndex + 1} of ${cue.slideCount}`);
+  if (group?.key != null) parts.push(`key of ${group.key}`);
+  return parts.join("  ·  ");
+}
+
+function paint(state: ControlState): void {
+  el.service.textContent = state.service?.title ?? "No service open";
+  el.serviceDetail.textContent =
+    state.service === null
+      ? ""
+      : `${state.service.date}  ·  ${state.service.source === "set_list" ? "Stage set list" : "Hearth plan"}  ·  ${state.cues.length} cues`;
+
+  // What is live, whether the output is black, and the time, visible at all
+  // times (ST12.6).
+  el.status.replaceChildren();
+  const blank = document.createElement("span");
+  blank.className = "chip";
+  blank.dataset["blank"] = state.blank;
+  blank.textContent =
+    state.blank === "none"
+      ? "On screen"
+      : state.blank === "black"
+        ? "Black"
+        : state.blank === "clear"
+          ? "Cleared"
+          : "Logo";
+  el.status.append(blank);
+
+  for (const output of state.outputs) {
+    const chip = document.createElement("span");
+    chip.className = "chip quiet-chip";
+    chip.textContent = `${output.name}: ${output.display}`;
+    el.status.append(chip);
+  }
+
+  if (state.problems.length > 0) {
+    const chip = document.createElement("span");
+    chip.className = "chip problem";
+    chip.textContent = `${state.problems.length} problem${state.problems.length === 1 ? "" : "s"}`;
+    chip.title = state.problems.map((problem) => `${problem.code} ${problem.detail}`).join("\n");
+    el.status.append(chip);
+  }
+
+  const live = state.cues[state.position] ?? null;
+  const next = state.cues[state.position + 1] ?? null;
+  slideInto(el.live, live, state);
+  slideInto(el.next, next, state);
+  el.liveMeta.textContent = metaFor(state, live);
+  el.nextMeta.textContent = metaFor(state, next);
+
+  // Notes for the operator, global plus the ones addressed to a position
+  // (ST5.5). Filtering by this operator's own position arrives with the plan.
+  el.notes.replaceChildren();
+  const group = state.groups.find((candidate) => candidate.id === live?.groupId);
+  for (const note of group?.notes ?? []) {
+    const item = document.createElement("li");
+    if (note.position !== null) {
+      const who = document.createElement("span");
+      who.className = "note-position";
+      who.textContent = note.position;
+      item.append(who);
+    }
+    item.append(document.createTextNode(note.body));
+    el.notes.append(item);
+  }
+  if ((group?.notes ?? []).length === 0) {
+    const item = document.createElement("li");
+    item.className = "quiet";
+    item.textContent = "None";
+    el.notes.append(item);
+  }
+
+  el.deck.replaceChildren();
+  for (const cueGroup of state.groups) {
+    const groupItem = document.createElement("li");
+    groupItem.className = "group";
+
+    const heading = document.createElement("div");
+    heading.className = "group-heading";
+    const title = document.createElement("span");
+    title.className = "group-title";
+    title.textContent = cueGroup.title;
+    heading.append(title);
+
+    const facts: string[] = [];
+    if (cueGroup.key !== null) facts.push(cueGroup.key);
+    if (cueGroup.sequence.length > 0) facts.push(cueGroup.sequence.join(" "));
+    if (facts.length > 0) {
+      const detail = document.createElement("span");
+      detail.className = "group-facts";
+      detail.textContent = facts.join("  ·  ");
+      heading.append(detail);
+    }
+    groupItem.append(heading);
+
+    const cues = document.createElement("ol");
+    cues.className = "cues";
+    for (const cueId of cueGroup.cueIds) {
+      const cue = state.cues.find((candidate) => candidate.id === cueId);
+      if (cue === undefined) continue;
+
+      const item = document.createElement("li");
+      item.className = "cue";
+      if (cue.position === state.position) item.dataset["live"] = "true";
+      if (cue.position === state.position + 1) item.dataset["next"] = "true";
+
+      const button = document.createElement("button");
+      button.type = "button";
+      // Pointer is optional, so every cue is also reachable by tabbing.
+      button.addEventListener("click", () => send({ type: "goToCue", cueId: cue.id }));
+
+      const tag = document.createElement("span");
+      tag.className = "cue-tag";
+      // A marker gets no tag. Its row says what it is, and a dash standing in
+      // for a label reads as a label nobody filled in.
+      tag.textContent =
+        cue.kind === "marker"
+          ? ""
+          : cue.label === null
+            ? "¶"
+            : cue.occurrencesTotal > 1
+              ? `${cue.label}·${cue.occurrence}`
+              : cue.label;
+      button.append(tag);
+
+      const text = document.createElement("span");
+      text.className = "cue-text";
+      text.textContent =
+        cue.kind === "marker" ? "Nothing on the screen" : (cue.preview ?? "");
+      button.append(text);
+
+      if (cue.slideCount > 1) {
+        const of = document.createElement("span");
+        of.className = "cue-of";
+        of.textContent = `${cue.slideIndex + 1}/${cue.slideCount}`;
+        button.append(of);
+      }
+
+      item.append(button);
+      cues.append(item);
+    }
+    groupItem.append(cues);
+    el.deck.append(groupItem);
+  }
+
+  const liveElement = el.deck.querySelector('[data-live="true"]');
+  liveElement?.scrollIntoView({ block: "nearest" });
+}
+
+function brief(): void {
+  el.keys.replaceChildren();
+  for (const [key, meaning] of KEYS) {
+    const term = document.createElement("dt");
+    term.textContent = key;
+    const detail = document.createElement("dd");
+    detail.textContent = meaning;
+    el.keys.append(term, detail);
+  }
+}
+
+/**
+ * The keys.
+ *
+ * `repeat` is ignored, so holding the advance key moves one cue rather than
+ * four (ST12.4).
+ */
+function onKey(event: KeyboardEvent): void {
+  if (event.repeat) return;
+
+  const blank = (mode: Blank): void => {
+    event.preventDefault();
+    send({ type: "toggleBlank", blank: mode });
+  };
+
+  switch (event.key) {
+    case " ":
+    case "ArrowRight":
+    case "ArrowDown":
+    case "PageDown":
+      event.preventDefault();
+      send({ type: "advance" });
+      return;
+    case "ArrowLeft":
+    case "ArrowUp":
+    case "PageUp":
+      event.preventDefault();
+      send({ type: "reverse" });
+      return;
+    case "Home":
+      event.preventDefault();
+      send({ type: "goTo", position: 0 });
+      return;
+    case "Escape":
+      event.preventDefault();
+      send({ type: "setBlank", blank: "none" });
+      return;
+    default:
+      break;
+  }
+
+  switch (event.key.toLowerCase()) {
+    case "b":
+      blank("black");
+      return;
+    case "c":
+      blank("clear");
+      return;
+    case "l":
+      blank("logo");
+      return;
+    default:
+      break;
+  }
+}
+
+brief();
+window.addEventListener("keydown", onKey);
+
+if (bridge !== undefined) {
+  bridge.onControlState(paint);
+  void bridge.hello().then((state) => {
+    if (state.control !== null) paint(state.control);
+  });
+}

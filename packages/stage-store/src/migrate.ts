@@ -1,0 +1,146 @@
+/**
+ * STG-6. Migrations.
+ *
+ * `library.db` holds data a church typed in and cannot get back, on a laptop
+ * that updates itself (ST19.7). So the schema has to move forward without
+ * asking anybody, and a migration that half ran would be the worst outcome
+ * available.
+ *
+ * **Hand written, versioned by `PRAGMA user_version`, each step in one
+ * transaction.** Deliberately not a migration tool: this file is the entire
+ * mechanism, it can be read in a minute, and it has no version of its own to
+ * fall out of step with the data. The platform's Postgres schema uses Drizzle
+ * and drizzle-kit, where the generated SQL and the review process earn their
+ * keep. A laptop database with four tables does not.
+ *
+ * Rules for adding a step: append it. A step that has shipped is fixed, because
+ * somebody's database has already run it.
+ */
+
+import type { Db } from "./open";
+
+export interface Migration {
+  version: number;
+  name: string;
+  up: string;
+}
+
+export const MIGRATIONS: Migration[] = [
+  {
+    version: 1,
+    name: "the library",
+    up: `
+      CREATE TABLE songs (
+        id                       TEXT PRIMARY KEY,
+        origin                   TEXT NOT NULL DEFAULT 'local'
+                                   CHECK (origin IN ('local', 'hearth')),
+        title                    TEXT NOT NULL,
+        alternate_titles         TEXT NOT NULL DEFAULT '[]',
+        author                   TEXT,
+        composer                 TEXT,
+        publisher                TEXT,
+        year                     INTEGER,
+        ccli_number              TEXT,
+        copyright_line           TEXT,
+        is_public_domain         INTEGER NOT NULL DEFAULT 0,
+        themes                   TEXT NOT NULL DEFAULT '[]',
+        tempo_bpm                INTEGER,
+        time_signature           TEXT,
+        typical_duration_seconds INTEGER,
+        default_key              TEXT,
+        primary_language         TEXT NOT NULL DEFAULT 'en',
+        last_used_at             TEXT,
+        archived_at              TEXT,
+        created_at               TEXT NOT NULL,
+        updated_at               TEXT NOT NULL
+      );
+
+      CREATE TABLE song_sections (
+        id             TEXT PRIMARY KEY,
+        song_id        TEXT NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
+        section_type   TEXT NOT NULL,
+        label          TEXT NOT NULL,
+        sort_order     INTEGER NOT NULL,
+        lines          TEXT NOT NULL,
+        language       TEXT NOT NULL,
+        translation_of TEXT
+      );
+
+      CREATE TABLE arrangements (
+        id         TEXT PRIMARY KEY,
+        song_id    TEXT NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
+        name       TEXT NOT NULL,
+        key        TEXT NOT NULL,
+        tempo_bpm  INTEGER,
+        sequence   TEXT NOT NULL,
+        chordpro   TEXT,
+        is_default INTEGER NOT NULL DEFAULT 0
+      );
+
+      CREATE TABLE arrangement_media (
+        id               TEXT PRIMARY KEY,
+        arrangement_id   TEXT NOT NULL REFERENCES arrangements(id) ON DELETE CASCADE,
+        kind             TEXT NOT NULL,
+        storage_key      TEXT NOT NULL,
+        duration_seconds INTEGER
+      );
+
+      -- A label is what a sequence refers to, so it is unique within a song.
+      -- Enforced here as well as in the validator, because the store is the
+      -- last place a bad song can be stopped.
+      CREATE UNIQUE INDEX songs_section_label ON song_sections(song_id, label);
+      CREATE INDEX song_sections_order ON song_sections(song_id, sort_order);
+      CREATE INDEX arrangements_song ON arrangements(song_id);
+      CREATE INDEX arrangement_media_arrangement ON arrangement_media(arrangement_id);
+      CREATE INDEX songs_title ON songs(title);
+      CREATE INDEX songs_ccli ON songs(ccli_number);
+      CREATE INDEX songs_archived ON songs(archived_at);
+    `,
+  },
+];
+
+export const SCHEMA_VERSION = MIGRATIONS.reduce(
+  (highest, migration) => Math.max(highest, migration.version),
+  0,
+);
+
+export function currentVersion(db: Db): number {
+  const [row] = db.pragma("user_version") as { user_version: number }[];
+  return row?.user_version ?? 0;
+}
+
+/**
+ * Brings a database up to date, and says what it did.
+ *
+ * Each step runs inside a transaction with its own version bump, so an
+ * interrupted upgrade leaves the database at the last step that finished rather
+ * than halfway through the next one.
+ */
+export function migrate(db: Db): { from: number; to: number; applied: string[] } {
+  const from = currentVersion(db);
+  const applied: string[] = [];
+
+  if (from > SCHEMA_VERSION) {
+    // A library written by a newer Stage. Refused rather than guessed at: a
+    // downgrade that silently dropped a column would lose a church's work.
+    throw new Error(
+      `This library was written by a newer version of Stage (schema ${from}, this build understands ${SCHEMA_VERSION}).`,
+    );
+  }
+
+  for (const migration of MIGRATIONS) {
+    if (migration.version <= from) continue;
+    db.exec("BEGIN");
+    try {
+      db.exec(migration.up);
+      db.pragma(`user_version = ${migration.version}`);
+      db.exec("COMMIT");
+      applied.push(`${migration.version}: ${migration.name}`);
+    } catch (cause) {
+      db.exec("ROLLBACK");
+      throw new Error(`Migration ${migration.version} (${migration.name}) failed.`, { cause });
+    }
+  }
+
+  return { from, to: currentVersion(db), applied };
+}

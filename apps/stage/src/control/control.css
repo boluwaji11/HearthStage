@@ -1,0 +1,341 @@
+/*
+ * STG-11. The control surface, at office density.
+ *
+ * Colours are the design system's: warm stone canvas, ink, ember accent
+ * (docs/design-system.md section 3). They are written here rather than imported
+ * from packages/ui because the component library is React and this window is
+ * not, yet. Wiring the generated token file in is part of the render stories.
+ */
+
+:root {
+  --stone-50: oklch(0.985 0.003 75);
+  --stone-200: oklch(0.925 0.008 75);
+  --stone-400: oklch(0.706 0.013 75);
+  --stone-500: oklch(0.556 0.014 75);
+  --stone-700: oklch(0.366 0.012 75);
+  --stone-800: oklch(0.262 0.01 75);
+  --stone-900: oklch(0.198 0.009 75);
+  --stone-950: oklch(0.142 0.008 75);
+  --ember-400: oklch(0.792 0.148 65);
+  --ember-500: oklch(0.742 0.162 62);
+  --ink-300: oklch(0.772 0.078 285);
+  --danger: oklch(0.558 0.198 25);
+
+  --canvas: var(--stone-950);
+  --raised: var(--stone-900);
+  --line: oklch(0.262 0.01 75);
+  --text: var(--stone-50);
+  --quiet: var(--stone-400);
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --radius: 0.5rem;
+
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Body text never under 400 weight (docs/design-system.md section 4). */
+  font-weight: 400;
+  color-scheme: dark;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: var(--canvas);
+  color: var(--text);
+  font-size: 0.875rem;
+  overflow: hidden;
+}
+
+/* Never removed, on anything (docs/design-system.md section 11). */
+:focus-visible {
+  outline: 2px solid var(--ember-500);
+  outline-offset: 2px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+
+h1 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--quiet);
+  margin-bottom: var(--space-2);
+}
+
+.quiet {
+  color: var(--quiet);
+}
+
+.status {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.chip {
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.chip[data-blank="none"] {
+  border-color: var(--ember-500);
+  color: var(--ember-400);
+}
+
+.chip[data-blank="black"],
+.chip[data-blank="clear"],
+.chip[data-blank="logo"] {
+  background: var(--stone-800);
+  color: var(--stone-200);
+}
+
+.chip.quiet-chip {
+  color: var(--quiet);
+}
+
+.chip.problem {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+main {
+  display: grid;
+  grid-template-columns: minmax(320px, 26rem) 1fr;
+  min-height: 0;
+}
+
+.deck {
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+  padding: var(--space-3);
+}
+
+.deck ol {
+  list-style: none;
+}
+
+.group + .group {
+  margin-top: var(--space-4);
+}
+
+.group-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-1);
+}
+
+.group-title {
+  font-weight: 600;
+}
+
+.group-facts {
+  font-size: 0.75rem;
+  color: var(--quiet);
+  font-variant-numeric: tabular-nums;
+}
+
+.cues {
+  list-style: none;
+}
+
+.cue button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 2.75rem 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2);
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cue button:hover {
+  background: var(--stone-900);
+}
+
+.cue[data-live="true"] button {
+  background: var(--stone-800);
+  box-shadow: inset 3px 0 0 var(--ember-500);
+}
+
+.cue[data-next="true"] button {
+  box-shadow: inset 3px 0 0 var(--stone-700);
+}
+
+.cue-tag {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ember-400);
+  font-variant-numeric: tabular-nums;
+}
+
+.cue[data-live="true"] .cue-tag {
+  color: var(--ember-400);
+}
+
+.cue-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--stone-200);
+}
+
+.cue-of {
+  font-size: 0.6875rem;
+  color: var(--quiet);
+  font-variant-numeric: tabular-nums;
+}
+
+.stage {
+  display: grid;
+  grid-template-rows: 1fr 1fr auto;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  min-height: 0;
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.slide {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--stone-950);
+  text-align: center;
+  overflow: hidden;
+}
+
+.slide.live {
+  border-color: var(--ember-500);
+}
+
+.slide-lines p {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 1.375rem;
+  line-height: 1.3;
+}
+
+.slide.next .slide-lines p {
+  font-size: 1.0625rem;
+  color: var(--stone-200);
+}
+
+.slide[data-empty]::after {
+  content: "End of the service";
+  color: var(--quiet);
+}
+
+.marker {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.marker-quiet {
+  color: var(--quiet);
+  font-size: 0.8125rem;
+}
+
+.notes {
+  max-height: 8rem;
+}
+
+.notes ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  overflow-y: auto;
+}
+
+.notes li {
+  padding: var(--space-1) 0;
+}
+
+.note-position {
+  display: inline-block;
+  margin-right: var(--space-2);
+  padding: 0 var(--space-2);
+  border-radius: 999px;
+  background: var(--stone-800);
+  color: var(--ink-300);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+footer {
+  border-top: 1px solid var(--line);
+  padding: var(--space-2) var(--space-4);
+}
+
+footer dl {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+}
+
+footer dt {
+  padding: 2px var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--stone-200);
+  font-variant-numeric: tabular-nums;
+}
+
+footer dd {
+  color: var(--quiet);
+  margin-right: var(--space-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

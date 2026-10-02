@@ -1,0 +1,120 @@
+/*
+ * STG-11. The output's own stylesheet.
+ *
+ * Nothing here is shared with the control surface, because an output is a sign
+ * read from the back of a dark room rather than a user interface. The theme
+ * supplies every value through custom properties, so changing a theme is
+ * changing data rather than editing this file (ST8.2).
+ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--background, #000);
+  cursor: none;
+}
+
+.layer {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: var(--justify, center);
+  justify-content: center;
+  opacity: 0;
+  /* Opacity on two composited layers, so a dissolve never re-rasters the text
+     and never flashes the background through (ST6.5). */
+  transition: opacity var(--transition, 200ms) ease-in-out;
+  will-change: opacity;
+}
+
+.layer.visible {
+  opacity: 1;
+}
+
+.slide {
+  width: 100%;
+  height: 100%;
+  padding: var(--safe-area, 7.5%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: var(--justify, center);
+  gap: 0.6em;
+  font-family: var(--font-family, serif);
+  font-weight: var(--font-weight, 500);
+  font-size: var(--text-size, 7.2vh);
+  line-height: var(--line-height, 1.28);
+  color: var(--colour, #fff);
+  text-align: var(--text-align, center);
+  text-shadow: var(--text-shadow, none);
+  text-wrap: balance;
+}
+
+.lines p {
+  /* A line is a line. It wraps only when the screen genuinely cannot hold it,
+     and a wrapped continuation is indented so it reads as one line (ST6.1). */
+  text-indent: 0;
+}
+
+.lines.translation {
+  font-size: 0.78em;
+  opacity: 0.86;
+}
+
+.scripture p {
+  font-size: 0.82em;
+  text-align: left;
+  max-width: 48ch;
+}
+
+.reference {
+  margin-top: 0.8em;
+  font-size: 0.52em;
+  opacity: 0.72;
+  letter-spacing: 0.04em;
+}
+
+/* Black, clear and logo cover the output without disturbing the slide behind
+   it, so coming back restores the exact slide (ST6.6). */
+.cover {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition, 200ms) ease-in-out;
+}
+
+.cover[data-blank="black"] {
+  background: #000;
+  opacity: 1;
+}
+
+.cover[data-blank="clear"] {
+  background: var(--background, #000);
+  opacity: 1;
+}
+
+.cover[data-blank="logo"] {
+  background: var(--background, #000);
+  opacity: 1;
+}
+
+body.detached::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: #000;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The output's dissolve is content rather than decoration, set by the theme,
+     so it is left alone. The control surface respects the setting (ST20.5). */
+}

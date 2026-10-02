@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'"
+    />
+    <title>Hearth Stage</title>
+    <link rel="stylesheet" href="./control.css" />
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1 id="service">No service open</h1>
+        <p id="service-detail" class="quiet"></p>
+      </div>
+      <div id="status" class="status"></div>
+    </header>
+
+    <main>
+      <section class="deck" aria-label="Deck">
+        <ol id="deck"></ol>
+      </section>
+
+      <section class="stage" aria-label="What is live">
+        <div class="pane">
+          <h2>Live</h2>
+          <div id="live" class="slide live"></div>
+          <p id="live-meta" class="quiet"></p>
+        </div>
+        <div class="pane">
+          <h2>Next</h2>
+          <div id="next" class="slide next"></div>
+          <p id="next-meta" class="quiet"></p>
+        </div>
+        <div class="pane notes">
+          <h2>Notes</h2>
+          <ul id="notes"></ul>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <dl id="keys"></dl>
+    </footer>
+
+    <script type="module" src="./control.ts"></script>
+  </body>
+</html>
