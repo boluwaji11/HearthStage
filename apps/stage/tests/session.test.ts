@@ -10,6 +10,16 @@ import { compileDeck, lookupFrom, type Deck, type ServicePlan } from "@hearth/so
 import { sampleLibrary, sampleService } from "@hearth/songs/fixtures";
 import { Session, contentOf, DEFAULT_THEME } from "../src/main/session";
 
+/** A service with nothing in it, which is what the application starts on. */
+const EMPTY: ServicePlan = {
+  id: "nothing",
+  source: "set_list",
+  title: "",
+  date: "",
+  startsAt: null,
+  items: [],
+};
+
 let deck: Deck;
 let session: Session;
 
@@ -89,6 +99,44 @@ describe("black, clear and logo (ST6.6)", () => {
   it("says nothing changed when the cover is already what was asked for", () => {
     session.apply({ type: "setBlank", blank: "black" });
     expect(session.apply({ type: "setBlank", blank: "black" })).toBe(false);
+  });
+});
+
+/**
+ * STG-22, ST6.6. The three covers, each one keypress, independent of where the
+ * deck is.
+ *
+ * What STG-11 built is above. What this adds is the two cases an operator meets
+ * and a deck test does not: a church with nothing open at all, and the one key
+ * that comes back from whichever cover is up.
+ */
+describe("clearing the room", () => {
+  it("works with no service open, because the room is a room either way", () => {
+    const nothing = new Session(compileDeck(EMPTY, lookupFrom([])), null);
+    expect(nothing.apply({ type: "setBlank", blank: "black" })).toBe(true);
+    expect(nothing.outputState("out").blank).toBe("black");
+    expect(nothing.apply({ type: "toggleBlank", blank: "black" })).toBe(true);
+    expect(nothing.outputState("out").blank).toBe("none");
+  });
+
+  it("comes back from whichever cover is up, on the one key", () => {
+    for (const cover of ["black", "clear", "logo"] as const) {
+      session.apply({ type: "setBlank", blank: cover });
+      expect(session.outputState("out").blank).toBe(cover);
+      expect(session.apply({ type: "setBlank", blank: "none" })).toBe(true);
+      expect(session.outputState("out").blank).toBe("none");
+    }
+  });
+
+  it("leaves the deck where it was through all three", () => {
+    session.apply({ type: "goTo", position: 3 });
+    const before = session.liveCueId();
+    for (const cover of ["black", "clear", "logo"] as const) {
+      session.apply({ type: "setBlank", blank: cover });
+      expect(session.liveCueId()).toBe(before);
+    }
+    session.apply({ type: "setBlank", blank: "none" });
+    expect(session.liveCueId()).toBe(before);
   });
 });
 

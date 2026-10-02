@@ -128,7 +128,7 @@ thing a person does with Stage and until now there was no way to do it. See
 | ID | Story | Req | State |
 |---|---|---|---|
 | STG-21 | Build the control surface: live slide, next slide, the deck, keyboard only | ST12.1, ST12.2 | Resolved |
-| STG-22 | Make black, clear and logo each one keypress, restoring the exact slide | ST6.6 | New |
+| STG-22 | Make black, clear and logo each one keypress, restoring the exact slide. The logo is the church's own file, chosen in Settings | ST6.6 | Resolved |
 | STG-23 | Make advance idempotent under key repeat | ST12.4 | New |
 | STG-24 | Reorder, skip and repeat a cue for this run, leaving the set list untouched | ST5.7 | New |
 | STG-25 | Keep the library, import and theme editing out of the live surface | ST12.3, ST2.15 | New |
@@ -472,8 +472,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-22** onward, the live surface: the three blanks on one keypress, and advance under key repeat. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-23**, advance made idempotent under key repeat. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1486,3 +1486,39 @@ most needs them told apart.
 The id in that file is for the church's device list when pairing arrives (ST1.6), and it stays the
 same across runs so a renamed laptop is still the same laptop. The token that proves this machine is
 the church's goes in the keychain with ST1.5, and nothing here is a step towards signing in.
+
+## STG-22, how to test it
+
+Black and clear were already one keypress each. The key marked L showed the same thing as C, because
+there was no logo to show, and that is what this story fixes.
+
+**The mark is the church's own, and nothing ships a default.** A screen at the front of somebody's
+building is not a place to put our name. A church with no logo gets the ground, which is what the key
+did before.
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+- Press **Slides**, then **Settings**, then **Choose a file** and pick a PNG. It appears as a preview
+  under the word Logo.
+- Go back to the service and press **L**. The room shows the mark, centred, on the service's ground.
+  The Live pane shows the same thing, because both windows draw the cover through one function.
+- Press **L** again, or **Esc**. The exact slide is back. It never left: the cover goes transparent
+  over a slide that was never taken down, which is what "restores the exact slide" means.
+- Press **B** then **L** then **C** without pressing Esc between them. Each one is one press.
+- Press **B** on the start screen, with no service open at all. The room goes black. The three covers
+  are independent of where the deck is, including nowhere.
+- Press **Remove** in Settings. **L** goes back to showing the ground.
+- Move the file you chose to the wastebasket and restart. The mark is still there, because Stage kept
+  a copy. A path into a folder somebody tidies is a blank screen at 10:28.
+
+**Eleven new tests.** The ones that matter: a file that is not a picture is refused, one over four
+megabytes is refused, a file that cannot be read is refused by name rather than silently, a second
+logo removes the first so two files cannot both claim to be the mark, and a logo that has gone missing
+falls back to the ground rather than putting a broken image on a wall.
+
+**The logo goes down its own channel** rather than on the state. It is a picture that changes once in
+a year and the state goes down behind every keypress, so carrying it there would put a megabyte on the
+wire between a key and a pixel. That makes six channels, and the count is asserted, because a channel
+is the whole surface a sandboxed window can reach.

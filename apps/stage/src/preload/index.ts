@@ -2,7 +2,7 @@
  * STG-11. The only door between a window and the application.
  *
  * Renderers run sandboxed with context isolation and no node integration, so
- * this file is the entire surface a window can reach. Five named channels, and
+ * this file is the entire surface a window can reach. Six named channels, and
  * that is the whole of it: the filesystem, the database and `ipcRenderer` stay
  * on the other side, and a channel absent from the list cannot be named.
  *
@@ -38,6 +38,7 @@ const bridge: StageBridge = {
   onOutputState: (listener) => subscribe<OutputState>(CHANNELS.outputState, listener),
   onControlState: (listener) => subscribe<ControlState>(CHANNELS.controlState, listener),
   onEditorState: (listener) => subscribe<EditorState>(CHANNELS.editorState, listener),
+  onLogo: (listener) => subscribe<string | null>(CHANNELS.logo, listener),
   hello: () => ipcRenderer.invoke(CHANNELS.hello),
 };
 

@@ -80,3 +80,17 @@
   background-image: var(--background, none);
   opacity: 1;
 }
+
+/* The church's mark, centred and never stretched. Half the height, so it sits
+   inside the safe area on any display (ST20.4). */
+.cover[data-blank="logo"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cover-logo {
+  max-width: 60%;
+  max-height: 50%;
+  object-fit: contain;
+}

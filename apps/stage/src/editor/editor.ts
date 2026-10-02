@@ -90,6 +90,9 @@ const el = {
   settingsBack: document.getElementById("settings-back") as HTMLButtonElement,
   deviceName: document.getElementById("device-name") as HTMLInputElement,
   devicePlatform: document.getElementById("device-platform") as HTMLParagraphElement,
+  chooseLogo: document.getElementById("choose-logo") as HTMLButtonElement,
+  removeLogo: document.getElementById("remove-logo") as HTMLButtonElement,
+  logoPreview: document.getElementById("logo-preview") as HTMLImageElement,
   present: document.getElementById("present") as HTMLButtonElement,
 };
 
@@ -125,6 +128,8 @@ let dropAt: number | null = null;
 let copied: SlideDraft | null = null;
 /** A pasted block, waiting for somebody to say whether the split is right. */
 let proposal: { index: number; split: SplitProposal; text: string } | null = null;
+/** The church's logo, pushed on its own channel (STG-22). */
+let logo: string | null = null;
 /** True while the machine's name is on screen (STG-14). */
 let settingsOpen = false;
 /** Slides whose note box is open although the note is still empty. */
@@ -1101,6 +1106,12 @@ function renderDevice(): void {
     linux: "platform.linux",
   };
   el.devicePlatform.textContent = t(known[device.platform] ?? "platform.unknown");
+
+  // The mark the room sees when the operator presses L, shown rather than
+  // described, because a church choosing a file wants to see what they chose.
+  el.logoPreview.hidden = logo === null;
+  el.logoPreview.src = logo ?? "";
+  el.removeLogo.hidden = logo === null;
 }
 
 function renameMachine(): void {
@@ -1193,6 +1204,8 @@ el.addOrder.addEventListener("click", addOrder);
 el.addSamples.addEventListener("click", () => send({ type: "addSamples" }));
 el.settings.addEventListener("click", () => showSettings(true));
 el.settingsBack.addEventListener("click", () => showSettings(false));
+el.chooseLogo.addEventListener("click", () => send({ type: "chooseLogo" }));
+el.removeLogo.addEventListener("click", () => send({ type: "removeLogo" }));
 el.deviceName.addEventListener("blur", renameMachine);
 el.deviceName.addEventListener("keydown", (event) => {
   if (event.key !== "Enter") return;
@@ -1223,6 +1236,10 @@ window.addEventListener("blur", commit);
 
 if (bridge !== undefined) {
   bridge.onEditorState(paint);
+  bridge.onLogo((mark) => {
+    logo = mark;
+    renderDevice();
+  });
   void bridge.hello().then((hello) => {
     if (hello.editor !== null) paint(hello.editor);
   });

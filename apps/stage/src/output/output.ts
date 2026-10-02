@@ -12,7 +12,7 @@
 
 import type { OutputState } from "@hearth/stage-protocol";
 import { FitCache } from "./fit";
-import { applyTheme, createRuler, renderSlide, sizeFor } from "./slide";
+import { applyTheme, createRuler, renderSlide, sizeFor, coverInto } from "./slide";
 
 const layers = [
   document.getElementById("layer-a") as HTMLDivElement,
@@ -26,6 +26,8 @@ let painted = -1;
 const fitCache = new FitCache();
 const ruler = createRuler();
 let lastState: OutputState | null = null;
+/** The church's logo, pushed on its own channel (STG-22). */
+let logo: string | null = null;
 
 function paint(state: OutputState): void {
   // A revision older than what is on screen is a message that arrived late.
@@ -42,7 +44,7 @@ function paint(state: OutputState): void {
     size === null ? `${state.theme.textSize * 100}vh` : `${size}px`,
   );
 
-  cover.dataset["blank"] = state.blank;
+  coverInto(cover, state.blank, logo);
 
   const back = layers[1 - front] as HTMLDivElement;
   const fore = layers[front] as HTMLDivElement;
@@ -73,6 +75,12 @@ if (bridge === undefined) {
   document.body.classList.add("detached");
 } else {
   bridge.onOutputState(paint);
+  bridge.onLogo((mark) => {
+    logo = mark;
+    // Redrawn only while it is the thing on screen. A logo arriving behind a
+    // live slide changes nothing a room can see.
+    if (lastState !== null) coverInto(cover, lastState.blank, logo);
+  });
   void bridge.hello().then((state) => {
     if (state.output !== null) paint(state.output);
   });

@@ -12,7 +12,7 @@
 
 import type { Blank, ControlState, CueView, Intent, SlideView } from "@hearth/stage-protocol";
 import { FitCache } from "../output/fit";
-import { applyTheme, createRuler, renderSlide, sizeFor } from "../output/slide";
+import { applyTheme, createRuler, renderSlide, sizeFor, coverInto } from "../output/slide";
 import { fillText, plural, t, type MessageKey } from "../shared/text";
 
 const bridge = window.hearth;
@@ -90,6 +90,11 @@ function send(intent: Intent): void {
   bridge?.send(intent);
 }
 
+/** The church's logo, pushed on its own channel (STG-22). */
+let logo: string | null = null;
+/** The last state painted, so a logo arriving later can be drawn into it. */
+let latest: ControlState | null = null;
+
 const fitCache = new FitCache();
 const ruler = createRuler();
 
@@ -123,7 +128,7 @@ function paintPane(target: HTMLElement, view: SlideView | null, blank: Blank): v
   // will put there, which is the slide rather than the black over it.
   const cover = document.createElement("div");
   cover.className = "cover";
-  cover.dataset["blank"] = blank;
+  coverInto(cover, blank, logo);
   target.append(cover);
 }
 
@@ -178,6 +183,7 @@ function metaFor(state: ControlState, cue: CueView | null): string {
 }
 
 function paint(state: ControlState): void {
+  latest = state;
   // Nothing open means a church that has not started yet, or one between
   // services. Either way the three ways in belong on the screen rather than an
   // empty deck (STG-149, ST1.2).
@@ -435,6 +441,10 @@ window.addEventListener("keydown", onKey);
 
 if (bridge !== undefined) {
   bridge.onControlState(paint);
+  bridge.onLogo((mark) => {
+    logo = mark;
+    if (latest !== null) paint(latest);
+  });
   void bridge.hello().then((state) => {
     if (state.control !== null) paint(state.control);
   });

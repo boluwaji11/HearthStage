@@ -11,7 +11,7 @@
  * `OutputContent` and a `ThemeState` and returns elements.
  */
 
-import { gradientCss, type OutputContent, type ThemeState } from "@hearth/stage-protocol";
+import { gradientCss, type Blank, type OutputContent, type ThemeState } from "@hearth/stage-protocol";
 import { FitCache, safeBox, type Box, type Measure } from "./fit";
 
 /** The theme, as the custom properties slide.css reads. */
@@ -146,4 +146,29 @@ export function sizeFor(
       maxPx: theme.textSize * viewport.height,
     },
   );
+}
+
+/**
+ * What goes over the slide when the operator clears the room (STG-22, ST6.6).
+ *
+ * The slide stays underneath untouched, so coming back is a cover going
+ * transparent rather than a slide being rendered again. That is what "restores
+ * the exact slide" means: there is nothing to restore, because nothing left.
+ *
+ * Here rather than in each window, so the operator's live pane and the wall
+ * cannot draw the same blank two ways.
+ */
+export function coverInto(cover: HTMLElement, blank: Blank, logo: string | null): void {
+  cover.dataset["blank"] = blank;
+  cover.replaceChildren();
+  // A church with no logo gets the ground, which is what the key did before
+  // there was a logo to show. Nothing ships a default, because a screen at the
+  // front of somebody's building is not a place to put our name.
+  if (blank !== "logo" || logo === null) return;
+
+  const mark = document.createElement("img");
+  mark.className = "cover-logo";
+  mark.src = logo;
+  mark.alt = "";
+  cover.append(mark);
 }

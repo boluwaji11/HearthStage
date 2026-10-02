@@ -175,6 +175,9 @@ export const en = {
   "platform.win32": "Windows",
   "platform.linux": "Linux",
   "platform.unknown": "Unknown",
+  "settings.logo": "Logo",
+  "settings.chooseLogo": "Choose a file",
+  "settings.removeLogo": "Remove",
 
   // The looks
   "theme.hearth": "Hearth",

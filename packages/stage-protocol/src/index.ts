@@ -327,6 +327,8 @@ export interface EditorState {
    * church's device list shows once pairing arrives.
    */
   device: { name: string; platform: string };
+  /** Whether the church has given Stage a logo (STG-22, ST6.6). */
+  hasLogo: boolean;
   /**
    * Hymns Stage can put in the library, that are not in it yet (STG-10).
    *
@@ -389,6 +391,9 @@ export type Intent =
   | { type: "addSamples" }
   /** Rename this machine (STG-14, ST1.9). A blank name is refused. */
   | { type: "renameDevice"; name: string }
+  /** Choose the church's logo, for the key that clears the room (STG-22). */
+  | { type: "chooseLogo" }
+  | { type: "removeLogo" }
   /** Puts the service away, back to the three ways in (STG-149, ST1.2). */
   | { type: "closeService" }
   | { type: "presentNow"; presentationId: string };
@@ -411,6 +416,13 @@ export const CHANNELS = {
   controlState: "hearth:control-state",
   /** Main to the editor renderer: new state. */
   editorState: "hearth:editor-state",
+  /**
+   * Main to every window: the church's logo, as a data URL (STG-22).
+   *
+   * Its own channel rather than a field on the state, because it is a picture
+   * that changes once in a year and the state goes down behind every keypress.
+   */
+  logo: "hearth:logo",
   /** Renderer to main, invoked once on load, to get current state. */
   hello: "hearth:hello",
 } as const;
@@ -467,6 +479,8 @@ export function isIntent(value: unknown): value is Intent {
     case "closeItem":
     case "closeService":
     case "addSamples":
+    case "chooseLogo":
+    case "removeLogo":
       return true;
     case "saveSong":
       return (
@@ -580,6 +594,8 @@ export interface StageBridge {
   onOutputState(listener: (state: OutputState) => void): () => void;
   onControlState(listener: (state: ControlState) => void): () => void;
   onEditorState(listener: (state: EditorState) => void): () => void;
+  /** The church's logo as a data URL, or null where there is none (STG-22). */
+  onLogo(listener: (logo: string | null) => void): () => void;
   hello(): Promise<{
     output: OutputState | null;
     control: ControlState | null;

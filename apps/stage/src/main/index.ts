@@ -13,7 +13,7 @@
 
 import { existsSync, mkdirSync, renameSync } from "node:fs";
 import { join } from "node:path";
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, type OpenDialogOptions } from "electron";
 import {
   CHANNELS,
   isIntent,
@@ -31,6 +31,7 @@ import { APP_NAME, OLD_FOLDER, relocation } from "./userdata";
 import { Session } from "./session";
 import { hostname } from "node:os";
 import { openDevice, renameDevice } from "./device";
+import { readLogo, removeLogo, setLogo } from "./branding";
 import {
   createControlWindow,
   createEditorWindow,
@@ -148,6 +149,45 @@ let device = openDevice(app.getPath("userData"), {
   platform: process.platform,
 });
 presentations.device({ name: device.name, platform: device.platform });
+
+/**
+ * The church's logo, for the key that clears the room (STG-22, ST6.6).
+ *
+ * Read once and held, rather than carried on the state, because it is a picture
+ * that changes once in a year and the state goes down behind every keypress.
+ */
+let logo: string | null = readLogo(app.getPath("userData"));
+presentations.branding(logo !== null);
+
+function sendLogo(): void {
+  for (const [, entry] of outputs) {
+    if (!entry.window.isDestroyed()) entry.window.webContents.send(CHANNELS.logo, logo);
+  }
+  if (control !== null && !control.isDestroyed()) control.webContents.send(CHANNELS.logo, logo);
+  if (editor !== null && !editor.isDestroyed()) editor.webContents.send(CHANNELS.logo, logo);
+}
+
+/** A church choosing their mark. Nothing ships one, because it is theirs. */
+async function chooseLogo(): Promise<void> {
+  const parent = editor ?? control;
+  const options: OpenDialogOptions = {
+    properties: ["openFile"],
+    filters: [{ name: "Image", extensions: ["png", "jpg", "jpeg", "webp", "gif", "svg"] }],
+  };
+  const chosen =
+    parent === null || parent.isDestroyed()
+      ? await dialog.showOpenDialog(options)
+      : await dialog.showOpenDialog(parent, options);
+  const file = chosen.filePaths[0];
+  if (chosen.canceled || file === undefined) return;
+
+  const refused = setLogo(app.getPath("userData"), file);
+  if (refused !== null) return;
+  logo = readLogo(app.getPath("userData"));
+  presentations.branding(logo !== null);
+  sendLogo();
+  broadcast();
+}
 
 // Compiled from the library on disk rather than from the fixtures, so what the
 // list shows and what the service presents are the same records.
@@ -343,6 +383,17 @@ app.whenReady().then(() => {
         broadcast();
         return;
       }
+      case "chooseLogo":
+        void chooseLogo();
+        return;
+      case "removeLogo": {
+        if (!removeLogo(app.getPath("userData"))) return;
+        logo = null;
+        presentations.branding(false);
+        sendLogo();
+        broadcast();
+        return;
+      }
       case "presentNow":
         if (presentNow(payload.presentationId)) broadcast();
         return;
@@ -361,6 +412,9 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle(CHANNELS.hello, (event) => {
+    // Every window asks once on the way up, which is the moment to hand it the
+    // picture it cannot ask for.
+    event.sender.send(CHANNELS.logo, logo);
     const entry = [...outputs.entries()].find(
       ([, candidate]) => candidate.window.webContents.id === event.sender.id,
     );

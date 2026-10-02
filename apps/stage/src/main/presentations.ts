@@ -83,6 +83,8 @@ export class Presentations {
   private revision = 0;
   /** This machine (STG-14). Set on the way up, and again on a rename. */
   private machine: EditorState["device"] = { name: "Stage", platform: process.platform };
+  /** Whether the church has given Stage a logo (STG-22). */
+  private logo = false;
 
   constructor(library: PresentationLibrary, options: PresentationsOptions = {}) {
     this.library = library;
@@ -92,6 +94,12 @@ export class Presentations {
   /** What the window shows as the name of this laptop. */
   device(machine: EditorState["device"]): void {
     this.machine = machine;
+    this.revision += 1;
+  }
+
+  /** Whether there is a logo to show on the key that clears the room. */
+  branding(hasLogo: boolean): void {
+    this.logo = hasLogo;
     this.revision += 1;
   }
 
@@ -305,6 +313,7 @@ export class Presentations {
       ),
       editing: this.open(),
       device: this.machine,
+      hasLogo: this.logo,
       samples: this.samplesLeft(),
       problems: this.problems,
       presentingId,

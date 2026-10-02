@@ -102,8 +102,11 @@ describe("channels", () => {
     }
   });
 
-  it("names five, and they all start with the product", () => {
-    expect(ALL_CHANNELS).toHaveLength(5);
+  it("names six, and they all start with the product", () => {
+    // The count is asserted on purpose. A channel is the whole surface a
+    // sandboxed window can reach, so one arriving without anybody noticing is
+    // the thing this test exists to stop.
+    expect(ALL_CHANNELS).toHaveLength(6);
     expect(ALL_CHANNELS.every((channel) => channel.startsWith("hearth:"))).toBe(true);
     expect(CHANNELS.intent).toBe("hearth:intent");
   });
