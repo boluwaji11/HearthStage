@@ -11,75 +11,75 @@
   </head>
   <body>
     <!-- The library. What the window opens on. -->
-    <section id="library-view" class="view library-view" aria-label="Library">
+    <section id="library-view" class="view library-view" data-t-label="library.title">
       <header>
-        <button id="to-service" type="button" class="back">Service</button>
-        <h1>Slides</h1>
+        <button id="to-service" type="button" class="back" data-t="library.service"></button>
+        <h1 data-t="library.title"></h1>
         <div class="field search-field">
-          <label for="search">Search</label>
+          <label for="search" data-t="library.search"></label>
           <input id="search" type="search" autocomplete="off" />
         </div>
         <button id="add-samples" type="button" hidden></button>
-        <button id="new" type="button" class="primary">New</button>
+        <button id="new" type="button" class="primary" data-t="library.new"></button>
       </header>
       <div class="tiles-wrap">
         <ol id="tiles" class="tiles"></ol>
-        <p id="library-empty" class="quiet empty">Nothing saved yet</p>
+        <p id="library-empty" class="quiet empty"></p>
       </div>
     </section>
 
     <!-- One thing, open. -->
-    <section id="edit-view" class="view edit-view" aria-label="Edit" hidden>
+    <section id="edit-view" class="view edit-view" data-t-label="editor.back" hidden>
       <header>
-        <button id="back" type="button" class="back">All slides</button>
+        <button id="back" type="button" class="back" data-t="editor.back"></button>
         <div class="field">
-          <label for="theme">Look</label>
+          <label for="theme" data-t="editor.look"></label>
           <select id="theme"></select>
         </div>
-        <button id="present" type="button">Present</button>
+        <button id="present" type="button" data-t="editor.present"></button>
       </header>
 
       <div class="edit-body">
         <div class="field">
-          <label for="title">Title</label>
+          <label for="title" data-t="editor.title"></label>
           <input id="title" type="text" autocomplete="off" spellcheck="false" />
         </div>
 
         <div id="credits" class="credits" hidden>
           <div class="field">
-            <label for="author">Author</label>
+            <label for="author" data-t="editor.author"></label>
             <input id="author" type="text" autocomplete="off" />
           </div>
           <div class="field">
-            <label for="year">Year</label>
+            <label for="year" data-t="editor.year"></label>
             <input id="year" type="text" inputmode="numeric" autocomplete="off" />
           </div>
           <div class="field">
-            <label for="ccli">CCLI number</label>
+            <label for="ccli" data-t="editor.ccli"></label>
             <input id="ccli" type="text" inputmode="numeric" autocomplete="off" />
           </div>
           <div class="field grow">
-            <label for="copyright">Copyright line</label>
+            <label for="copyright" data-t="editor.copyright"></label>
             <input id="copyright" type="text" autocomplete="off" />
           </div>
           <label class="check" for="public-domain">
             <input id="public-domain" type="checkbox" />
-            Public domain
+            <span data-t="editor.publicDomain"></span>
           </label>
         </div>
 
         <ol id="slides" class="slides"></ol>
 
         <div class="add">
-          <button id="add" type="button" class="primary">Add slide</button>
-          <button id="paste" type="button" hidden>Paste slide</button>
+          <button id="add" type="button" class="primary" data-t="editor.addSlide"></button>
+          <button id="paste" type="button" hidden data-t="editor.pasteSlide"></button>
         </div>
 
         <!-- The ways a song is sung (STG-9). Absent on a sheet of slides. -->
-        <section id="orders" class="orders" aria-label="Orders" hidden>
-          <h2>Orders</h2>
+        <section id="orders" class="orders" data-t-label="orders.heading" hidden>
+          <h2 data-t="orders.heading"></h2>
           <ol id="order-list" class="order-list"></ol>
-          <button id="add-order" type="button">Add order</button>
+          <button id="add-order" type="button" data-t="orders.add"></button>
         </section>
 
         <ul id="problems" class="problems"></ul>
@@ -89,9 +89,9 @@
         <p id="status" class="quiet"></p>
         <p id="undone" class="undone" hidden>
           <span id="undone-what"></span>
-          <button id="undo" type="button">Undo</button>
+          <button id="undo" type="button" data-t="editor.undo"></button>
         </p>
-        <p class="quiet keys">Cmd and Return adds a slide</p>
+        <p class="quiet keys" data-t="editor.keyHint"></p>
       </footer>
     </section>
 

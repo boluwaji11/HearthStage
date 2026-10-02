@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@hearth/songs": "workspace:*",
+    "@hearth/stage-i18n": "workspace:*",
     "@hearth/stage-protocol": "workspace:*",
     "@hearth/stage-store": "workspace:*",
     "better-sqlite3": "^11.7.0"

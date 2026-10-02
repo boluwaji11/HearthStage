@@ -36,6 +36,7 @@ import type {
 } from "@hearth/stage-protocol";
 import { BUILT_IN_THEMES, hasTheme } from "./themes";
 import { fieldsOf, orderDrafts, sectionDrafts, songFrom } from "./songs";
+import { t } from "@hearth/stage-i18n";
 
 /** What this needs from the library. `Library` from the store satisfies it. */
 export interface PresentationLibrary {
@@ -274,7 +275,7 @@ export class Presentations {
       themes: BUILT_IN_THEMES.map(
         (entry): ThemeChoice => ({
           id: entry.theme.id,
-          name: entry.name,
+          name: t(entry.name),
           background: entry.theme.background,
           gradient: entry.theme.gradient,
           colour: entry.theme.colour,

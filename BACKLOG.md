@@ -109,7 +109,7 @@ thing a person does with Stage and until now there was no way to do it. See
 |---|---|---|---|
 | STG-11 | Scaffold `apps/stage`: Electron, sandboxed renderers, context isolation, CSP, a preload channel allowlist | ST21.8 | Resolved |
 | STG-12 | Define `packages/stage-protocol`: `OutputState` down, intents up, typed both ways | ST19.1 | Resolved |
-| STG-13 | Wire `packages/i18n` into Stage with its own namespace, and a test that fails the build on copy written inline | ST17.4, ST21.9 | New |
+| STG-13 | `packages/stage-i18n`: every word Stage shows in one catalogue, typed keys, and a test that fails the build on copy written inline | ST17.4, ST21.9 | Resolved |
 | STG-14 | Open Stage with no sign-in, reaching a usable library in under a minute, and name the device after the machine | ST1.1, ST1.9 | New |
 | STG-15 | Open an output window fullscreen on a display chosen by identity, with the cursor hidden and the display kept awake | ST10.1, ST10.2 | Resolved |
 
@@ -472,8 +472,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-11** onward, the Electron shell. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-14**, opening Stage with no sign-in and naming the device after the machine. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1410,3 +1410,41 @@ cd apps/stage && npx electron . --user-data-dir=/tmp/hearth-trial
 deck with no problems, every one is marked public domain, no two share an id, and no verse has an
 empty line. A church presses one button, so a hymn nobody typed has to be as sound as one somebody
 did.
+
+## STG-13, how to test it
+
+Nothing moves on the screen. Every word is in the same place, in the same font, saying the same thing.
+That is the whole test, and it is why this is worth doing now rather than at the first translation: the
+cost of pulling copy out of a window grows with the number of windows.
+
+**Stage has its own catalogue rather than the platform's.** The two run in different processes, ship on
+different days, and talk about different things. One says "Add a household" and the other says "Black
+the screen". A shared file would be a merge conflict between two products on every release, and a
+translator would be handed a thousand strings to find the forty that are on a laptop at the front of a
+church.
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+- Every button, label and heading reads as it did. The service window, the Slides window, the editor,
+  the orders panel, the key brief along the bottom.
+- Open a service with a problem in it. The red strip still says what is wrong in a sentence.
+- The look picker still names the four looks.
+- Count the slides on something. "4 slides" with an s, "1 slide" without one, which is now the
+  language's own rule rather than a ternary in a renderer.
+
+**Three guards, in `apps/stage/tests/copy.test.ts`.** A word typed into a window fails the build and
+names the file and the line:
+
+1. **Nothing assigns copy in the source.** `textContent`, `title`, `placeholder`, `aria-label` and
+   `createTextNode` are all checked.
+2. **Nothing writes copy in the markup.** The HTML carries `data-t="library.new"` and the words arrive
+   from the catalogue, so the markup is the shape of the screen and nothing else.
+3. **Every key in the markup exists.** An attribute is a string, so the compiler cannot check it the
+   way it checks `t("...")`, and a renamed key would otherwise be a blank button that nothing reports.
+
+**The main process stores two words that look like copy and are not**: an order called "As written",
+and the "Order 2" a blank name becomes. Both are written into the library and read back as data.
+Translating them would rewrite a church's records when they changed language, so they stay where they
+are, and the guard covers the windows rather than the whole application.

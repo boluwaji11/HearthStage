@@ -25,6 +25,7 @@
  */
 
 import type { ThemeState } from "@hearth/stage-protocol";
+import type { MessageKey } from "@hearth/stage-i18n";
 
 const SERIF =
   '"Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif';
@@ -134,15 +135,15 @@ const STRONG: ThemeState = {
 
 export interface BuiltInTheme {
   theme: ThemeState;
-  /** What it is called in the picker. */
-  name: string;
+  /** What it is called in the picker, as a key into the catalogue (STG-13). */
+  name: MessageKey;
 }
 
 export const BUILT_IN_THEMES: BuiltInTheme[] = [
-  { theme: DEFAULT_THEME, name: "Hearth" },
-  { theme: PLAIN, name: "Plain" },
-  { theme: DAYLIGHT, name: "Daylight" },
-  { theme: STRONG, name: "Strong" },
+  { theme: DEFAULT_THEME, name: "theme.hearth" },
+  { theme: PLAIN, name: "theme.plain" },
+  { theme: DAYLIGHT, name: "theme.daylight" },
+  { theme: STRONG, name: "theme.strong" },
 ];
 
 const BY_ID = new Map(BUILT_IN_THEMES.map((entry) => [entry.theme.id, entry.theme]));

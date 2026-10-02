@@ -20,6 +20,9 @@ importers:
       '@hearth/songs':
         specifier: workspace:*
         version: link:../../packages/songs
+      '@hearth/stage-i18n':
+        specifier: workspace:*
+        version: link:../../packages/stage-i18n
       '@hearth/stage-protocol':
         specifier: workspace:*
         version: link:../../packages/stage-protocol
@@ -66,6 +69,15 @@ importers:
       tsx:
         specifier: ^4.19.2
         version: 4.23.15
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.5)
+
+  packages/stage-i18n:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.5
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.5)

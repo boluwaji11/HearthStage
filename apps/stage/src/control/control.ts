@@ -13,6 +13,7 @@
 import type { Blank, ControlState, CueView, Intent, SlideView } from "@hearth/stage-protocol";
 import { FitCache } from "../output/fit";
 import { applyTheme, createRuler, renderSlide, sizeFor } from "../output/slide";
+import { fillText, plural, t, type MessageKey } from "../shared/text";
 
 const bridge = window.hearth;
 
@@ -46,28 +47,27 @@ const el = {
  * the typed catalogue in is part of the render stories.
  */
 function problemSays(code: string, item: string): string {
-  const named = item === "" ? "An item" : `"${item}"`;
+  const named = item === "" ? t("problem.anItem") : t("problem.named", { item });
   switch (code) {
     case "item.song.missing":
-      return `${named} is not in the library`;
     case "item.presentation.missing":
-      return `${named} is not in the library`;
+      return t("problem.notInLibrary", { item: named });
     case "item.song.noSlides":
-      return `${named} has no words to put on the screen`;
+      return t("problem.noWords", { item: named });
     case "item.presentation.noSlides":
-      return `${named} has no slides yet`;
+      return t("problem.noSlides", { item: named });
     case "item.scripture.empty":
-      return `${named} has no text`;
+      return t("problem.noText", { item: named });
     case "arrangement.none":
-      return `${named} has no arrangement`;
+      return t("problem.noArrangement", { item: named });
     case "arrangement.unknown":
-      return `${named} asks for an arrangement that is not there`;
+      return t("problem.unknownArrangement", { item: named });
     case "sequence.empty":
-      return `${named} has an arrangement with no order in it`;
+      return t("problem.emptySequence", { item: named });
     case "sequence.unknownLabel":
-      return `${named} has an order naming a section it does not have`;
+      return t("problem.unknownLabel", { item: named });
     default:
-      return `${named} has a problem (${code})`;
+      return t("problem.unknownCode", { item: named, code });
   }
 }
 
@@ -77,13 +77,13 @@ function problemSays(code: string, item: string): string {
  * This is what the sixteen year old reads at 10:28, so it is four keys and it
  * is always visible.
  */
-const KEYS: [string, string][] = [
-  ["Space  or  →", "Next"],
-  ["←", "Back"],
-  ["B", "Black the screen"],
-  ["C", "Clear the words"],
-  ["L", "Logo"],
-  ["Esc", "Back to the slide"],
+const KEYS: [MessageKey, MessageKey][] = [
+  ["keys.next", "keys.next.meaning"],
+  ["keys.back", "keys.back.meaning"],
+  ["keys.black", "keys.black.meaning"],
+  ["keys.clear", "keys.clear.meaning"],
+  ["keys.logo", "keys.logo.meaning"],
+  ["keys.escape", "keys.escape.meaning"],
 ];
 
 function send(intent: Intent): void {
@@ -143,7 +143,7 @@ function markerInto(target: HTMLElement, cue: CueView | null, state: ControlStat
 
   const quiet = document.createElement("p");
   quiet.className = "marker-quiet";
-  quiet.textContent = "Nothing on the screen";
+  quiet.textContent = t("control.nothingOnScreen");
 
   const over = document.createElement("div");
   over.className = "pane-marker";
@@ -156,20 +156,25 @@ function groupTitle(state: ControlState, groupId: string): string {
 }
 
 function metaFor(state: ControlState, cue: CueView | null): string {
-  if (cue === null) return "End of the service";
+  if (cue === null) return t("control.endOfService");
   const group = state.groups.find((candidate) => candidate.id === cue.groupId);
   const parts: string[] = [];
   if (group !== undefined) parts.push(group.title);
   if (cue.label !== null) {
     parts.push(
       cue.occurrencesTotal > 1
-        ? `${cue.label}, ${cue.occurrence} of ${cue.occurrencesTotal}`
+        ? t("cue.occurrence", {
+            label: cue.label,
+            occurrence: cue.occurrence,
+            total: cue.occurrencesTotal,
+          })
         : cue.label,
     );
   }
-  if (cue.slideCount > 1) parts.push(`slide ${cue.slideIndex + 1} of ${cue.slideCount}`);
-  if (group?.key != null) parts.push(`key of ${group.key}`);
-  return parts.join("  ·  ");
+  if (cue.slideCount > 1)
+    parts.push(t("cue.slideOf", { at: cue.slideIndex + 1, count: cue.slideCount }));
+  if (group?.key != null) parts.push(t("cue.key", { key: group.key }));
+  return parts.join(t("control.separator"));
 }
 
 function paint(state: ControlState): void {
@@ -187,7 +192,11 @@ function paint(state: ControlState): void {
   el.serviceDetail.textContent =
     state.service === null
       ? ""
-      : `${state.service.date}  ·  ${state.service.source === "set_list" ? "Stage set list" : "Hearth plan"}  ·  ${state.cues.length} cues`;
+      : [
+          state.service.date,
+          t(state.service.source === "set_list" ? "control.setList" : "control.hearthPlan"),
+          plural("control.cues", state.cues.length),
+        ].join(t("control.separator"));
 
   // What is live, whether the output is black, and the time, visible at all
   // times (ST12.6).
@@ -197,25 +206,25 @@ function paint(state: ControlState): void {
   blank.dataset["blank"] = state.blank;
   blank.textContent =
     state.blank === "none"
-      ? "On screen"
+      ? t("status.onScreen")
       : state.blank === "black"
-        ? "Black"
+        ? t("status.black")
         : state.blank === "clear"
-          ? "Cleared"
-          : "Logo";
+          ? t("status.cleared")
+          : t("status.logo");
   el.status.append(blank);
 
   for (const output of state.outputs) {
     const chip = document.createElement("span");
     chip.className = "chip quiet-chip";
-    chip.textContent = `${output.name}: ${output.display}`;
+    chip.textContent = t("status.output", { name: output.name, display: output.display });
     el.status.append(chip);
   }
 
   if (state.problems.length > 0) {
     const chip = document.createElement("span");
     chip.className = "chip problem";
-    chip.textContent = `${state.problems.length} problem${state.problems.length === 1 ? "" : "s"}`;
+    chip.textContent = plural("status.problems", state.problems.length);
     el.status.append(chip);
   }
 
@@ -246,7 +255,7 @@ function paint(state: ControlState): void {
     const item = document.createElement("li");
     const where = document.createElement("span");
     where.className = "note-position";
-    where.textContent = "this slide";
+    where.textContent = t("control.notes.here");
     item.append(where, document.createTextNode(live.note));
     el.notes.append(item);
   }
@@ -265,7 +274,7 @@ function paint(state: ControlState): void {
   if (el.notes.children.length === 0) {
     const item = document.createElement("li");
     item.className = "quiet";
-    item.textContent = "None";
+    item.textContent = t("control.notes.none");
     el.notes.append(item);
   }
 
@@ -287,7 +296,7 @@ function paint(state: ControlState): void {
     if (facts.length > 0) {
       const detail = document.createElement("span");
       detail.className = "group-facts";
-      detail.textContent = facts.join("  ·  ");
+      detail.textContent = facts.join(t("control.separator"));
       heading.append(detail);
     }
     groupItem.append(heading);
@@ -331,7 +340,7 @@ function paint(state: ControlState): void {
       if (cue.slideCount > 1) {
         const of = document.createElement("span");
         of.className = "cue-of";
-        of.textContent = `${cue.slideIndex + 1}/${cue.slideCount}`;
+        of.textContent = t("cue.slideCount", { at: cue.slideIndex + 1, count: cue.slideCount });
         button.append(of);
       }
 
@@ -350,9 +359,9 @@ function brief(): void {
   el.keys.replaceChildren();
   for (const [key, meaning] of KEYS) {
     const term = document.createElement("dt");
-    term.textContent = key;
+    term.textContent = t(key);
     const detail = document.createElement("dd");
-    detail.textContent = meaning;
+    detail.textContent = t(meaning);
     el.keys.append(term, detail);
   }
 }
@@ -412,6 +421,8 @@ function onKey(event: KeyboardEvent): void {
   }
 }
 
+// The words, before anything paints over them (STG-13).
+fillText();
 brief();
 // The one thing on this surface that is not an advance. It opens a window and
 // changes nothing on the wall, so it is safe to have in reach (ST12.3).

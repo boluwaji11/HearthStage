@@ -52,6 +52,7 @@ import {
   type ThemeChoice,
 } from "@hearth/stage-protocol";
 import { icon } from "./icons";
+import { fillText, plural, t, type MessageKey } from "../shared/text";
 
 const bridge = window.hearth;
 
@@ -241,7 +242,10 @@ function pasteSlide(): void {
 function removeSlide(index: number): void {
   if (draft === null || draft.readOnly) return;
   // Kept whole rather than by index, so undo puts the list back exactly.
-  removed = { slides: draft.slides.map((slide) => ({ ...slide })), what: `Slide ${index + 1}` };
+  removed = {
+    slides: draft.slides.map((slide) => ({ ...slide })),
+    what: t("slide.number", { at: index + 1 }),
+  };
   draft.slides.splice(index, 1);
   noteOpen.clear();
   renderSlides(Math.max(0, index - 1));
@@ -306,7 +310,7 @@ function renderSlides(focus?: number): void {
     const grip = document.createElement("span");
     grip.className = "card-grip";
     grip.append(icon("grip"));
-    grip.title = "Drag to move";
+    grip.title = t("slide.drag");
     // The row becomes draggable only while the grip is held, so a pointer in
     // the text below selects words the way it does anywhere else.
     grip.addEventListener("mousedown", () => {
@@ -322,7 +326,7 @@ function renderSlides(focus?: number): void {
     const labelFor = document.createElement("label");
     labelFor.className = "card-label-name";
     labelFor.htmlFor = `label-${index}`;
-    labelFor.textContent = "Slide title";
+    labelFor.textContent = t("slide.title");
     head.append(labelFor);
 
     const label = document.createElement("input");
@@ -350,23 +354,23 @@ function renderSlides(focus?: number): void {
     // section 12). Up and down stay because dragging needs a way round it for
     // anybody who cannot drag (WCAG 2.2, 2.5.7).
     for (const [name, mark, action, usable] of [
-      ["Move up", "chevron-up", () => moveSlide(index, index - 1), index > 0],
+      ["slide.moveUp", "chevron-up", () => moveSlide(index, index - 1), index > 0],
       [
-        "Move down",
+        "slide.moveDown",
         "chevron-down",
         () => moveSlide(index, index + 1),
         index < (draft?.slides.length ?? 0) - 1,
       ],
-      ["Duplicate", "copy", () => duplicateSlide(index), !(draft?.readOnly ?? false)],
-      ["Copy", "clipboard", () => copySlide(index), true],
-      ["Note", "note", () => toggleNote(index), !(draft?.readOnly ?? false)],
-      ["Remove", "trash", () => removeSlide(index), true],
-    ] as [string, Parameters<typeof icon>[0], () => void, boolean][]) {
+      ["slide.duplicate", "copy", () => duplicateSlide(index), !(draft?.readOnly ?? false)],
+      ["slide.copy", "clipboard", () => copySlide(index), true],
+      ["slide.note", "note", () => toggleNote(index), !(draft?.readOnly ?? false)],
+      ["slide.remove", "trash", () => removeSlide(index), true],
+    ] as [MessageKey, Parameters<typeof icon>[0], () => void, boolean][]) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "icon";
-      button.setAttribute("aria-label", name);
-      button.title = name;
+      button.setAttribute("aria-label", t(name));
+      button.title = t(name);
       button.append(icon(mark));
       button.disabled = !usable || (draft?.readOnly ?? false);
       button.addEventListener("click", action);
@@ -408,7 +412,7 @@ function renderSlides(focus?: number): void {
     const body = document.createElement("textarea");
     body.className = "card-body";
     body.id = `body-${index}`;
-    body.setAttribute("aria-label", `Slide ${index + 1}`);
+    body.setAttribute("aria-label", t("slide.number", { at: index + 1 }));
     body.value = slide.body;
     body.rows = rowsFor(slide.body);
     body.readOnly = draft?.readOnly ?? false;
@@ -431,7 +435,7 @@ function renderSlides(focus?: number): void {
 
       const noteFor = document.createElement("label");
       noteFor.htmlFor = `note-${index}`;
-      noteFor.textContent = "Note";
+      noteFor.textContent = t("slide.note");
       row.append(noteFor);
 
       const field = document.createElement("input");
@@ -473,7 +477,7 @@ function note(slide: SlideDraft): HTMLElement {
   const paragraph = document.createElement("p");
   paragraph.className = "card-note quiet";
   const parts = partsOf(slide.body);
-  paragraph.textContent = parts > 1 ? `${parts} slides on screen` : "";
+  paragraph.textContent = parts > 1 ? plural("slide.onScreen", parts) : "";
   return paragraph;
 }
 
@@ -542,11 +546,11 @@ function onPaste(event: ClipboardEvent, index: number, body: HTMLTextAreaElement
 function reasonSays(split: SplitProposal): string {
   switch (split.reason) {
     case "markers":
-      return "Split where the words said Verse and Chorus";
+      return t("paste.markers");
     case "blank-lines":
-      return "Split at the blank lines";
+      return t("paste.blankLines");
     case "line-count":
-      return `Split every four lines, which is a guess`;
+      return t("paste.lineCount");
     default:
       return "";
   }
@@ -563,7 +567,7 @@ function proposalInto(item: HTMLElement, index: number): void {
 
   const what = document.createElement("p");
   what.className = "proposal-what";
-  what.textContent = `${split.sections.length} slides. ${reasonSays(split)}`;
+  what.textContent = plural("paste.what", split.sections.length, { reason: reasonSays(split) });
   panel.append(what);
 
   const list = document.createElement("ol");
@@ -587,12 +591,12 @@ function proposalInto(item: HTMLElement, index: number): void {
   const accept = document.createElement("button");
   accept.type = "button";
   accept.className = "primary";
-  accept.textContent = `Use these ${split.sections.length} slides`;
+  accept.textContent = plural("paste.accept", split.sections.length);
   accept.addEventListener("click", acceptProposal);
 
   const refuse = document.createElement("button");
   refuse.type = "button";
-  refuse.textContent = "Keep as one";
+  refuse.textContent = t("paste.refuse");
   refuse.addEventListener("click", refuseProposal);
 
   buttons.append(accept, refuse);
@@ -692,7 +696,7 @@ function renderOrders(): void {
     nameField.className = "field";
     const nameFor = document.createElement("label");
     nameFor.htmlFor = `order-name-${index}`;
-    nameFor.textContent = "Name";
+    nameFor.textContent = t("orders.name");
     const name = document.createElement("input");
     name.id = `order-name-${index}`;
     name.type = "text";
@@ -711,7 +715,7 @@ function renderOrders(): void {
     seqField.className = "field grow";
     const seqFor = document.createElement("label");
     seqFor.htmlFor = `order-sequence-${index}`;
-    seqFor.textContent = "Slides";
+    seqFor.textContent = t("orders.slides");
     const sequence = document.createElement("input");
     sequence.id = `order-sequence-${index}`;
     sequence.type = "text";
@@ -740,14 +744,14 @@ function renderOrders(): void {
       for (const other of current.orders) other.isDefault = other === order;
       commit();
     });
-    mark.append(radio, document.createTextNode("Default"));
+    mark.append(radio, document.createTextNode(t("orders.default")));
     item.append(mark);
 
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "icon";
-    remove.setAttribute("aria-label", "Remove order");
-    remove.title = "Remove order";
+    remove.setAttribute("aria-label", t("orders.remove"));
+    remove.title = t("orders.remove");
     remove.append(icon("trash"));
     // The last one stays. A song with no order cannot present, and taking it
     // away would put one back under a name nobody chose.
@@ -769,9 +773,7 @@ function renderOrders(): void {
 function unknownIn(order: OrderDraft, titles: Set<string>): string {
   const missing = [...new Set(order.sequence.filter((label) => !titles.has(label)))];
   if (missing.length === 0) return "";
-  return missing.length === 1
-    ? `${missing[0]} is not a slide title`
-    : `${missing.join(", ")} are not slide titles`;
+  return plural("orders.unknown", missing.length, { titles: missing.join(", ") });
 }
 
 function paintOrderProblems(): void {
@@ -787,7 +789,7 @@ function addOrder(): void {
   // Every slide once, so the person takes slides out rather than typing them
   // all in. Taking four out of six is the thing they came here to do.
   draft.orders.push({
-    name: `Order ${draft.orders.length + 1}`,
+    name: t("orders.named", { at: draft.orders.length + 1 }),
     sequence: knownTitles(),
     isDefault: false,
   });
@@ -824,19 +826,19 @@ function paintStatus(): void {
 
   const parts: string[] = [];
   if (draft !== null) {
-    parts.push(`${slides} slide${slides === 1 ? "" : "s"}`);
-    if (onScreen !== slides) parts.push(`${onScreen} on screen`);
+    parts.push(plural("library.slides", slides));
+    if (onScreen !== slides) parts.push(t("editing.onScreen", { count: onScreen }));
   }
 
-  if (copied !== null) parts.push("a slide copied");
+  if (copied !== null) parts.push(t("editing.copied"));
   if (draft === null) parts.length = 0;
-  else if (draft.readOnly) parts.push("from Hearth, read only");
-  else if (draft.kind === "song") parts.push("a song");
-  else if (draft.title.trim() === "") parts.push("needs a title");
-  else if (saving) parts.push("saving");
-  else if (draft.id !== null) parts.push("saved");
+  else if (draft.readOnly) parts.push(t("editing.readOnly"));
+  else if (draft.kind === "song") parts.push(t("editing.song"));
+  else if (draft.title.trim() === "") parts.push(t("editing.needsTitle"));
+  else if (saving) parts.push(t("editing.saving"));
+  else if (draft.id !== null) parts.push(t("editing.saved"));
 
-  el.status.textContent = parts.join("  ·  ");
+  el.status.textContent = parts.join(t("control.separator"));
 
   el.add.disabled = draft === null || draft.readOnly;
   el.paste.hidden = copied === null;
@@ -845,7 +847,7 @@ function paintStatus(): void {
   el.title.readOnly = draft?.readOnly ?? false;
 
   el.undone.hidden = removed === null;
-  el.undoneWhat.textContent = removed === null ? "" : `${removed.what} removed`;
+  el.undoneWhat.textContent = removed === null ? "" : t("editor.removed", { what: removed.what });
 
   paintOrders();
 }
@@ -866,7 +868,7 @@ function renderThemes(): void {
     el.theme.replaceChildren();
     const service = document.createElement("option");
     service.value = "";
-    service.textContent = "The service's look";
+    service.textContent = t("editor.lookService");
     el.theme.append(service);
     for (const theme of themes) {
       const option = document.createElement("option");
@@ -921,8 +923,7 @@ function renderCredits(): void {
 
 /** What the count means, which depends on what the row holds. */
 function countOf(kind: LibraryKind, count: number): string {
-  const noun = kind === "song" ? "section" : "slide";
-  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+  return plural(kind === "song" ? "library.sections" : "library.slides", count);
 }
 
 /**
@@ -950,14 +951,14 @@ function renderLibrary(): void {
   for (const row of shown) el.tiles.append(tileFor(row, themes));
 
   el.libraryEmpty.hidden = shown.length > 0;
-  el.libraryEmpty.textContent = rows.length === 0 ? "Nothing saved yet" : "Nothing matches that";
+  el.libraryEmpty.textContent = t(rows.length === 0 ? "library.empty" : "library.noMatch");
 
   // The hymns Stage carries (STG-10, ST1.2). It sits beside New, because a
   // church looking for something to sing is in this window, and it stays there
   // until somebody presses it. Nothing is written before that.
   const samples = latest?.samples ?? 0;
   el.addSamples.hidden = samples === 0;
-  el.addSamples.textContent = `Add ${samples} hymns`;
+  el.addSamples.textContent = t("library.addHymns", { count: samples });
 }
 
 function tileFor(row: LibraryItem, themes: ThemeChoice[]): HTMLLIElement {
@@ -999,9 +1000,9 @@ function tileFor(row: LibraryItem, themes: ThemeChoice[]): HTMLLIElement {
   facts.className = "tile-facts";
   const detail = [countOf(row.kind, row.count)];
   if (row.subtitle !== null) detail.push(row.subtitle);
-  if (row.id === latest?.presentingId) detail.push("on screen");
-  if (row.origin === "hearth") detail.push("from Hearth");
-  facts.textContent = detail.join("  \u00b7  ");
+  if (row.id === latest?.presentingId) detail.push(t("library.onScreen"));
+  if (row.origin === "hearth") detail.push(t("library.fromHearth"));
+  facts.textContent = detail.join(t("control.separator"));
   button.append(facts);
 
   item.append(button);
@@ -1009,12 +1010,13 @@ function tileFor(row: LibraryItem, themes: ThemeChoice[]): HTMLLIElement {
 }
 
 /** What a problem code says on screen. The codes come from the model. */
-const MESSAGES: Record<string, string> = {
-  "title.missing": "Give it a title",
-  "slide.lines.empty": "A slide has no words",
-  "slide.lines.containsNewline": "A line holds a line break",
-  "slide.presentation.mismatch": "A slide belongs to something else",
-  "kind.unknown": "That kind of presentation is unknown",
+const MESSAGES: Record<string, MessageKey> = {
+  "title.missing": "save.title.missing",
+  "sections.none": "save.sections.none",
+  "slide.lines.empty": "save.slide.empty",
+  "slide.lines.containsNewline": "save.slide.newline",
+  "slide.presentation.mismatch": "save.slide.mismatch",
+  "kind.unknown": "save.kind.unknown",
 };
 
 function paint(next: EditorState): void {
@@ -1062,8 +1064,10 @@ function paint(next: EditorState): void {
   el.problems.replaceChildren();
   for (const problem of next.problems) {
     const item = document.createElement("li");
-    item.textContent = MESSAGES[problem.code] ?? problem.code;
-    if (problem.detail !== "") item.textContent += ` (${problem.detail})`;
+    const known = MESSAGES[problem.code];
+    const message = known === undefined ? problem.code : t(known);
+    item.textContent =
+      problem.detail === "" ? message : t("save.detail", { message, detail: problem.detail });
     el.problems.append(item);
   }
 
@@ -1071,6 +1075,9 @@ function paint(next: EditorState): void {
 }
 
 // Wiring
+
+// The words, before anything paints over them (STG-13).
+fillText();
 
 el.title.addEventListener("input", () => {
   if (draft === null) return;
