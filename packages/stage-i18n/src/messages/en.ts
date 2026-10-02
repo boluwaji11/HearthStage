@@ -71,6 +71,12 @@ export const en = {
   "run.drop": "Take the repeat away",
   "run.reset": "Back to the set list",
 
+  // Putting something else on the screen while a service is running (STG-25)
+  "present.replace.title": "Put {item} on the screen?",
+  "present.replace.detail": "{service} comes off the screen. Nothing in it changes.",
+  "present.replace.confirm": "Put it on the screen",
+  "present.replace.keep": "Keep the service",
+
   // What is wrong with a service, said so somebody can act on it
   "problem.anItem": "An item",
   "problem.named": "“{item}”",

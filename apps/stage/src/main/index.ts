@@ -31,6 +31,7 @@ import { APP_NAME, OLD_FOLDER, relocation } from "./userdata";
 import { Session } from "./session";
 import { hostname } from "node:os";
 import { openDevice, renameDevice } from "./device";
+import { t } from "@hearth/stage-i18n";
 import { readLogo, removeLogo, setLogo } from "./branding";
 import {
   createControlWindow,
@@ -305,6 +306,40 @@ function presentNow(itemId: string): boolean {
   return true;
 }
 
+/**
+ * Putting one thing on the screen while a service is running (STG-25, ST12.3).
+ *
+ * Present is in the editor rather than on the live surface, and it replaces
+ * what the room is looking at. A church running a service on a Sunday morning
+ * should not lose it to a button somebody pressed in another window, so this is
+ * the one place Stage asks first. It says what happens, because that is what a
+ * confirmation is for.
+ */
+async function presentAsked(itemId: string): Promise<void> {
+  const open = session.controlState([]).service;
+  const already = presenting === itemId;
+
+  if (open !== null && !already) {
+    const item = presentations.lookup()(itemId)?.title ?? store.library.get(itemId)?.song.title;
+    const parent = editor ?? control;
+    const asked = {
+      type: "question" as const,
+      message: t("present.replace.title", { item: item ?? "" }),
+      detail: t("present.replace.detail", { service: open.title }),
+      buttons: [t("present.replace.confirm"), t("present.replace.keep")],
+      defaultId: 0,
+      cancelId: 1,
+    };
+    const answer =
+      parent === null || parent.isDestroyed()
+        ? await dialog.showMessageBox(asked)
+        : await dialog.showMessageBox(parent, asked);
+    if (answer.response !== 0) return;
+  }
+
+  if (presentNow(itemId)) broadcast();
+}
+
 function planFor(
   itemId: string,
   lookup: ReturnType<typeof presentations.lookup>,
@@ -395,7 +430,7 @@ app.whenReady().then(() => {
         return;
       }
       case "presentNow":
-        if (presentNow(payload.presentationId)) broadcast();
+        void presentAsked(payload.presentationId);
         return;
       case "newPresentation":
       case "openItem":

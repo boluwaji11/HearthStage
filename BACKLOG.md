@@ -131,7 +131,7 @@ thing a person does with Stage and until now there was no way to do it. See
 | STG-22 | Make black, clear and logo each one keypress, restoring the exact slide. The logo is the church's own file, chosen in Settings | ST6.6 | Resolved |
 | STG-23 | Make advance idempotent under key repeat, in the window and again in the session | ST12.4 | Resolved |
 | STG-24 | Reorder, skip and repeat a cue for this run, leaving the set list untouched | ST5.7 | Resolved |
-| STG-25 | Keep the library, import and theme editing out of the live surface | ST12.3, ST2.15 | New |
+| STG-25 | Keep the library, import and theme editing out of the live surface, enforced by a test, and ask before replacing a running service | ST12.3, ST2.15 | Resolved |
 | STG-26 | Present a song, a scripture and a countdown with no set list open | ST5.10 | New |
 | STG-27 | Write the operator brief: one screen saying what the four keys do | ST12.10 | New |
 
@@ -472,8 +472,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-25**, keeping the library, import and theme editing out of the live surface. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-26**, presenting a song, a scripture and a countdown with no set list open. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1589,3 +1589,35 @@ reopens the service to find the order the church planned.
 control window inside a ternary spread over four lines, and the guard scanned line by line, so the
 assignment and the words were never on the same line. It reads whole files now, after taking out the
 strings that are not copy: a key handed to `t`, a comparison, a `case` label.
+
+## STG-25, how to test it
+
+The design case is 10:28 on a Sunday with a sixteen year old operating and a room filling up.
+Everything they can reach has to be safe to press by accident.
+
+Most of this story is a test rather than a change, because the separation was already there and the
+thing worth owning is that it stays there. The live surface asks for fourteen intents and the test
+names all of them. Anything that writes, removes or restyles fails the build if it turns up in that
+window: saving, opening an item for editing, adding the hymns, renaming the machine, choosing a logo.
+The window is also checked for a library list, a file input and a `select`, because a theme picker is
+a `select` and that is how one would arrive.
+
+**The run buttons from STG-24 are the one thing on that surface that changes anything**, and they are
+allowed because `running.ts` is a layer over the compiled deck that touches no store. The test asserts
+that too: the file may not mention the library or saving.
+
+**One real change.** Present, in the editor, replaces what the room is looking at. A church running a
+service should not lose it to a button somebody pressed in another window.
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+- Press **Try a service**, then **Slides**, open a hymn and press **Present**. It asks, and it says
+  what happens: the service comes off the screen and nothing in it changes.
+- Press **Keep the service**. Nothing moves.
+- Press **Present** again and confirm. The hymn goes up.
+- Press **Present** on the same hymn a second time. No question, because nothing is being replaced.
+- Press **Home**, then **Present** on a hymn. No question, because no service is running.
+
+**Six new tests.**
