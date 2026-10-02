@@ -91,7 +91,7 @@ thing a person does with Stage and until now there was no way to do it. See
 
 | ID | Story | Req | State |
 |---|---|---|---|
-| STG-145 | **Type a presentation of plain slides and present it**: a title, three notices, a sermon outline | ST2.16 | New |
+| STG-145 | **Type a presentation of plain slides and present it**: a title, three notices, a sermon outline | ST2.16 | Resolved |
 | STG-146 | Hold a presentation's kind, so a song, a reading, plain slides and a media item are one list | ST2.16 | New |
 | STG-147 | Edit, reorder and delete the slides in a presentation | ST2.16 | New |
 | STG-148 | Apply a theme to a presentation, and change it without touching the content | ST8.1 | New |
@@ -471,13 +471,13 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography. `pnpm --filter @hearth/stage dev` opens it. |
-| **Next** | **STG-145**, typing a presentation of plain slides, which is the gap the parity inventory found and the first thing a person does with Stage. Then STG-146 to STG-149, then the measurements STG-28 and STG-29. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** typing slides and presenting them. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-146**, holding a presentation's kind so a song and a set of typed slides are one list, then STG-147 editing and reordering, STG-148 themes and STG-149 first run. Then the measurements STG-28 and STG-29. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
 | **Blocked** | **SE4** only, on the six platform deliverables above. Fifty-two stories sit in front of it. |
-| **Branch** | Stage work is on the `stage` branch, in a git worktree at `../hearth-stage`, so the two windows no longer share a HEAD. Everything up to `da167d8` is on `main`. |
+| **Native binding** | better-sqlite3 has one binding per install and Electron's module ABI differs from Node's, so the workspace keeps the Node one for the tests and `pnpm --filter @hearth/stage native` puts an Electron one in `apps/stage/native`. Run it after an install and after an Electron upgrade. |
 | **Watch** | `packages/songs` is read by the platform's song library screens in 0.4, and `packages/song-import` by its R20.10 importers. The schema in the platform PRD section 9.4 is the contract, and a change to it is a platform story. |
 | **Owed elsewhere** | The the platform PRD section 9.6 correction, on the platform board. |
 
@@ -833,3 +833,58 @@ the render harness that rasterises every slide to assert the safe area and the
 contrast on a real frame (ST20.4, ST6.4). Those are STG-29 and STG-28, and they
 are next, because until they exist the typography and performance claims are
 arguments rather than facts.
+
+---
+
+## STG-145, how to test it
+
+The gap the parity inventory found: J1 step 4 was impossible, because a person could not type a
+slide. Only a song. A presentation is now the central object and a song is one kind of it.
+
+```
+pnpm --filter @hearth/songs slides
+pnpm --filter @hearth/stage native
+pnpm --filter @hearth/stage dev
+```
+
+In the window:
+
+- Press **Slides** in the top right of the control surface. A second window opens.
+- Press **New**, type a title, then type slides in the big box with **one blank line between
+  slides**. The cards on the right appear as you type, numbered, so the blank line explains itself.
+- A line in brackets on its own, `[Point 2]`, becomes the slide's label. It shows to the operator and
+  never reaches the wall.
+- Press **Save**, or **Cmd+S**. The library on the left gets a row with the slide count.
+- Press **Present**. The output window shows the first slide. Click back to the control surface and
+  press **space** to advance, **B** to black it.
+- Quit, reopen, and the library row is still there. It is in `library.db` under the application's
+  data directory, backed up on every write.
+- Leave the title empty and press Save. It says what is missing and keeps what you typed.
+
+**Fifty-six new tests.** What they defend:
+
+1. **The author's break is the break.** A song is split by rule because the typography decides what
+   fits. A typed slide breaks where the person pressed return twice, because they are looking at the
+   outline and they know where the point ends. The line limit still applies, so a slide typed too
+   long for the screen becomes two and keeps its label on both halves.
+2. **The round trip is exact.** `formatSlides(parseSlides(text))` returns the text, so a saved
+   presentation loads back into the same box it was typed in. Asserted, because an editor that
+   reformats somebody's work on every open is an editor nobody trusts.
+3. **The parse is the model.** The preview, the save and the deck all call `parseSlides`. The
+   renderer sends the text and main parses it, so the three cannot disagree.
+4. **The newline guard reaches slides.** The store validates before every write and refuses a line
+   holding a newline, which is the R12.4 rule applied to the new object.
+5. **Each typed slide is sized on its own.** A title card is not shrunk to fit the four point
+   outline that follows it, and the two halves of one slide that was split do share a size. The
+   compiler names the grouping on the cue (`fitGroup`) rather than the renderer guessing it.
+6. **A missing presentation is reported at compile time**, by name, the same way a missing song is.
+7. **Cue ids are stable across a recompile**, so a restart lands on the same slide.
+8. **A save that cannot happen keeps what was typed.** Problems come back on the state rather than
+   as an exception.
+9. **The editor is sandboxed like every other window.** It holds no Electron import, no
+   `ipcRenderer`, and its CSP names no remote origin. The architecture test now walks three
+   renderers rather than two.
+
+**One thing that moved.** Presenting a presentation replaces whatever service is open, because set
+lists, where typed slides and songs sit in one order, are STG-146 and STG-147. Restarting the
+application brings the sample service back.

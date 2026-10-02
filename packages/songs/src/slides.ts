@@ -62,12 +62,23 @@ export interface Slide {
  * blank screen in the middle of a song and look like a fault in the projector.
  */
 export function splitSection(section: SongSection, limits: SlideLimits = DEFAULT_LIMITS): Slide[] {
+  return splitLines(section.lines, limits);
+}
+
+/**
+ * The slides a block of lines becomes.
+ *
+ * The same rules, one layer down, for callers holding lines rather than a song
+ * section: a presentation slide the author typed too long for the screen
+ * (ST2.16), and a scripture passage.
+ */
+export function splitLines(lines: string[], limits: SlideLimits = DEFAULT_LIMITS): Slide[] {
   const settings = { ...DEFAULT_LIMITS, ...limits };
   const maxLines = Math.max(1, Math.floor(settings.maxLines));
 
   const stanzas = settings.breakOnBlankLine
-    ? splitOnBlankLines(section.lines)
-    : [section.lines.filter((line) => line.trim() !== "")];
+    ? splitOnBlankLines(lines)
+    : [lines.filter((line) => line.trim() !== "")];
 
   const groups: string[][] = [];
   for (const stanza of stanzas) {

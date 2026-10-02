@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "deck": "tsx scripts/show-deck.ts",
-    "chart": "tsx scripts/show-chart.ts"
+    "chart": "tsx scripts/show-chart.ts",
+    "slides": "tsx scripts/show-slides.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

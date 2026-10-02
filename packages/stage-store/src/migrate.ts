@@ -97,6 +97,38 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX songs_archived ON songs(archived_at);
     `,
   },
+  {
+    version: 2,
+    name: "presentations",
+    up: `
+      CREATE TABLE presentations (
+        id           TEXT PRIMARY KEY,
+        origin       TEXT NOT NULL DEFAULT 'local'
+                       CHECK (origin IN ('local', 'hearth')),
+        kind         TEXT NOT NULL DEFAULT 'plain',
+        title        TEXT NOT NULL,
+        theme_id     TEXT,
+        last_used_at TEXT,
+        archived_at  TEXT,
+        created_at   TEXT NOT NULL,
+        updated_at   TEXT NOT NULL
+      );
+
+      CREATE TABLE presentation_slides (
+        id              TEXT PRIMARY KEY,
+        presentation_id TEXT NOT NULL REFERENCES presentations(id) ON DELETE CASCADE,
+        sort_order      INTEGER NOT NULL,
+        label           TEXT,
+        lines           TEXT NOT NULL,
+        notes           TEXT
+      );
+
+      CREATE INDEX presentation_slides_order
+        ON presentation_slides(presentation_id, sort_order);
+      CREATE INDEX presentations_title ON presentations(title);
+      CREATE INDEX presentations_archived ON presentations(archived_at);
+    `,
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.reduce(

@@ -21,13 +21,14 @@
  */
 
 import { resolveSequence, type SequenceProblem } from "./sequence";
-import { DEFAULT_LIMITS, splitSection, type SlideLimits } from "./slides";
-import type { ItemNote, ServiceItem, ServicePlan, Verse } from "./service";
+import { DEFAULT_LIMITS, splitLines, splitSection, type SlideLimits } from "./slides";
+import { orderedSlides, type Presentation } from "./presentation";
+import type { ItemNote, PresentationItem, ServiceItem, ServicePlan, Verse } from "./service";
 import { orderedItems } from "./service";
 import type { Key } from "./keys";
 import type { SectionType, WholeSong } from "./types";
 
-export type CueKind = "lyric" | "scripture" | "marker";
+export type CueKind = "lyric" | "scripture" | "marker" | "slide";
 
 export interface Cue {
   /**
@@ -53,6 +54,16 @@ export interface Cue {
   slideCount: number;
   /** A scripture cue carries its reference on every slide of the passage (ST7.3). */
   reference: string | null;
+  /**
+   * Which cues share one measured text size (ST6.2).
+   *
+   * The slides of one song section share a size so the words do not jump
+   * between them. The slides a person typed do not: a title card and a four
+   * point outline are separate decisions, and sizing them together would shrink
+   * the title to fit the outline. Named at compile time, because the renderer
+   * cannot tell which case it is holding.
+   */
+  fitGroup: string;
 }
 
 export interface CueGroup {
@@ -72,6 +83,8 @@ export interface CueGroup {
 
 export type DeckProblem =
   | { code: "item.song.missing"; itemId: string; songId: string; title: string }
+  | { code: "item.presentation.missing"; itemId: string; presentationId: string; title: string }
+  | { code: "item.presentation.noSlides"; itemId: string; title: string }
   | { code: "item.scripture.empty"; itemId: string; reference: string }
   | { code: "item.song.noSlides"; itemId: string; title: string }
   | ({ itemId: string; title: string } & SequenceProblem);
@@ -96,8 +109,25 @@ export function lookupFrom(songs: WholeSong[]): SongLookup {
   return (songId) => byId.get(songId);
 }
 
+/** A presentation lookup. The library, a Map, or a closure over a read. */
+export type PresentationLookup = (presentationId: string) => Presentation | undefined;
+
+export function presentationsFrom(presentations: Presentation[]): PresentationLookup {
+  const byId = new Map(presentations.map((one) => [one.id, one]));
+  return (presentationId) => byId.get(presentationId);
+}
+
 export interface CompileOptions {
   limits?: SlideLimits;
+  /**
+   * How to find a presentation a service item names.
+   *
+   * Optional, so a service of songs and scripture compiles with no change to
+   * the call. A plan holding a presentation item and no lookup reports the
+   * presentation as missing, which is the same report an operator gets for a
+   * song the library does not have.
+   */
+  presentations?: PresentationLookup;
 }
 
 export function compileDeck(
@@ -111,7 +141,7 @@ export function compileDeck(
   const cues: Cue[] = [];
 
   for (const item of orderedItems(plan)) {
-    const group = compileItem(item, lookup, limits, problems);
+    const group = compileItem(item, lookup, options.presentations, limits, problems);
     if (group === null) continue;
     groups.push(group);
   }
@@ -142,10 +172,15 @@ export function compileDeck(
 function compileItem(
   item: ServiceItem,
   lookup: SongLookup,
+  presentations: PresentationLookup | undefined,
   limits: SlideLimits,
   problems: DeckProblem[],
 ): CueGroup | null {
   const groupId = `group:${item.id}`;
+
+  if (item.type === "presentation") {
+    return compilePresentation(item, groupId, presentations, limits, problems);
+  }
 
   if (item.type === "marker") {
     return {
@@ -172,6 +207,7 @@ function compileItem(
           slideIndex: 0,
           slideCount: 1,
           reference: null,
+          fitGroup: `${groupId}:marker`,
         },
       ],
     };
@@ -243,6 +279,7 @@ function compileItem(
         slideIndex: slide.index,
         slideCount: slide.count,
         reference: null,
+        fitGroup: `${groupId}:${entry.label}:${entry.occurrence}`,
       });
     }
   }
@@ -310,7 +347,75 @@ function compileScripture(
     // On every slide of the passage, because a congregation arriving at slide
     // three still needs to know where they are.
     reference,
+    fitGroup: `${groupId}:verse:${group[0]?.number ?? index}`,
   }));
+}
+
+/**
+ * Cues from slides a person typed (STG-145, ST2.16).
+ *
+ * Shorter than the song path, and that is the point. The breaks are already
+ * decided, so there is no sequence to resolve, no arrangement to pick and no
+ * key. The only rule applied here is the line limit: a slide typed longer than
+ * the screen holds becomes two rather than running off the bottom, and the
+ * author's label follows both halves so the operator can still find it.
+ */
+function compilePresentation(
+  item: PresentationItem,
+  groupId: string,
+  presentations: PresentationLookup | undefined,
+  limits: SlideLimits,
+  problems: DeckProblem[],
+): CueGroup | null {
+  const presentation = presentations?.(item.presentationId);
+  if (presentation === undefined) {
+    problems.push({
+      code: "item.presentation.missing",
+      itemId: item.id,
+      presentationId: item.presentationId,
+      title: item.title,
+    });
+    return null;
+  }
+
+  const cues: Cue[] = [];
+  for (const slide of orderedSlides(presentation)) {
+    const parts = splitLines(slide.lines, limits);
+    for (const part of parts) {
+      cues.push({
+        id: `${groupId}:slide:${slide.sortOrder}:${part.index}`,
+        groupId,
+        kind: "slide",
+        position: 0,
+        lines: part.lines,
+        label: slide.label,
+        sectionType: null,
+        occurrence: 1,
+        occurrencesTotal: 1,
+        slideIndex: part.index,
+        slideCount: part.count,
+        reference: null,
+        fitGroup: `${groupId}:slide:${slide.sortOrder}`,
+      });
+    }
+  }
+
+  if (cues.length === 0) {
+    problems.push({ code: "item.presentation.noSlides", itemId: item.id, title: item.title });
+  }
+
+  return {
+    id: groupId,
+    itemId: item.id,
+    kind: "slide",
+    title: presentation.title === "" ? item.title : presentation.title,
+    key: null,
+    tempoBpm: null,
+    durationSeconds: item.durationSeconds,
+    notes: item.notes,
+    sequence: [],
+    cues,
+  };
 }
 
 /** The cue after this one, or null at the end of the deck. */

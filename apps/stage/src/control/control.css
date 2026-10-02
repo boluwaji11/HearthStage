@@ -71,6 +71,27 @@ header {
   border-bottom: 1px solid var(--line);
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+#slides {
+  font: inherit;
+  font-weight: 500;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  color: var(--text);
+  cursor: pointer;
+}
+
+#slides:hover {
+  border-color: var(--stone-700);
+}
+
 h1 {
   font-size: 1.0625rem;
   font-weight: 600;

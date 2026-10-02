@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'"
+    />
+    <title>Slides</title>
+    <link rel="stylesheet" href="./editor.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Slides</h1>
+      <div class="actions">
+        <button id="new" type="button">New</button>
+        <button id="save" type="button" class="primary">Save</button>
+        <button id="present" type="button">Present</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="library" aria-label="Library">
+        <ol id="library"></ol>
+        <p id="library-empty" class="quiet">Nothing saved yet</p>
+      </section>
+
+      <section class="edit" aria-label="Edit">
+        <div class="field">
+          <label for="title">Title</label>
+          <input id="title" type="text" autocomplete="off" spellcheck="false" />
+        </div>
+
+        <div class="field grow">
+          <label for="text">Slides, one blank line between them</label>
+          <textarea id="text" spellcheck="true"></textarea>
+        </div>
+
+        <ul id="problems" class="problems"></ul>
+      </section>
+
+      <section class="preview" aria-label="Preview">
+        <ol id="preview"></ol>
+      </section>
+    </main>
+
+    <footer>
+      <p id="status" class="quiet"></p>
+    </footer>
+
+    <script type="module" src="./editor.ts"></script>
+  </body>
+</html>

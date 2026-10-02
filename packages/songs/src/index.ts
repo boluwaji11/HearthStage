@@ -48,6 +48,7 @@ export {
   type SongItem,
   type ScriptureItem,
   type MarkerItem,
+  type PresentationItem,
   type ServiceItem,
   type ServicePlan,
   orderedItems,
@@ -66,7 +67,26 @@ export {
 } from "./sequence";
 
 export {
+  PRESENTATION_KINDS,
+  type PresentationKind,
+  type Presentation,
+  type PresentationSlide,
+  type PresentationProblem,
+  type PresentationProblemCode,
+  type ParseOptions,
+  newPresentation,
+  parseSlides,
+  formatSlides,
+  validatePresentation,
+  presentationHasErrors,
+  orderedSlides,
+  slideCount,
+  presentationPlan,
+} from "./presentation";
+
+export {
   splitSection,
+  splitLines,
   splitBilingual,
   DEFAULT_LIMITS,
   type Slide,
@@ -77,6 +97,7 @@ export {
 export {
   compileDeck,
   lookupFrom,
+  presentationsFrom,
   nextCue,
   cueAt,
   positionOf,
@@ -88,6 +109,7 @@ export {
   type CueKind,
   type DeckProblem,
   type SongLookup,
+  type PresentationLookup,
   type CompileOptions,
 } from "./deck";
 

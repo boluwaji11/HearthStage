@@ -25,6 +25,7 @@ const el = {
   nextMeta: document.getElementById("next-meta") as HTMLElement,
   notes: document.getElementById("notes") as HTMLUListElement,
   keys: document.getElementById("keys") as HTMLElement,
+  slides: document.getElementById("slides") as HTMLButtonElement,
 };
 
 /**
@@ -308,6 +309,9 @@ function onKey(event: KeyboardEvent): void {
 }
 
 brief();
+// The one thing on this surface that is not an advance. It opens a window and
+// changes nothing on the wall, so it is safe to have in reach (ST12.3).
+el.slides.addEventListener("click", () => send({ type: "openEditor" }));
 window.addEventListener("keydown", onKey);
 
 if (bridge !== undefined) {

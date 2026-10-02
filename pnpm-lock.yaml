@@ -26,6 +26,9 @@ importers:
       '@hearth/stage-store':
         specifier: workspace:*
         version: link:../../packages/stage-store
+      better-sqlite3:
+        specifier: ^11.7.0
+        version: 11.10.0
     devDependencies:
       '@hearth/colour':
         specifier: workspace:*

@@ -18,6 +18,9 @@
 
 import {
   hasErrors,
+  presentationHasErrors,
+  slideCount,
+  validatePresentation,
   validateWholeSong,
   type Arrangement,
   type ArrangementMedia,
@@ -27,12 +30,16 @@ import {
   type SongSection,
   type WholeSong,
   type SongProblem,
+  type Presentation,
+  type PresentationProblem,
+  type PresentationSlide,
+  type PresentationKind,
 } from "@hearth/songs";
 import type { Db } from "./open";
 
 export class LibraryError extends Error {
-  readonly problems: SongProblem[];
-  constructor(message: string, problems: SongProblem[] = []) {
+  readonly problems: (SongProblem | PresentationProblem)[];
+  constructor(message: string, problems: (SongProblem | PresentationProblem)[] = []) {
     super(message);
     this.name = "LibraryError";
     this.problems = problems;
@@ -89,6 +96,48 @@ interface MediaRow {
   kind: string;
   storage_key: string;
   duration_seconds: number | null;
+}
+
+interface PresentationRow {
+  id: string;
+  origin: string;
+  kind: string;
+  title: string;
+  theme_id: string | null;
+  last_used_at: string | null;
+  archived_at: string | null;
+}
+
+interface SlideRow {
+  id: string;
+  presentation_id: string;
+  sort_order: number;
+  label: string | null;
+  lines: string;
+  notes: string | null;
+}
+
+function toSlide(row: SlideRow): PresentationSlide {
+  return {
+    id: row.id,
+    presentationId: row.presentation_id,
+    sortOrder: row.sort_order,
+    label: row.label,
+    lines: JSON.parse(row.lines) as string[],
+    notes: row.notes,
+  };
+}
+
+function toPresentation(row: PresentationRow, slides: PresentationSlide[]): Presentation {
+  return {
+    id: row.id,
+    origin: row.origin === "hearth" ? "hearth" : "local",
+    kind: row.kind as PresentationKind,
+    title: row.title,
+    slides,
+    themeId: row.theme_id,
+    lastUsedAt: row.last_used_at,
+  };
 }
 
 function toSong(row: SongRow): Song {
@@ -168,6 +217,18 @@ export interface SongSummary {
   lastUsedAt: string | null;
   arrangementCount: number;
   sectionCount: number;
+}
+
+export interface PresentationSummary {
+  id: string;
+  title: string;
+  kind: string;
+  origin: "local" | "hearth";
+  /** How many slides the room will see, at the default line limit. */
+  slideCount: number;
+  archivedAt: string | null;
+  updatedAt: string;
+  lastUsedAt: string | null;
 }
 
 export class Library {
@@ -441,5 +502,175 @@ export class Library {
     return this.list(options)
       .map((summary) => this.get(summary.id))
       .filter((whole): whole is WholeSong => whole !== null);
+  }
+
+  // Presentations (STG-145, ST2.16). Same two invariants as a song: validated
+  // before the write, and `local` only.
+
+  /**
+   * Writes a presentation and its slides as one unit.
+   *
+   * Slides are replaced rather than merged, for the reason they are on a song:
+   * the caller holds the whole thing, and a merge would need a second opinion
+   * about what was deleted.
+   */
+  savePresentation(presentation: Presentation): void {
+    const problems = validatePresentation(presentation);
+    if (presentationHasErrors(problems)) {
+      throw new LibraryError(
+        `"${presentation.title}" cannot be saved: ${problems.filter((p) => p.severity === "error").length} problems.`,
+        problems,
+      );
+    }
+
+    if (presentation.origin !== "local") {
+      throw new LibraryError(
+        `"${presentation.title}" has origin "${presentation.origin}". The library holds what Stage owns, and a synced presentation belongs in the cache.`,
+      );
+    }
+
+    const timestamp = this.now();
+
+    this.db.transaction(() => {
+      const existing = this.db
+        .prepare("SELECT created_at FROM presentations WHERE id = ?")
+        .get(presentation.id) as { created_at: string } | undefined;
+
+      this.db
+        .prepare(
+          `INSERT INTO presentations
+             (id, origin, kind, title, theme_id, last_used_at, archived_at, created_at, updated_at)
+           VALUES (
+             @id, @origin, @kind, @title, @theme_id, @last_used_at,
+             COALESCE((SELECT archived_at FROM presentations WHERE id = @id), NULL),
+             @created_at, @updated_at
+           )
+           ON CONFLICT(id) DO UPDATE SET
+             kind = excluded.kind,
+             title = excluded.title,
+             theme_id = excluded.theme_id,
+             last_used_at = excluded.last_used_at,
+             updated_at = excluded.updated_at`,
+        )
+        .run({
+          id: presentation.id,
+          origin: presentation.origin,
+          kind: presentation.kind,
+          title: presentation.title,
+          theme_id: presentation.themeId,
+          last_used_at: presentation.lastUsedAt,
+          created_at: existing?.created_at ?? timestamp,
+          updated_at: timestamp,
+        });
+
+      this.db
+        .prepare("DELETE FROM presentation_slides WHERE presentation_id = ?")
+        .run(presentation.id);
+      const slide = this.db.prepare(
+        `INSERT INTO presentation_slides
+           (id, presentation_id, sort_order, label, lines, notes)
+         VALUES (@id, @presentation_id, @sort_order, @label, @lines, @notes)`,
+      );
+      for (const row of presentation.slides) {
+        slide.run({
+          id: row.id,
+          presentation_id: row.presentationId,
+          sort_order: row.sortOrder,
+          label: row.label,
+          lines: JSON.stringify(row.lines),
+          notes: row.notes,
+        });
+      }
+    })();
+
+    this.afterWrite?.();
+  }
+
+  getPresentation(presentationId: string): Presentation | null {
+    const row = this.db.prepare("SELECT * FROM presentations WHERE id = ?").get(presentationId) as
+      | PresentationRow
+      | undefined;
+    if (row === undefined) return null;
+
+    const slides = (
+      this.db
+        .prepare(
+          "SELECT * FROM presentation_slides WHERE presentation_id = ? ORDER BY sort_order",
+        )
+        .all(presentationId) as SlideRow[]
+    ).map(toSlide);
+
+    return toPresentation(row, slides);
+  }
+
+  listPresentations(options: ListOptions = {}): PresentationSummary[] {
+    const where = options.includeArchived === true ? "" : "WHERE archived_at IS NULL";
+    const rows = this.db
+      .prepare(
+        `SELECT id, title, kind, origin, archived_at, updated_at, last_used_at
+           FROM presentations
+           ${where}
+          ORDER BY updated_at DESC
+          LIMIT ? OFFSET ?`,
+      )
+      .all(options.limit ?? 500, options.offset ?? 0) as {
+      id: string;
+      title: string;
+      kind: string;
+      origin: string;
+      archived_at: string | null;
+      updated_at: string;
+      last_used_at: string | null;
+    }[];
+
+    return rows.map((row) => {
+      // The count the room will see rather than the count typed, so a slide
+      // that split in two is two here as well as on the wall.
+      const whole = this.getPresentation(row.id);
+      return {
+        id: row.id,
+        title: row.title,
+        kind: row.kind,
+        origin: row.origin === "hearth" ? "hearth" : "local",
+        slideCount: whole === null ? 0 : slideCount(whole),
+        archivedAt: row.archived_at,
+        updatedAt: row.updated_at,
+        lastUsedAt: row.last_used_at,
+      };
+    });
+  }
+
+  countPresentations(options: ListOptions = {}): number {
+    const where = options.includeArchived === true ? "" : "WHERE archived_at IS NULL";
+    const row = this.db
+      .prepare(`SELECT COUNT(*) AS n FROM presentations ${where}`)
+      .get() as { n: number };
+    return row.n;
+  }
+
+  /** Out of every list, and kept. The rule across the whole product. */
+  archivePresentation(presentationId: string): boolean {
+    const result = this.db
+      .prepare(
+        "UPDATE presentations SET archived_at = ?, updated_at = ? WHERE id = ? AND archived_at IS NULL",
+      )
+      .run(this.now(), this.now(), presentationId);
+    if (result.changes > 0) this.afterWrite?.();
+    return result.changes > 0;
+  }
+
+  restorePresentation(presentationId: string): boolean {
+    const result = this.db
+      .prepare("UPDATE presentations SET archived_at = NULL, updated_at = ? WHERE id = ?")
+      .run(this.now(), presentationId);
+    if (result.changes > 0) this.afterWrite?.();
+    return result.changes > 0;
+  }
+
+  /** Every presentation whole, for the deck compiler's lookup. */
+  allPresentations(options: ListOptions = {}): Presentation[] {
+    return this.listPresentations(options)
+      .map((summary) => this.getPresentation(summary.id))
+      .filter((one): one is Presentation => one !== null);
   }
 }

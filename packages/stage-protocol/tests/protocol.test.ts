@@ -65,8 +65,8 @@ describe("channels", () => {
     }
   });
 
-  it("names four, and they all start with the product", () => {
-    expect(ALL_CHANNELS).toHaveLength(4);
+  it("names five, and they all start with the product", () => {
+    expect(ALL_CHANNELS).toHaveLength(5);
     expect(ALL_CHANNELS.every((channel) => channel.startsWith("hearth:"))).toBe(true);
     expect(CHANNELS.intent).toBe("hearth:intent");
   });

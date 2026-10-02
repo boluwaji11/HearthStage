@@ -37,6 +37,7 @@ because no other presenter's maker also runs the church's database.
 
 ```
 pnpm install
+pnpm --filter @hearth/stage native   once, see below
 pnpm dev            opens the control surface and an output window
 pnpm test
 pnpm typecheck
@@ -48,13 +49,19 @@ Node 24, pnpm 10. `pnpm dev` strips `ELECTRON_RUN_AS_NODE` from the environment,
 which any editor that is itself an Electron application sets, and which would
 otherwise make Electron start as plain Node.
 
+SQLite is a native module, and Electron's module ABI differs from Node's. One
+install of better-sqlite3 holds one binding, and the workspace keeps the Node one
+so the store's tests run. `pnpm --filter @hearth/stage native` puts an Electron
+one in `apps/stage/native`, which main loads by path. Run it after an install and
+after an Electron upgrade.
+
 ## What is here
 
 ```
 apps/
-  stage              The Electron application: main, preload, control, output
+  stage              The Electron application: main, preload, control, editor, output
 packages/
-  songs              The song model, sequence resolution, ChordPro, deck compilation
+  songs              Presentations, the song model, sequence resolution, ChordPro, deck compilation
   stage-store        SQLite on the laptop: the library, backups, migrations
   stage-protocol     What main and its windows say to each other
   colour             OKLCH and WCAG contrast, for the legibility floor

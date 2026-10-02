@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { amazingGrace, blankArrangement, blankSection, blankWholeSong, holyHolyHoly } from "@hearth/songs/fixtures";
 import type { WholeSong } from "@hearth/songs";
-import { LibraryError, openLibrary, type OpenLibrary } from "../src/index";
+import { LibraryError, openLibrary, SCHEMA_VERSION, type OpenLibrary } from "../src/index";
 
 let directory: string;
 let opened: OpenLibrary;
@@ -34,8 +34,8 @@ const local = (whole: WholeSong): WholeSong => ({
 describe("opening a library", () => {
   it("creates it and runs the migrations", () => {
     expect(opened.migrated.from).toBe(0);
-    expect(opened.migrated.to).toBe(1);
-    expect(opened.migrated.applied).toEqual(["1: the library"]);
+    expect(opened.migrated.to).toBe(SCHEMA_VERSION);
+    expect(opened.migrated.applied[0]).toBe("1: the library");
     expect(opened.library.count()).toBe(0);
   });
 
@@ -43,7 +43,7 @@ describe("opening a library", () => {
     opened.close();
     const again = openLibrary(join(directory, "library.db"), { backups: false });
     expect(again.migrated.applied).toEqual([]);
-    expect(again.migrated.to).toBe(1);
+    expect(again.migrated.to).toBe(SCHEMA_VERSION);
     again.close();
   });
 });

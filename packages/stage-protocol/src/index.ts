@@ -48,6 +48,18 @@ export type OutputContent =
       /** Stable per section, so a measured size is cached rather than redone. */
       fitKey: string;
     }
+  | {
+      /** Slides a person typed (STG-145, ST2.16). */
+      kind: "slide";
+      lines: string[];
+      /** "Point 2". For the operator, kept off the wall (ST6.3). */
+      label: string | null;
+      slideIndex: number;
+      slideCount: number;
+      /** The parts one typed slide was broken into, so they share a size. */
+      fitSlides: string[][];
+      fitKey: string;
+    }
   | { kind: "scripture"; lines: string[]; reference: string }
   | { kind: "message"; lines: string[] }
   | { kind: "nothing" };
@@ -92,7 +104,7 @@ export interface CueView {
   id: string;
   position: number;
   groupId: string;
-  kind: "lyric" | "scripture" | "marker";
+  kind: "lyric" | "scripture" | "marker" | "slide";
   label: string | null;
   occurrence: number;
   occurrencesTotal: number;
@@ -105,7 +117,7 @@ export interface CueView {
 export interface GroupView {
   id: string;
   title: string;
-  kind: "lyric" | "scripture" | "marker";
+  kind: "lyric" | "scripture" | "marker" | "slide";
   key: string | null;
   tempoBpm: number | null;
   sequence: string[];
@@ -134,6 +146,42 @@ export interface ControlState {
   problems: { code: string; detail: string }[];
 }
 
+/** One presentation, as the editor's list shows it (STG-145). */
+export interface PresentationSummary {
+  id: string;
+  title: string;
+  kind: string;
+  /** How many slides the room will see, which is not the number typed. */
+  slideCount: number;
+  origin: "local" | "hearth";
+  updatedAt: string;
+  archivedAt: string | null;
+}
+
+/**
+ * Everything the slide editor shows.
+ *
+ * The same shape as the control surface: state down, and the window is a
+ * function of it. `text` is the one box a person types into, so an unsaved
+ * edit lives in the renderer and everything else comes from here.
+ */
+export interface EditorState {
+  revision: number;
+  library: PresentationSummary[];
+  /** The presentation open in the editor. Null before anything is chosen. */
+  editing: {
+    /** Null until the first save, which is when the library gets a row. */
+    id: string | null;
+    title: string;
+    text: string;
+    readOnly: boolean;
+  } | null;
+  /** What is wrong with the last save attempt, by code (STG-145). */
+  problems: { code: string; detail: string }[];
+  /** Which presentation is live on the output, where one is. */
+  presentingId: string | null;
+}
+
 export type Intent =
   | { type: "advance" }
   | { type: "reverse" }
@@ -141,7 +189,19 @@ export type Intent =
   | { type: "goToCue"; cueId: string }
   | { type: "setBlank"; blank: Blank }
   | { type: "toggleBlank"; blank: Blank }
-  | { type: "reload" };
+  | { type: "reload" }
+  | { type: "openEditor" }
+  | { type: "newPresentation" }
+  | { type: "editPresentation"; presentationId: string }
+  | {
+      type: "savePresentation";
+      /** Null creates one. Main allocates the id, so a renderer cannot. */
+      presentationId: string | null;
+      title: string;
+      /** The box, as typed. Main parses it, because the parser is the model. */
+      text: string;
+    }
+  | { type: "presentNow"; presentationId: string };
 
 export type IntentType = Intent["type"];
 
@@ -159,6 +219,8 @@ export const CHANNELS = {
   outputState: "hearth:output-state",
   /** Main to the control renderer: new state. */
   controlState: "hearth:control-state",
+  /** Main to the editor renderer: new state. */
+  editorState: "hearth:editor-state",
   /** Renderer to main, invoked once on load, to get current state. */
   hello: "hearth:hello",
 } as const;
@@ -185,13 +247,33 @@ export function isBlank(value: unknown): value is Blank {
  */
 export function isIntent(value: unknown): value is Intent {
   if (typeof value !== "object" || value === null) return false;
-  const candidate = value as { type?: unknown; position?: unknown; cueId?: unknown; blank?: unknown };
+  const candidate = value as {
+    type?: unknown;
+    position?: unknown;
+    cueId?: unknown;
+    blank?: unknown;
+    presentationId?: unknown;
+    title?: unknown;
+    text?: unknown;
+  };
 
   switch (candidate.type) {
     case "advance":
     case "reverse":
     case "reload":
+    case "openEditor":
+    case "newPresentation":
       return true;
+    case "editPresentation":
+    case "presentNow":
+      return typeof candidate.presentationId === "string" && candidate.presentationId.length > 0;
+    case "savePresentation":
+      return (
+        (candidate.presentationId === null ||
+          (typeof candidate.presentationId === "string" && candidate.presentationId.length > 0)) &&
+        typeof candidate.title === "string" &&
+        typeof candidate.text === "string"
+      );
     case "goTo":
       return Number.isInteger(candidate.position) && (candidate.position as number) >= 0;
     case "goToCue":
@@ -209,7 +291,12 @@ export interface StageBridge {
   send(intent: Intent): void;
   onOutputState(listener: (state: OutputState) => void): () => void;
   onControlState(listener: (state: ControlState) => void): () => void;
-  hello(): Promise<{ output: OutputState | null; control: ControlState | null }>;
+  onEditorState(listener: (state: EditorState) => void): () => void;
+  hello(): Promise<{
+    output: OutputState | null;
+    control: ControlState | null;
+    editor: EditorState | null;
+  }>;
 }
 
 declare global {

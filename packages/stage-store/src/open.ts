@@ -21,13 +21,24 @@ export interface OpenOptions {
   /** Defaults to `library`, which is the careful one. */
   durability?: Durability;
   readonly?: boolean;
+  /**
+   * A better-sqlite3 binding to load instead of the installed one.
+   *
+   * Electron and Node use different module ABIs, so the Electron application
+   * passes a binding built for Electron and everything running under Node uses
+   * the default. See apps/stage/scripts/native.mjs.
+   */
+  nativeBinding?: string;
 }
 
 export type Db = Database.Database;
 
 export function openDatabase(path: string, options: OpenOptions = {}): Db {
   const durability = options.durability ?? "library";
-  const db = new Database(path, { readonly: options.readonly ?? false });
+  const db = new Database(path, {
+    readonly: options.readonly ?? false,
+    ...(options.nativeBinding === undefined ? {} : { nativeBinding: options.nativeBinding }),
+  });
 
   // WAL so a read during a write does not block, which matters once the
   // renderer is reading the library while an import is writing it.

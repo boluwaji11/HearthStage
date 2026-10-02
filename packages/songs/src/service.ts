@@ -95,7 +95,24 @@ export interface MarkerItem {
   kind: MarkerKind;
 }
 
-export type ServiceItem = SongItem | ScriptureItem | MarkerItem;
+/**
+ * Slides a person typed, in the service (STG-145, ST2.16).
+ *
+ * The item names a presentation and nothing more. The slides live in the
+ * library, so changing the sermon outline on Saturday night changes what the
+ * service presents without anybody reopening the order.
+ */
+export interface PresentationItem {
+  type: "presentation";
+  id: string;
+  sortOrder: number;
+  title: string;
+  durationSeconds: number | null;
+  notes: ItemNote[];
+  presentationId: string;
+}
+
+export type ServiceItem = SongItem | ScriptureItem | MarkerItem | PresentationItem;
 
 export interface ServicePlan {
   id: string;

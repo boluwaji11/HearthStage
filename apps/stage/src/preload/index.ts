@@ -2,11 +2,11 @@
  * STG-11. The only door between a window and the application.
  *
  * Renderers run sandboxed with context isolation and no node integration, so
- * this file is the entire surface a window can reach. Four named channels, and
+ * this file is the entire surface a window can reach. Five named channels, and
  * that is the whole of it: the filesystem, the database and `ipcRenderer` stay
  * on the other side, and a channel absent from the list cannot be named.
  *
- * A renderer paints church lyrics out of a local cache. It has no business
+ * A renderer paints what it is handed out of a local cache. It has no business
  * reaching anything further, and when STG-74 serves the remote over the network
  * this boundary is what makes that safe.
  */
@@ -16,6 +16,7 @@ import {
   CHANNELS,
   isIntent,
   type ControlState,
+  type EditorState,
   type Intent,
   type OutputState,
   type StageBridge,
@@ -36,6 +37,7 @@ const bridge: StageBridge = {
   },
   onOutputState: (listener) => subscribe<OutputState>(CHANNELS.outputState, listener),
   onControlState: (listener) => subscribe<ControlState>(CHANNELS.controlState, listener),
+  onEditorState: (listener) => subscribe<EditorState>(CHANNELS.editorState, listener),
   hello: () => ipcRenderer.invoke(CHANNELS.hello),
 };
 

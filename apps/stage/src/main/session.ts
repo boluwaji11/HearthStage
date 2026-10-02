@@ -109,6 +109,10 @@ export class Session {
       case "reload":
         this.revision += 1;
         return true;
+      default:
+        // The editor's intents belong to `Presentations`. The session holds
+        // what is live, and an intent it does not own changes nothing here.
+        return false;
     }
   }
 
@@ -198,27 +202,22 @@ export class Session {
 }
 
 /**
- * Every slide of the section a cue belongs to.
+ * Every slide that shares one measured text size with this cue.
  *
- * Sent down with the cue so the renderer can share one text size across the
- * whole section (ST6.2). A section is identified by its group, its label and
- * which repeat it is, because the second chorus is a different section's worth
- * of slides from the first even though the words match.
+ * Sent down with the cue so the renderer can hold one size across the whole
+ * group (ST6.2), and the grouping is named by the compiler rather than guessed
+ * at here. For a song that group is a section, so the words do not jump between
+ * the two halves of a chorus. For slides a person typed it is one typed slide,
+ * so a title card is not shrunk to fit the outline that follows it.
  */
-function sectionSlides(cue: Cue, deck: Deck): { slides: string[][]; key: string } {
+function fitSlides(cue: Cue, deck: Deck): { slides: string[][]; key: string } {
   const siblings = deck.cues
-    .filter(
-      (candidate) =>
-        candidate.groupId === cue.groupId &&
-        candidate.label === cue.label &&
-        candidate.occurrence === cue.occurrence &&
-        candidate.kind === "lyric",
-    )
+    .filter((candidate) => candidate.fitGroup === cue.fitGroup)
     .sort((left, right) => left.slideIndex - right.slideIndex);
 
   return {
     slides: siblings.map((sibling) => sibling.lines ?? []),
-    key: `${cue.groupId}:${cue.label ?? ""}:${cue.occurrence}`,
+    key: cue.fitGroup,
   };
 }
 
@@ -237,9 +236,19 @@ export function contentOf(cue: Cue | null, deck?: Deck): OutputContent {
   }
 
   const section =
-    deck === undefined
-      ? { slides: [cue.lines ?? []], key: cue.id }
-      : sectionSlides(cue, deck);
+    deck === undefined ? { slides: [cue.lines ?? []], key: cue.fitGroup } : fitSlides(cue, deck);
+
+  if (cue.kind === "slide") {
+    return {
+      kind: "slide",
+      lines: cue.lines ?? [],
+      label: cue.label,
+      slideIndex: cue.slideIndex,
+      slideCount: cue.slideCount,
+      fitSlides: section.slides,
+      fitKey: section.key,
+    };
+  }
 
   return {
     kind: "lyric",

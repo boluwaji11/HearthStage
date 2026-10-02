@@ -1,0 +1,263 @@
+/*
+ * STG-145. The slide editor, at office density.
+ *
+ * Same palette and the same tokens as the control surface, because the two
+ * windows are one product and a person moves between them in a minute. Written
+ * here rather than imported from packages/ui for the reason given in
+ * control.css: the component library is React and this window is not, yet.
+ */
+
+:root {
+  --stone-50: oklch(0.985 0.003 75);
+  --stone-200: oklch(0.925 0.008 75);
+  --stone-400: oklch(0.706 0.013 75);
+  --stone-700: oklch(0.366 0.012 75);
+  --stone-800: oklch(0.262 0.01 75);
+  --stone-900: oklch(0.198 0.009 75);
+  --stone-950: oklch(0.142 0.008 75);
+  --ember-500: oklch(0.742 0.162 62);
+  --danger: oklch(0.658 0.178 25);
+
+  --canvas: var(--stone-950);
+  --raised: var(--stone-900);
+  --sunk: oklch(0.172 0.008 75);
+  --line: var(--stone-800);
+  --text: var(--stone-50);
+  --quiet: var(--stone-400);
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --radius: 0.5rem;
+
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-weight: 400;
+  color-scheme: dark;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: var(--canvas);
+  color: var(--text);
+  font-size: 0.875rem;
+  overflow: hidden;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ember-500);
+  outline-offset: 2px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+
+h1 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+button {
+  font: inherit;
+  font-weight: 500;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  color: var(--text);
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--stone-700);
+}
+
+button.primary {
+  background: var(--ember-500);
+  border-color: var(--ember-500);
+  /* Ink on ember, which clears 4.5:1 (docs/design-system.md section 4). */
+  color: oklch(0.142 0.008 75);
+}
+
+button[disabled] {
+  opacity: 0.45;
+  cursor: default;
+}
+
+main {
+  display: grid;
+  grid-template-columns: 17rem 1fr 15rem;
+  min-height: 0;
+}
+
+.library,
+.preview {
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-3);
+}
+
+.library {
+  border-right: 1px solid var(--line);
+}
+
+.preview {
+  border-left: 1px solid var(--line);
+}
+
+ol {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.library button {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  gap: 2px;
+  background: transparent;
+  border-color: transparent;
+}
+
+.library li[data-open="true"] button {
+  background: var(--raised);
+  border-color: var(--stone-700);
+}
+
+.library li[data-live="true"] button {
+  border-color: var(--ember-500);
+}
+
+.row-title {
+  font-weight: 500;
+}
+
+.row-facts {
+  color: var(--quiet);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  min-height: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.field.grow {
+  flex: 1;
+  min-height: 0;
+}
+
+label {
+  color: var(--quiet);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+input,
+textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+}
+
+textarea {
+  flex: 1;
+  min-height: 0;
+  resize: none;
+  line-height: 1.5;
+  font-size: 0.9375rem;
+}
+
+input:read-only,
+textarea:read-only {
+  color: var(--quiet);
+}
+
+.problems {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: var(--danger);
+}
+
+.problems:empty {
+  display: none;
+}
+
+.card {
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  display: grid;
+  gap: 2px;
+}
+
+.card-label {
+  color: var(--quiet);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.card-line {
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.card-number {
+  color: var(--quiet);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.quiet {
+  color: var(--quiet);
+}
+
+#library-empty[hidden],
+.quiet[hidden] {
+  display: none;
+}
+
+footer {
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--line);
+}

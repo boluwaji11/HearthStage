@@ -99,6 +99,8 @@ describe("migrate", () => {
     expect(tables.sort()).toEqual([
       "arrangement_media",
       "arrangements",
+      "presentation_slides",
+      "presentations",
       "song_sections",
       "songs",
     ]);

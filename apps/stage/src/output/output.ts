@@ -61,7 +61,7 @@ function measureWith(theme: ThemeState) {
  * advance applies a number rather than running layout (ST21.1).
  */
 function sizeFor(state: OutputState): number | null {
-  if (state.content.kind !== "lyric") return null;
+  if (state.content.kind !== "lyric" && state.content.kind !== "slide") return null;
 
   const viewport: Box = { width: window.innerWidth, height: window.innerHeight };
   const within = safeBox(viewport, state.theme.safeArea);
@@ -125,6 +125,18 @@ function render(content: OutputContent): HTMLElement {
     reference.className = "reference";
     reference.textContent = content.reference;
     slide.append(reference);
+    return slide;
+  }
+
+  if (content.kind === "slide") {
+    const body = document.createElement("div");
+    body.className = "lines";
+    for (const line of content.lines) {
+      const element = document.createElement("p");
+      element.textContent = line;
+      body.append(element);
+    }
+    slide.append(body);
     return slide;
   }
 

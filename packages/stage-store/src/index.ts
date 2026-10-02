@@ -23,6 +23,7 @@ export {
   LibraryError,
   type ListOptions,
   type SongSummary,
+  type PresentationSummary,
 } from "./library";
 export { backup, backups, isUsable, restore, type BackupInfo, type BackupOptions } from "./backup";
 export { openLibrary, type OpenLibrary } from "./open-library";

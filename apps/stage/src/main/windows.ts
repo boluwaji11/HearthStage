@@ -15,14 +15,16 @@ import { BrowserWindow, screen, shell } from "electron";
 
 const PRELOAD = join(__dirname, "../preload/index.js");
 
+type Page = "control" | "editor" | "output";
+
 /** The renderer entry points, as electron-vite lays them out. */
-function pageUrl(page: "control" | "output"): { url?: string; file?: string } {
+function pageUrl(page: Page): { url?: string; file?: string } {
   const dev = process.env["ELECTRON_RENDERER_URL"];
   if (dev !== undefined) return { url: `${dev}/${page}/index.html` };
   return { file: join(__dirname, `../renderer/${page}/index.html`) };
 }
 
-function load(window: BrowserWindow, page: "control" | "output"): void {
+function load(window: BrowserWindow, page: Page): void {
   const target = pageUrl(page);
   if (target.url !== undefined) void window.loadURL(target.url);
   else void window.loadFile(target.file as string);
@@ -64,6 +66,32 @@ export function createControlWindow(): BrowserWindow {
   lockDown(window);
   window.once("ready-to-show", () => window.show());
   load(window, "control");
+  return window;
+}
+
+/**
+ * The slide editor (STG-145).
+ *
+ * A window of its own rather than a panel in the control surface. The two jobs
+ * are hours apart and belong to different people: Daniel types the notices on
+ * Tuesday evening, and the operator runs the service two days later with
+ * nothing destructive within reach (ST12.3).
+ */
+export function createEditorWindow(): BrowserWindow {
+  const window = new BrowserWindow({
+    width: 1180,
+    height: 780,
+    minWidth: 860,
+    minHeight: 540,
+    show: false,
+    title: "Slides",
+    backgroundColor: "#16140f",
+    webPreferences: COMMON_WEB_PREFERENCES,
+  });
+
+  lockDown(window);
+  window.once("ready-to-show", () => window.show());
+  load(window, "editor");
   return window;
 }
 

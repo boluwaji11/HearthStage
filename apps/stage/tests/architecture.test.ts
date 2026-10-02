@@ -69,7 +69,7 @@ describe("the render path", () => {
   });
 
   it("declares a content security policy with no remote origins", () => {
-    for (const page of ["src/output/index.html", "src/control/index.html"]) {
+    for (const page of ["src/output/index.html", "src/control/index.html", "src/editor/index.html"]) {
       const source = readFileSync(join(root, page), "utf8");
       expect(source, page).toContain("Content-Security-Policy");
       expect(source, page).toContain("default-src 'none'");
@@ -81,9 +81,12 @@ describe("the render path", () => {
   });
 });
 
+/** Every window a person sees. Each one is sandboxed and each one is checked. */
+const RENDERERS = [join(root, "src/output"), join(root, "src/control"), join(root, "src/editor")];
+
 describe("the renderers", () => {
   it("hold no Electron import, because they are sandboxed", () => {
-    for (const directory of [join(root, "src/output"), join(root, "src/control")]) {
+    for (const directory of RENDERERS) {
       for (const file of filesUnder(directory)) {
         const source = readFileSync(file, "utf8");
         expect(source, file).not.toMatch(/from\s+["']electron["']/);
@@ -95,7 +98,7 @@ describe("the renderers", () => {
   it("reach the application only through the preload bridge", () => {
     // `window.hearth` is the whole surface. Anything else would mean a channel
     // nobody put on the allowlist.
-    for (const directory of [join(root, "src/output"), join(root, "src/control")]) {
+    for (const directory of RENDERERS) {
       for (const file of filesUnder(directory).filter((name) => name.endsWith(".ts"))) {
         const source = readFileSync(file, "utf8");
         expect(source, file).not.toMatch(/\bipcRenderer\b/);

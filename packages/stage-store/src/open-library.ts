@@ -26,12 +26,17 @@ export interface OpenLibraryOptions {
   backups?: boolean;
   generations?: number;
   now?: () => string;
+  /** Passed through to better-sqlite3. See `OpenOptions.nativeBinding`. */
+  nativeBinding?: string;
 }
 
 export function openLibrary(path: string, options: OpenLibraryOptions = {}): OpenLibrary {
   mkdirSync(dirname(path), { recursive: true });
 
-  const db = openDatabase(path, { durability: "library" });
+  const db = openDatabase(path, {
+    durability: "library",
+    ...(options.nativeBinding === undefined ? {} : { nativeBinding: options.nativeBinding }),
+  });
   const migrated = migrate(db);
 
   const wantsBackups = options.backups ?? true;

@@ -4,28 +4,79 @@
  * It owns the windows, the session, and every piece of state. Renderers receive
  * state and send intents, and that is the whole conversation.
  *
- * What it presents at this point is a service compiled from the public-domain
- * fixtures in `@hearth/songs`. Opening a service out of the library on disk
- * arrives with the entry stories, and the deck compiler does not care which it
- * came from.
+ * What it presents on launch is a service compiled from the public-domain
+ * fixtures in `@hearth/songs`. Slides a person types are real and live in
+ * `library.db` beside it (STG-145), and presenting one replaces what is open.
+ * Set lists, where the two sit in one order, arrive with the entry stories, and
+ * the deck compiler does not care which a service came from.
  */
 
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { app, BrowserWindow, ipcMain } from "electron";
 import {
   CHANNELS,
   isIntent,
   type ControlState,
+  type EditorState,
   type OutputState,
   type OutputView,
 } from "@hearth/stage-protocol";
-import { compileDeck, lookupFrom } from "@hearth/songs";
+import { compileDeck, lookupFrom, presentationPlan } from "@hearth/songs";
 import { sampleLibrary, sampleService } from "@hearth/songs/fixtures";
+import { openLibrary } from "@hearth/stage-store";
+import { Presentations } from "./presentations";
 import { Session } from "./session";
-import { createControlWindow, createOutputWindow, displays, type DisplayChoice } from "./windows";
+import {
+  createControlWindow,
+  createEditorWindow,
+  createOutputWindow,
+  displays,
+  type DisplayChoice,
+} from "./windows";
 
-const session = new Session(compileDeck(sampleService, lookupFrom(sampleLibrary)), sampleService);
+/**
+ * The better-sqlite3 binding built for Electron.
+ *
+ * Beside the application when it is packaged, and in `apps/stage/native` in
+ * development, put there by `pnpm --filter @hearth/stage native`. Undefined
+ * falls back to the installed binding, which is the Node one and will refuse
+ * to load here, so the absence is worth failing on loudly rather than working
+ * by accident.
+ */
+function sqliteBinding(): string | undefined {
+  const candidates = [
+    join(process.resourcesPath ?? "", "native/better_sqlite3.node"),
+    join(__dirname, "../../native/better_sqlite3.node"),
+  ];
+  return candidates.find((candidate) => existsSync(candidate));
+}
+
+/**
+ * The church's own library, on disk.
+ *
+ * In `userData`, which is where an operating system expects an application to
+ * keep data a person cannot afford to lose, and where an uninstall leaves it
+ * alone. For a church that never pairs with Hearth this file is the only copy,
+ * which is why it opens with FULL synchronous and backs itself up on every
+ * write (packages/stage-store).
+ */
+const store = openLibrary(join(app.getPath("userData"), "library.db"), {
+  nativeBinding: sqliteBinding(),
+});
+const presentations = new Presentations(store.library);
+
+const songs = lookupFrom(sampleLibrary);
+const session = new Session(
+  compileDeck(sampleService, songs, { presentations: presentations.lookup() }),
+  sampleService,
+);
+
+/** Which presentation is on the wall, where one is. */
+let presenting: string | null = null;
 
 let control: BrowserWindow | null = null;
+let editor: BrowserWindow | null = null;
 const outputs = new Map<string, { window: BrowserWindow; choice: DisplayChoice }>();
 
 function outputViews(): OutputView[] {
@@ -54,6 +105,40 @@ function broadcast(): void {
     const state: ControlState = session.controlState(outputViews());
     control.webContents.send(CHANNELS.controlState, state);
   }
+  if (editor !== null && !editor.isDestroyed()) {
+    const state: EditorState = presentations.state(presenting);
+    editor.webContents.send(CHANNELS.editorState, state);
+  }
+}
+
+/** Opens the editor, or brings it forward if it is already open. */
+function openEditor(): void {
+  if (editor !== null && !editor.isDestroyed()) {
+    editor.focus();
+    return;
+  }
+  editor = createEditorWindow();
+  editor.on("closed", () => {
+    editor = null;
+  });
+}
+
+/**
+ * Puts one presentation on the wall (STG-145).
+ *
+ * It becomes a one item service rather than a second path into the renderer,
+ * because everything downstream of the deck compiler already works and a second
+ * path would be a second set of bugs.
+ */
+function presentNow(presentationId: string): boolean {
+  const lookup = presentations.lookup();
+  const one = lookup(presentationId);
+  if (one === undefined) return false;
+
+  const plan = presentationPlan(one);
+  session.open(compileDeck(plan, songs, { presentations: lookup }), plan);
+  presenting = presentationId;
+  return true;
 }
 
 function openOutput(choice: DisplayChoice): void {
@@ -77,16 +162,38 @@ app.whenReady().then(() => {
     // Validated on arrival rather than trusted. The boundary is where a
     // sandbox is worth anything.
     if (!isIntent(payload)) return;
-    if (session.apply(payload)) broadcast();
+
+    switch (payload.type) {
+      case "openEditor":
+        openEditor();
+        broadcast();
+        return;
+      case "presentNow":
+        if (presentNow(payload.presentationId)) broadcast();
+        return;
+      case "newPresentation":
+      case "editPresentation":
+      case "savePresentation":
+        if (presentations.apply(payload)) broadcast();
+        return;
+      default:
+        if (session.apply(payload)) broadcast();
+        return;
+    }
   });
 
   ipcMain.handle(CHANNELS.hello, (event) => {
     const entry = [...outputs.entries()].find(
       ([, candidate]) => candidate.window.webContents.id === event.sender.id,
     );
+    if (entry !== undefined) {
+      return { output: session.outputState(entry[0]), control: null, editor: null };
+    }
+    const fromEditor = editor !== null && !editor.isDestroyed() && editor.webContents.id === event.sender.id;
     return {
-      output: entry === undefined ? null : session.outputState(entry[0]),
-      control: entry === undefined ? session.controlState(outputViews()) : null,
+      output: null,
+      control: fromEditor ? null : session.controlState(outputViews()),
+      editor: fromEditor ? presentations.state(presenting) : null,
     };
   });
 
@@ -113,6 +220,12 @@ app.whenReady().then(() => {
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
+});
+
+// The library is closed on the way out, so WAL is checkpointed rather than
+// left for the next launch to recover.
+app.on("will-quit", () => {
+  store.close();
 });
 
 // Nothing in this application loads a remote origin, so a renderer asking for
