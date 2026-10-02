@@ -21,8 +21,8 @@
  */
 
 import { resolveSequence, type SequenceProblem } from "./sequence";
-import { DEFAULT_LIMITS, splitLines, splitSection, type SlideLimits } from "./slides";
-import { orderedSlides, type Presentation } from "./presentation";
+import { DEFAULT_LIMITS, splitSection, type SlideLimits } from "./slides";
+import { orderedSlides, slideParts, type Presentation } from "./presentation";
 import type { ItemNote, PresentationItem, ServiceItem, ServicePlan, Verse } from "./service";
 import { orderedItems } from "./service";
 import type { Key } from "./keys";
@@ -355,10 +355,11 @@ function compileScripture(
  * Cues from slides a person typed (STG-145, ST2.16).
  *
  * Shorter than the song path, and that is the point. The breaks are already
- * decided, so there is no sequence to resolve, no arrangement to pick and no
- * key. The only rule applied here is the line limit: a slide typed longer than
- * the screen holds becomes two rather than running off the bottom, and the
- * author's label follows both halves so the operator can still find it.
+ * decided by the person who added each slide, so there is no sequence to
+ * resolve, no arrangement to pick and no key. The only rule applied here is the
+ * line limit: a slide typed longer than the screen holds becomes two rather than
+ * running off the bottom, and the author's label follows both halves so the
+ * operator can still find it.
  */
 function compilePresentation(
   item: PresentationItem,
@@ -380,7 +381,7 @@ function compilePresentation(
 
   const cues: Cue[] = [];
   for (const slide of orderedSlides(presentation)) {
-    const parts = splitLines(slide.lines, limits);
+    const parts = slideParts(slide.lines, limits);
     for (const part of parts) {
       cues.push({
         id: `${groupId}:slide:${slide.sortOrder}:${part.index}`,

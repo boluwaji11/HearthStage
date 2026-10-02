@@ -2,9 +2,8 @@
  * Types a presentation in and prints the slides it becomes.
  *
  * The thing STG-145 added, without opening a window: a title card, three
- * notices and a sermon outline, typed as plain text with a blank line between
- * slides, compiled to the cues an operator advances through. No song anywhere
- * in it.
+ * notices and a sermon outline, each one a slide somebody added, compiled to
+ * the cues an operator advances through. No song anywhere in it.
  *
  *   pnpm --filter @hearth/songs slides
  *   pnpm --filter @hearth/songs slides -- --lines 2
@@ -16,41 +15,29 @@
 import { compileDeck, lookupFrom, presentationsFrom } from "../src/deck";
 import {
   newPresentation,
-  parseSlides,
   presentationPlan,
   slideCount,
+  slidesFrom,
   type Presentation,
+  type SlideInput,
 } from "../src/presentation";
 
 const argument = process.argv.indexOf("--lines");
 const maxLines = argument === -1 ? 4 : Number(process.argv[argument + 1] ?? 4);
 
-const TYPED = `[Title]
-Morning Service
-Everyone welcome
-
-Church lunch
-The 12th, after the service
-Bring something to share
-
-Youth group
-Wednesdays, 7pm
-In the hall
-
-[Point 1]
-God speaks first
-Genesis 1
-
-[Point 2]
-We answer
-And the answer is the week, not the hour
-
-[Point 3]
-Then we go`;
+/** One box per slide, which is what the editor holds. */
+const BOXES: SlideInput[] = [
+  { label: "Title", body: "Morning Service\nEveryone welcome" },
+  { label: null, body: "Church lunch\nThe 12th, after the service\nBring something to share" },
+  { label: null, body: "Youth group\nWednesdays, 7pm\nIn the hall" },
+  { label: "Point 1", body: "God speaks first\nGenesis 1" },
+  { label: "Point 2", body: "We answer\nAnd the answer is the week rather than the hour" },
+  { label: "Point 3", body: "Then we go" },
+];
 
 const presentation: Presentation = {
   ...newPresentation("pres_demo", { title: "Morning Service, the slides" }),
-  slides: parseSlides(TYPED, { presentationId: "pres_demo" }),
+  slides: slidesFrom("pres_demo", BOXES),
 };
 
 const bold = (text: string) => `\u001b[1m${text}\u001b[0m`;

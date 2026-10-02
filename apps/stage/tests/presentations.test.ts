@@ -14,14 +14,12 @@ import { openLibrary, type OpenLibrary } from "@hearth/stage-store";
 import { Presentations } from "../src/main/presentations";
 import { Session } from "../src/main/session";
 
-const NOTICES = `[Title]
-Morning Service
-
-Church lunch
-The 12th, after the service
-
-Youth group
-Wednesdays, 7pm`;
+/** What somebody types, one box per slide. */
+const NOTICES = [
+  { label: "Title", body: "Morning Service" },
+  { label: null, body: "Church lunch\nThe 12th, after the service" },
+  { label: null, body: "Youth group\nWednesdays, 7pm" },
+];
 
 let directory: string;
 let opened: OpenLibrary;
@@ -50,7 +48,13 @@ describe("the first ten minutes", () => {
   it("opens an empty box on New", () => {
     expect(presentations.apply({ type: "newPresentation" })).toBe(true);
     const state = presentations.state();
-    expect(state.editing).toEqual({ id: null, title: "", text: "", readOnly: false });
+    expect(state.editing).toEqual({
+      id: null,
+      serial: state.editing?.serial,
+      title: "",
+      slides: [],
+      readOnly: false,
+    });
   });
 
   it("saves what was typed, and the library has a row", () => {
@@ -59,7 +63,7 @@ describe("the first ten minutes", () => {
       type: "savePresentation",
       presentationId: null,
       title: "Notices",
-      text: NOTICES,
+      slides: NOTICES,
     });
 
     const state = presentations.state();
@@ -70,14 +74,53 @@ describe("the first ten minutes", () => {
     expect(state.problems).toEqual([]);
   });
 
-  it("loads the saved text back into the same box it was typed in", () => {
+  it("loads the saved slides back into the boxes they were typed in", () => {
     presentations.apply({
       type: "savePresentation",
       presentationId: null,
       title: "Notices",
-      text: NOTICES,
+      slides: NOTICES,
     });
-    expect(presentations.state().editing?.text).toBe(NOTICES);
+    expect(presentations.state().editing?.slides).toEqual(NOTICES);
+  });
+
+  it("drops a box with nothing in it, because an empty box is not a slide", () => {
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: null,
+      title: "Notices",
+      slides: [...NOTICES, { label: null, body: "   " }],
+    });
+    expect(presentations.state().library[0]?.slideCount).toBe(3);
+    expect(presentations.state().editing?.slides).toHaveLength(3);
+  });
+
+  it("keeps a presentation that has a title and no slides yet", () => {
+    presentations.apply({ type: "newPresentation" });
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: null,
+      title: "Notices",
+      slides: [],
+    });
+
+    const state = presentations.state();
+    expect(state.problems).toEqual([]);
+    expect(state.library).toHaveLength(1);
+    expect(state.library[0]?.slideCount).toBe(0);
+    expect(state.editing?.id).toBe("pres_1");
+  });
+
+  it("holds the slides in the order the boxes are in", () => {
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: null,
+      title: "Notices",
+      slides: [NOTICES[2], NOTICES[0], NOTICES[1]] as typeof NOTICES,
+    });
+    expect(
+      presentations.state().editing?.slides.map((slide) => slide.body.split("\n")[0]),
+    ).toEqual(["Youth group", "Morning Service", "Church lunch"]);
   });
 
   it("saves over the same row on a second save rather than making another", () => {
@@ -85,13 +128,13 @@ describe("the first ten minutes", () => {
       type: "savePresentation",
       presentationId: null,
       title: "Notices",
-      text: NOTICES,
+      slides: NOTICES,
     });
     presentations.apply({
       type: "savePresentation",
       presentationId: "pres_1",
       title: "Notices",
-      text: `${NOTICES}\n\nGiving\nThere is a basket at the back`,
+      slides: [...NOTICES, { label: null, body: "Giving\nThere is a basket at the back" }],
     });
 
     const state = presentations.state();
@@ -113,7 +156,7 @@ describe("a save that cannot happen", () => {
       type: "savePresentation",
       presentationId: null,
       title: "  ",
-      text: NOTICES,
+      slides: NOTICES,
     });
 
     const state = presentations.state();
@@ -123,25 +166,34 @@ describe("a save that cannot happen", () => {
     expect(state.editing).not.toBeNull();
   });
 
-  it("reports an empty box", () => {
+  it("reports a line holding a line break, which is the R12.4 guard", () => {
     presentations.apply({ type: "newPresentation" });
     presentations.apply({
       type: "savePresentation",
       presentationId: null,
       title: "Notices",
-      text: "",
+      slides: [{ label: null, body: "One\nTwo" }],
     });
-    expect(presentations.state().problems.map((problem) => problem.code)).toEqual(["slides.none"]);
+    // Split into two lines rather than refused, because splitting the box is
+    // this layer's job and the guard is on what reaches the store.
+    const stored = presentations.lookup()("pres_1");
+    expect(stored?.slides[0]?.lines).toEqual(["One", "Two"]);
+    expect(presentations.state().problems).toEqual([]);
   });
 
   it("clears the problems once the save goes through", () => {
     presentations.apply({ type: "newPresentation" });
-    presentations.apply({ type: "savePresentation", presentationId: null, title: "", text: NOTICES });
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: null,
+      title: "",
+      slides: NOTICES,
+    });
     presentations.apply({
       type: "savePresentation",
       presentationId: null,
       title: "Notices",
-      text: NOTICES,
+      slides: NOTICES,
     });
     expect(presentations.state().problems).toEqual([]);
     expect(presentations.state().library).toHaveLength(1);
@@ -162,13 +214,13 @@ describe("opening one from the library", () => {
       type: "savePresentation",
       presentationId: null,
       title: "Notices",
-      text: NOTICES,
+      slides: NOTICES,
     });
     presentations.apply({
       type: "savePresentation",
       presentationId: null,
       title: "Sermon outline",
-      text: "[Point 1]\nGod speaks first",
+      slides: [{ label: "Point 1", body: "God speaks first" }],
     });
   });
 
@@ -176,7 +228,23 @@ describe("opening one from the library", () => {
     presentations.apply({ type: "editPresentation", presentationId: "pres_1" });
     const state = presentations.state();
     expect(state.editing?.title).toBe("Notices");
-    expect(state.editing?.text).toBe(NOTICES);
+    expect(state.editing?.slides).toEqual(NOTICES);
+  });
+
+  it("bumps the serial when a different one is opened, and never on a save", () => {
+    presentations.apply({ type: "editPresentation", presentationId: "pres_1" });
+    const opened = presentations.state().editing?.serial;
+
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: "pres_1",
+      title: "Notices",
+      slides: NOTICES,
+    });
+    expect(presentations.state().editing?.serial).toBe(opened);
+
+    presentations.apply({ type: "editPresentation", presentationId: "pres_2" });
+    expect(presentations.state().editing?.serial).not.toBe(opened);
   });
 
   it("says which one is on the screen", () => {
@@ -190,7 +258,7 @@ describe("presenting it", () => {
       type: "savePresentation",
       presentationId: null,
       title: "Notices",
-      text: NOTICES,
+      slides: NOTICES,
     });
   });
 
@@ -242,7 +310,7 @@ describe("presenting it", () => {
       type: "savePresentation",
       presentationId: "pres_1",
       title: "Notices",
-      text: `${NOTICES}\n\nGiving\nThere is a basket at the back`,
+      slides: [...NOTICES, { label: null, body: "Giving\nThere is a basket at the back" }],
     });
     const plan = presentationPlan(presentations.lookup()("pres_1")!);
     const deck = compileDeck(plan, lookupFrom([]), { presentations: presentations.lookup() });

@@ -9,6 +9,8 @@ import { describe, it, expect } from "vitest";
 import {
   compileDeck,
   formatSlides,
+  slideInputs,
+  slidesFrom,
   lookupFrom,
   newPresentation,
   orderedSlides,
@@ -117,9 +119,12 @@ describe("validating a presentation", () => {
     expect(presentationHasErrors(problems)).toBe(true);
   });
 
-  it("refuses one with no slides", () => {
+  it("accepts one named and not yet filled, because a title comes first", () => {
     const problems = validatePresentation(typed(""));
-    expect(problems.map((problem) => problem.code)).toEqual(["slides.none"]);
+    expect(problems).toEqual([{ code: "slides.none", severity: "warning" }]);
+    // The place an empty presentation has to be caught is the deck, where it is
+    // reported by name before the service rather than found during it.
+    expect(presentationHasErrors(problems)).toBe(false);
   });
 
   it("refuses a line holding a newline, however it got there", () => {
@@ -147,6 +152,53 @@ describe("validating a presentation", () => {
   });
 });
 
+describe("slides from the boxes a person has on screen", () => {
+  const BOXES = [
+    { label: "Title", body: "Morning Service\nEveryone welcome" },
+    { label: null, body: "Church lunch\nThe 12th, after the service" },
+  ];
+
+  it("takes one box as one slide, whatever is in it", () => {
+    const slides = slidesFrom("p1", BOXES);
+    expect(slides).toHaveLength(2);
+    expect(slides[0]?.lines).toEqual(["Morning Service", "Everyone welcome"]);
+    expect(slides[0]?.label).toBe("Title");
+    expect(slides[1]?.label).toBeNull();
+  });
+
+  it("never splits a box on a blank line, because the person said where it ends", () => {
+    const slides = slidesFrom("p1", [{ label: null, body: "One\n\n\nTwo" }]);
+    expect(slides).toHaveLength(1);
+    expect(slides[0]?.lines).toEqual(["One", "Two"]);
+  });
+
+  it("drops a box with nothing in it rather than storing a blank slide", () => {
+    const slides = slidesFrom("p1", [...BOXES, { label: null, body: "   \n\n" }]);
+    expect(slides).toHaveLength(2);
+  });
+
+  it("numbers what is left, so a dropped box leaves no gap", () => {
+    const slides = slidesFrom("p1", [{ label: null, body: "" }, ...BOXES]);
+    expect(slides.map((slide) => slide.sortOrder)).toEqual([0, 1]);
+    expect(slides.map((slide) => slide.id)).toEqual(["p1:slide:1", "p1:slide:2"]);
+  });
+
+  it("treats a label of spaces as no label", () => {
+    expect(slidesFrom("p1", [{ label: "   ", body: "One" }])[0]?.label).toBeNull();
+  });
+
+  it("never puts a newline inside a line, which is the R12.4 guard", () => {
+    for (const slide of slidesFrom("p1", BOXES)) {
+      for (const line of slide.lines) expect(line).not.toContain("\n");
+    }
+  });
+
+  it("round trips through the boxes the editor shows", () => {
+    const presentation = { ...newPresentation("p1", { title: "Notices" }), slides: slidesFrom("p1", BOXES) };
+    expect(slideInputs(presentation)).toEqual(BOXES);
+  });
+});
+
 describe("how many slides the room sees", () => {
   it("counts what was typed when every slide fits", () => {
     expect(slideCount(typed(NOTICES))).toBe(4);
@@ -156,6 +208,14 @@ describe("how many slides the room sees", () => {
     const long = typed("One\nTwo\nThree\nFour\nFive\nSix");
     expect(long.slides).toHaveLength(1);
     expect(slideCount(long, { maxLines: 3 })).toBe(2);
+  });
+
+  it("counts a slide holding a gap as one, because a gap is not a break", () => {
+    const presentation = {
+      ...newPresentation("p1", { title: "Notices" }),
+      slides: slidesFrom("p1", [{ label: null, body: "One\n\nTwo" }]),
+    };
+    expect(slideCount(presentation)).toBe(1);
   });
 
   it("orders slides by what they say rather than by storage order", () => {
@@ -188,6 +248,18 @@ describe("presenting one on its own", () => {
     });
     expect(deck.cues[0]?.label).toBe("Title");
     expect(deck.cues[1]?.label).toBeNull();
+  });
+
+  it("keeps a slide holding a gap as one cue", () => {
+    const presentation = {
+      ...newPresentation("p1", { title: "Notices" }),
+      slides: slidesFrom("p1", [{ label: null, body: "One\n\nTwo" }]),
+    };
+    const deck = compileDeck(presentationPlan(presentation), lookupFrom([]), {
+      presentations: presentationsFrom([presentation]),
+    });
+    expect(deck.cues).toHaveLength(1);
+    expect(deck.cues[0]?.lines).toEqual(["One", "Two"]);
   });
 
   it("splits a slide too long for the screen and keeps its label on both halves", () => {

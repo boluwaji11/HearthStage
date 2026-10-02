@@ -158,12 +158,20 @@ export interface PresentationSummary {
   archivedAt: string | null;
 }
 
+/** One slide as a person has it on screen: a label, and a box of text. */
+export interface SlideDraft {
+  label: string | null;
+  /** The box, as typed. Main splits it into lines, because the model decides. */
+  body: string;
+}
+
 /**
  * Everything the slide editor shows.
  *
  * The same shape as the control surface: state down, and the window is a
- * function of it. `text` is the one box a person types into, so an unsaved
- * edit lives in the renderer and everything else comes from here.
+ * function of it. What the person is partway through typing lives in the
+ * renderer, because a keystroke is not worth a round trip, and everything that
+ * has been stored comes from here.
  */
 export interface EditorState {
   revision: number;
@@ -172,8 +180,16 @@ export interface EditorState {
   editing: {
     /** Null until the first save, which is when the library gets a row. */
     id: string | null;
+    /**
+     * Bumped when a different presentation is opened or a new one is started.
+     *
+     * It is how the window knows to replace what is in its boxes. A save comes
+     * back with the serial unchanged, so storing what somebody typed never
+     * reaches in and rewrites what they are still typing.
+     */
+    serial: number;
     title: string;
-    text: string;
+    slides: SlideDraft[];
     readOnly: boolean;
   } | null;
   /** What is wrong with the last save attempt, by code (STG-145). */
@@ -198,8 +214,8 @@ export type Intent =
       /** Null creates one. Main allocates the id, so a renderer cannot. */
       presentationId: string | null;
       title: string;
-      /** The box, as typed. Main parses it, because the parser is the model. */
-      text: string;
+      /** Every slide, in order. An empty box is dropped rather than stored. */
+      slides: SlideDraft[];
     }
   | { type: "presentNow"; presentationId: string };
 
@@ -254,7 +270,7 @@ export function isIntent(value: unknown): value is Intent {
     blank?: unknown;
     presentationId?: unknown;
     title?: unknown;
-    text?: unknown;
+    slides?: unknown;
   };
 
   switch (candidate.type) {
@@ -272,7 +288,7 @@ export function isIntent(value: unknown): value is Intent {
         (candidate.presentationId === null ||
           (typeof candidate.presentationId === "string" && candidate.presentationId.length > 0)) &&
         typeof candidate.title === "string" &&
-        typeof candidate.text === "string"
+        isSlideDrafts(candidate.slides)
       );
     case "goTo":
       return Number.isInteger(candidate.position) && (candidate.position as number) >= 0;
@@ -284,6 +300,26 @@ export function isIntent(value: unknown): value is Intent {
     default:
       return false;
   }
+}
+
+/**
+ * More slides than any service will hold.
+ *
+ * A bound on the boundary rather than on the product. Nothing a person types
+ * comes near it, and a renderer with a defect cannot hand main an unbounded
+ * write. Imports go to the store directly and are not limited by this.
+ */
+const MOST_SLIDES = 2000;
+
+function isSlideDrafts(value: unknown): value is SlideDraft[] {
+  if (!Array.isArray(value) || value.length > MOST_SLIDES) return false;
+  return value.every((entry) => {
+    if (typeof entry !== "object" || entry === null) return false;
+    const slide = entry as { label?: unknown; body?: unknown };
+    return (
+      (slide.label === null || typeof slide.label === "string") && typeof slide.body === "string"
+    );
+  });
 }
 
 /** The API preload puts on the window. Typed here so both sides agree. */

@@ -321,7 +321,7 @@ the inventory this correction came out of.
 | ST2.13 | S0.4 | Song origin is `local` or `hearth`, shown in the library, with `hearth` songs read-only in Stage (section 2). |
 | ST2.14 | S0.4 | **Promote a `local` song into a paired church's Hearth library**, on the operator's action, one way, with a duplicate check against CCLI number and title first. |
 | ST2.15 | S0.1 | Nothing in the library is reachable from the live presentation surface (ST12.3). |
-| ST2.16 | S0.1 | **A presentation of plain slides.** A person types slides and they present: a title, three notices, a sermon outline, a blank. Each slide carries text and takes its look from a theme. This is the first thing somebody does with Stage, before any song exists. |
+| ST2.16 | S0.1 | **A presentation of plain slides.** A person types slides and they present: a title, three notices, a sermon outline, a blank. Each slide carries text and takes its look from a theme. Slides are added one at a time, so where a slide ends is a decision somebody made while looking at it. This is the first thing somebody does with Stage, before any song exists. |
 | ST2.17 | S0.2 | **A playlist item can be a presentation, a piece of media, a header, or a timer.** A service is not only songs and readings. |
 | ST2.18 | S0.2 | Collections in the library, so two hundred presentations are findable by more than a search box. |
 | ST2.19 | S0.2 | A note on a slide, separate from a note on an item, shown to the operator and to the stage display. |

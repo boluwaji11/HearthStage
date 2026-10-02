@@ -93,7 +93,7 @@ thing a person does with Stage and until now there was no way to do it. See
 |---|---|---|---|
 | STG-145 | **Type a presentation of plain slides and present it**: a title, three notices, a sermon outline | ST2.16 | Resolved |
 | STG-146 | Hold a presentation's kind, so a song, a reading, plain slides and a media item are one list | ST2.16 | New |
-| STG-147 | Edit, reorder and delete the slides in a presentation | ST2.16 | New |
+| STG-147 | Dragging to reorder, duplicating a slide, moving one between presentations, and the per-slide note | ST2.16, ST2.19 | New |
 | STG-148 | Apply a theme to a presentation, and change it without touching the content | ST8.1 | New |
 | STG-149 | First run: one line saying what to do, and three ways in | ST1.2 | New |
 | STG-6 | Build the local library store: songs, sections, arrangements, durable and backed up on write | ST2.1, ST19.5 | Resolved |
@@ -472,7 +472,7 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 |---|---|
 | **Active** | Nothing |
 | **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** typing slides and presenting them. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-146**, holding a presentation's kind so a song and a set of typed slides are one list, then STG-147 editing and reordering, STG-148 themes and STG-149 first run. Then the measurements STG-28 and STG-29. |
+| **Next** | **STG-146**, holding a presentation's kind so a song and a set of typed slides are one list, then STG-147 dragging and duplicating, STG-148 themes and STG-149 first run. Then the measurements STG-28 and STG-29. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -850,41 +850,46 @@ pnpm --filter @hearth/stage dev
 In the window:
 
 - Press **Slides** in the top right of the control surface. A second window opens.
-- Press **New**, type a title, then type slides in the big box with **one blank line between
-  slides**. The cards on the right appear as you type, numbered, so the blank line explains itself.
-- A line in brackets on its own, `[Point 2]`, becomes the slide's label. It shows to the operator and
-  never reaches the wall.
-- Press **Save**, or **Cmd+S**. The library on the left gets a row with the slide count.
-- Press **Present**. The output window shows the first slide. Click back to the control surface and
-  press **space** to advance, **B** to black it.
-- Quit, reopen, and the library row is still there. It is in `library.db` under the application's
-  data directory, backed up on every write.
-- Leave the title empty and press Save. It says what is missing and keeps what you typed.
+- Press **New** and type a title. It stores itself, and the library on the left gets the row.
+- Press **Add slide**. A box appears, already focused. Type into it. **Cmd and Return** adds the next
+  one without reaching for the mouse.
+- Each box has **Up**, **Down** and **Remove**. Removing one offers **Undo** in the footer.
+- Backspace in an empty box takes the box away.
+- The **Label** on a box, something like `Point 2`, shows to the operator and never reaches the wall.
+- There is no save button. The footer says `3 slides · saved`. Close the window mid sentence, reopen
+  it, and the words are there.
+- Press **Present**. The output window shows slide one. Back on the control surface, **space**
+  advances and **B** blacks it.
+- Paste a sermon outline with gaps in it into an empty box and it becomes one slide per paragraph.
+  Say the word and that goes.
 
-**Fifty-six new tests.** What they defend:
+**Sixty-six tests across the three packages.** What they defend:
 
-1. **The author's break is the break.** A song is split by rule because the typography decides what
-   fits. A typed slide breaks where the person pressed return twice, because they are looking at the
-   outline and they know where the point ends. The line limit still applies, so a slide typed too
-   long for the screen becomes two and keeps its label on both halves.
-2. **The round trip is exact.** `formatSlides(parseSlides(text))` returns the text, so a saved
-   presentation loads back into the same box it was typed in. Asserted, because an editor that
-   reformats somebody's work on every open is an editor nobody trusts.
-3. **The parse is the model.** The preview, the save and the deck all call `parseSlides`. The
-   renderer sends the text and main parses it, so the three cannot disagree.
-4. **The newline guard reaches slides.** The store validates before every write and refuses a line
-   holding a newline, which is the R12.4 rule applied to the new object.
-5. **Each typed slide is sized on its own.** A title card is not shrunk to fit the four point
+1. **A slide exists because somebody added one.** A song is split by rule, because a church types
+   lyrics as sections and the typography decides what fits. A typed slide ends where the person
+   building it said it ends. A blank line inside a slide counts as whitespace. The line
+   limit still applies, so a slide typed too long for the screen becomes two and keeps its label on
+   both halves.
+2. **An empty box is not a slide.** Pressing add puts a box on screen and nothing in the library
+   until there are words in it, which is also what stops a stray box reaching the wall as a blank
+   screen.
+3. **A presentation is named before it is filled.** A title with no slides yet is a library row and a
+   warning rather than a refusal. The place an empty one has to be caught is the deck, where it is
+   reported by name before the service.
+4. **Storing never overwrites typing.** State comes down whole, and the window replaces its boxes
+   only when the serial changes, which happens when a different presentation is opened. A save comes
+   back with the serial unchanged.
+5. **The model splits the text, once.** The window sends a title and one box per slide. Splitting,
+   numbering, trimming and dropping the empty ones happen in `slidesFrom`, so the screen, the store
+   and the deck cannot each do it slightly differently. The R12.4 newline guard lives there.
+6. **Each typed slide is sized on its own.** A title card is not shrunk to fit the four point
    outline that follows it, and the two halves of one slide that was split do share a size. The
-   compiler names the grouping on the cue (`fitGroup`) rather than the renderer guessing it.
-6. **A missing presentation is reported at compile time**, by name, the same way a missing song is.
-7. **Cue ids are stable across a recompile**, so a restart lands on the same slide.
-8. **A save that cannot happen keeps what was typed.** Problems come back on the state rather than
-   as an exception.
-9. **The editor is sandboxed like every other window.** It holds no Electron import, no
-   `ipcRenderer`, and its CSP names no remote origin. The architecture test now walks three
-   renderers rather than two.
+   compiler names the grouping on the cue (`fitGroup`).
+7. **A missing presentation is reported at compile time**, by name, the way a missing song is, and
+   cue ids are stable across a recompile so a restart lands on the same slide.
+8. **The editor is sandboxed like every other window.** No Electron import, no `ipcRenderer`, a CSP
+   with no remote origin, and the slide array is bounded where it crosses the boundary.
 
-**One thing that moved.** Presenting a presentation replaces whatever service is open, because set
-lists, where typed slides and songs sit in one order, are STG-146 and STG-147. Restarting the
-application brings the sample service back.
+**Two things that moved.** Presenting a presentation replaces whatever service is open, because set
+lists are STG-146 and STG-147. And the save button is gone: the window stores itself when a box
+loses focus, when a slide is added, removed or moved, and a second after typing stops.

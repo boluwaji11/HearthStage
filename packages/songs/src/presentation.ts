@@ -12,18 +12,19 @@
  *
  * Two decisions here are load bearing.
  *
- * 1. **The author's break is the break.** A song is broken into slides by rule,
- *    because a church types lyrics as sections and the typography decides what
- *    fits. A presentation is broken where the person pressed return twice. They
- *    are looking at the sermon outline and they know where the point ends. The
- *    line limit still applies, so a slide typed too long for the screen splits
- *    further rather than running off the bottom.
+ * 1. **A slide exists because somebody added one.** A song is broken into
+ *    slides by rule, because a church types lyrics as sections and the
+ *    typography decides what fits. A presentation is a list a person built one
+ *    slide at a time, and the boundaries are theirs. Inside a slide the line
+ *    limit still applies, so one typed too long for the screen splits further
+ *    rather than running off the bottom. A blank line inside a slide counts as
+ *    whitespace.
  * 2. **A slide carries a label and a note, and neither reaches the wall.** The
  *    label is what the operator sees in the deck list, so "Point 2" can be
  *    found during the sermon. The note is for whoever built the slide (ST2.19).
  */
 
-import { DEFAULT_LIMITS, splitLines, type SlideLimits } from "./slides";
+import { DEFAULT_LIMITS, splitLines, type Slide, type SlideLimits } from "./slides";
 import type { PresentationItem, ServicePlan } from "./service";
 import type { SongOrigin } from "./types";
 
@@ -79,7 +80,71 @@ export function newPresentation(
   };
 }
 
-/** A label written on its own line, in brackets, as the editor accepts it. */
+/** One slide as a person has it in front of them: a label, and a box of text. */
+export interface SlideInput {
+  label: string | null;
+  /** The box, as typed. Split into lines here, because the model decides. */
+  body: string;
+}
+
+/**
+ * Slides from what somebody has on screen.
+ *
+ * The editor holds a box per slide and sends the boxes. Splitting the text,
+ * dropping the blanks and numbering the result all happen here, so the screen,
+ * the store and the deck cannot each do it slightly differently.
+ *
+ * **A box with no words is not a slide.** Pressing the add button puts an empty
+ * box on screen, and until there are words in it there is nothing to keep. So an
+ * empty box is dropped rather than stored, which is also what stops a stray one
+ * reaching the wall as a blank screen.
+ *
+ * Blank lines inside a slide go the same way. A slide is the lines that were
+ * typed, which keeps the rule short enough to say in one sentence.
+ */
+export function slidesFrom(presentationId: string, input: SlideInput[]): PresentationSlide[] {
+  const slides: PresentationSlide[] = [];
+
+  for (const one of input) {
+    const lines = one.body
+      .split(/\r\n|\r|\n/)
+      .map((line) => line.replace(/\s+$/, ""))
+      .filter((line) => line.trim() !== "");
+    if (lines.length === 0) continue;
+
+    const label = one.label === null ? "" : one.label.trim();
+    slides.push({
+      id: `${presentationId}:slide:${slides.length + 1}`,
+      presentationId,
+      sortOrder: slides.length,
+      label: label === "" ? null : label,
+      lines,
+      notes: null,
+    });
+  }
+
+  return slides;
+}
+
+/** A slide as the boxes an editor shows, which is the inverse of `slidesFrom`. */
+export function slideInputs(presentation: Presentation): SlideInput[] {
+  return orderedSlides(presentation).map((slide) => ({
+    label: slide.label,
+    body: slide.lines.join("\n"),
+  }));
+}
+
+/**
+ * The parts one typed slide becomes on screen.
+ *
+ * The only thing that breaks a typed slide is the line limit, because the person
+ * who added the slide already said where it ends.
+ */
+export function slideParts(lines: string[], limits: SlideLimits = DEFAULT_LIMITS): Slide[] {
+  return splitLines(lines, { ...limits, breakOnBlankLine: false });
+}
+
+/** A label written on its own line, in brackets, as a pasted outline carries it. */
 const LABEL_LINE = /^\[([^\]]{1,32})\]$/;
 
 export interface ParseOptions {
@@ -89,11 +154,12 @@ export interface ParseOptions {
 }
 
 /**
- * Slides from typed text.
+ * Slides from a block of text, broken at blank lines.
  *
- * One box, a blank line between slides, and that is the whole input language.
- * It is how a person already writes an outline, it survives a paste out of a
- * sermon document, and it needs nothing explained on screen.
+ * The paste path and the import path. Somebody drops a sermon outline out of a
+ * document into an empty slide and gets the outline, rather than one slide
+ * holding all of it. Adding slides one at a time is `slidesFrom`, and that is
+ * what the editor is built on.
  *
  * A slide whose first line is `[Point 2]` takes that as its label and does not
  * show it. Trailing blank lines are dropped, and a run of several blank lines
@@ -149,7 +215,7 @@ export function formatSlides(slides: PresentationSlide[]): string {
 export type PresentationProblem =
   | { code: "title.missing"; severity: "error" }
   | { code: "kind.unknown"; severity: "error"; value: string }
-  | { code: "slides.none"; severity: "error" }
+  | { code: "slides.none"; severity: "warning" }
   | { code: "slide.lines.empty"; severity: "error"; sortOrder: number }
   | { code: "slide.lines.containsNewline"; severity: "error"; sortOrder: number; line: number }
   | { code: "slide.presentation.mismatch"; severity: "error"; slideId: string }
@@ -180,7 +246,11 @@ export function validatePresentation(presentation: Presentation): PresentationPr
     problems.push({ code: "kind.unknown", severity: "error", value: presentation.kind });
   }
   if (presentation.slides.length === 0) {
-    problems.push({ code: "slides.none", severity: "error" });
+    // A warning rather than an error, because a presentation is named before it
+    // is filled: somebody types "Notices" and then adds the slides. The place
+    // this has to be caught is the deck, where an empty item is reported by
+    // name before the service rather than found during it.
+    problems.push({ code: "slides.none", severity: "warning" });
   }
 
   const seen = new Set<number>();
@@ -249,7 +319,7 @@ export function slideCount(
   limits: SlideLimits = DEFAULT_LIMITS,
 ): number {
   return orderedSlides(presentation).reduce(
-    (total, slide) => total + Math.max(1, splitLines(slide.lines, limits).length),
+    (total, slide) => total + Math.max(1, slideParts(slide.lines, limits).length),
     0,
   );
 }

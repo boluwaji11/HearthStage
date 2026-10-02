@@ -74,10 +74,10 @@ describe("saving a presentation", () => {
     expect(opened.library.getPresentation("p1")).toBeNull();
   });
 
-  it("refuses one with no slides", () => {
-    expect(() =>
-      opened.library.savePresentation({ ...newPresentation("p2", { title: "Empty" }) }),
-    ).toThrow(LibraryError);
+  it("keeps one that is named and not yet filled", () => {
+    opened.library.savePresentation(newPresentation("p2", { title: "Empty" }));
+    expect(opened.library.getPresentation("p2")?.slides).toEqual([]);
+    expect(opened.library.listPresentations()[0]?.slideCount).toBe(0);
   });
 
   it("refuses a synced one, because the cache holds what the platform owns", () => {

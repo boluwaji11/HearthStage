@@ -12,15 +12,20 @@
  */
 
 import {
-  formatSlides,
   newPresentation,
-  parseSlides,
   presentationsFrom,
+  slideInputs,
+  slidesFrom,
   validatePresentation,
   type Presentation,
   type PresentationLookup,
 } from "@hearth/songs";
-import type { EditorState, Intent, PresentationSummary } from "@hearth/stage-protocol";
+import type {
+  EditorState,
+  Intent,
+  PresentationSummary,
+  SlideDraft,
+} from "@hearth/stage-protocol";
 
 /** What this needs from the library. `Library` from the store satisfies it. */
 export interface PresentationLibrary {
@@ -61,6 +66,13 @@ export class Presentations {
   private editingId: string | null = null;
   /** True after "New", before the first save, when there is no row yet. */
   private drafting = false;
+  /**
+   * Bumped when a different presentation is opened, and never on a save.
+   *
+   * The window replaces its boxes when this changes, so storing what somebody
+   * typed cannot reach in and rewrite what they are still typing.
+   */
+  private serial = 0;
   private problems: { code: string; detail: string }[] = [];
   private revision = 0;
 
@@ -80,6 +92,7 @@ export class Presentations {
         this.editingId = null;
         this.drafting = true;
         this.problems = [];
+        this.serial += 1;
         this.revision += 1;
         return true;
 
@@ -88,12 +101,13 @@ export class Presentations {
         this.editingId = intent.presentationId;
         this.drafting = false;
         this.problems = [];
+        this.serial += 1;
         this.revision += 1;
         return true;
       }
 
       case "savePresentation":
-        return this.save(intent.presentationId, intent.title, intent.text);
+        return this.save(intent.presentationId, intent.title, intent.slides);
 
       default:
         return false;
@@ -101,15 +115,15 @@ export class Presentations {
   }
 
   /**
-   * Saves what is in the box.
+   * Saves what is on screen.
    *
-   * The renderer sends a title and the text, and the parse happens here,
-   * because the parse is the model and a renderer that built slides itself
-   * could build them a second way. Problems come back on the state rather than
-   * as an exception, so a person who left the title empty sees the reason
-   * beside the field instead of losing what they typed.
+   * The renderer sends a title and one box per slide, and the splitting,
+   * numbering and dropping of empty boxes happens here, because a renderer that
+   * built slides itself could build them a second way. Problems come back on
+   * the state rather than as an exception, so a person who left the title empty
+   * sees the reason beside the field instead of losing what they typed.
    */
-  private save(presentationId: string | null, title: string, text: string): boolean {
+  private save(presentationId: string | null, title: string, slides: SlideDraft[]): boolean {
     // Null means create. The window sends the open presentation's id when there
     // is one, so "save" and "save a copy" cannot be confused here.
     const id = presentationId ?? this.nextId();
@@ -119,7 +133,7 @@ export class Presentations {
       ...(existing ?? newPresentation(id)),
       id,
       title: title.trim(),
-      slides: parseSlides(text, { presentationId: id }),
+      slides: slidesFrom(id, slides),
     };
 
     const found = validatePresentation(presentation);
@@ -164,14 +178,15 @@ export class Presentations {
         open !== null
           ? {
               id: open.id,
+              serial: this.serial,
               title: open.title,
-              text: formatSlides(open.slides),
+              slides: slideInputs(open),
               // A synced presentation belongs to the platform, so the laptop
               // shows it and does not write it.
               readOnly: open.origin !== "local",
             }
           : this.drafting || this.problems.length > 0
-            ? { id: this.editingId, title: "", text: "", readOnly: false }
+            ? { id: this.editingId, serial: this.serial, title: "", slides: [], readOnly: false }
             : null,
       problems: this.problems,
       presentingId,

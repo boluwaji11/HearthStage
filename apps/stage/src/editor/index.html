@@ -14,7 +14,6 @@
       <h1>Slides</h1>
       <div class="actions">
         <button id="new" type="button">New</button>
-        <button id="save" type="button" class="primary">Save</button>
         <button id="present" type="button">Present</button>
       </div>
     </header>
@@ -31,21 +30,23 @@
           <input id="title" type="text" autocomplete="off" spellcheck="false" />
         </div>
 
-        <div class="field grow">
-          <label for="text">Slides, one blank line between them</label>
-          <textarea id="text" spellcheck="true"></textarea>
+        <ol id="slides" class="slides"></ol>
+
+        <div class="add">
+          <button id="add" type="button" class="primary">Add slide</button>
         </div>
 
         <ul id="problems" class="problems"></ul>
-      </section>
-
-      <section class="preview" aria-label="Preview">
-        <ol id="preview"></ol>
       </section>
     </main>
 
     <footer>
       <p id="status" class="quiet"></p>
+      <p id="undone" class="undone" hidden>
+        <span id="undone-what"></span>
+        <button id="undo" type="button">Undo</button>
+      </p>
+      <p class="quiet keys">Cmd and Return adds a slide</p>
     </footer>
 
     <script type="module" src="./editor.ts"></script>
