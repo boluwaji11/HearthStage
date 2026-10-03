@@ -89,16 +89,17 @@ console.log("   library title:", await evalIn(`document.getElementById("library-
 console.log("-- collections (STG-150)");
 await check("the chip row", "#collections", visible);
 const allSongs = await evalIn(`document.querySelectorAll("#tiles li").length`);
-await evalIn(`document.getElementById("collection-new").click()`);
-await new Promise(s=>setTimeout(s,700));
-console.log("   made:", JSON.stringify(await evalIn(`document.querySelector("#collection-list .chip")?.textContent ?? ""`)));
-// Put one song in it, through the item it belongs to.
+// The first collection is made from the song that wants it, which is the path
+// a church actually walks and the one that was broken.
 await evalIn(`document.querySelector("#tiles button")?.click()`);
 await new Promise(s=>setTimeout(s,900));
-await check("collections on the item", "#item-collections", visible);
-await evalIn(`document.querySelector("#item-collection-list .chip")?.click()`);
-await new Promise(s=>setTimeout(s,700));
+await check("filed under, on the item", "#item-collections", visible);
+console.log("   with no collections yet, it still offers:", JSON.stringify(await evalIn(`document.getElementById("item-collection-new").textContent`)));
+await evalIn(`document.getElementById("item-collection-new").click()`);
+await new Promise(s=>setTimeout(s,900));
+console.log("   made:", JSON.stringify(await evalIn(`document.querySelector("#item-collection-list .chip")?.textContent ?? ""`)));
 console.log("   in it:", await evalIn(`document.querySelector("#item-collection-list .chip")?.getAttribute("aria-pressed")`));
+if (await evalIn(`document.querySelector("#item-collection-list .chip")?.getAttribute("aria-pressed")`) !== "true") fail.push("the song was not filed in the collection it made");
 await evalIn(`document.getElementById("back").click()`);
 await new Promise(s=>setTimeout(s,800));
 await evalIn(`document.querySelector("#collection-list .chip")?.click()`);

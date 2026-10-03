@@ -543,7 +543,14 @@ export type Intent =
    */
   | { type: "exportLibrary"; format: "openlyrics" | "bundle" }
   /** A church's own grouping of the library (STG-150, ST2.18). */
-  | { type: "newCollection" }
+  /**
+   * A new collection (STG-150, ST2.18).
+   *
+   * `withItemId` puts the open item straight into it, because the moment a
+   * church wants a collection is usually the moment it is looking at the song
+   * that wants one.
+   */
+  | { type: "newCollection"; withItemId?: string | null }
   | { type: "renameCollection"; collectionId: string; name: string }
   | { type: "archiveCollection"; collectionId: string }
   /** Narrows the library to one collection. Null is the whole kind. */
@@ -678,6 +685,7 @@ export function isIntent(value: unknown): value is Intent {
     to?: unknown;
     format?: unknown;
     collectionId?: unknown;
+    withItemId?: unknown;
     inIt?: unknown;
     position?: unknown;
     cueId?: unknown;
@@ -716,7 +724,6 @@ export function isIntent(value: unknown): value is Intent {
     case "showPlans":
     case "showLibrary":
     case "exportUsage":
-    case "newCollection":
     case "showSettings":
     case "newPlanSlide":
     case "saveToLibrary":
@@ -761,6 +768,12 @@ export function isIntent(value: unknown): value is Intent {
       return typeof candidate.from === "string" && typeof candidate.to === "string";
     case "exportLibrary":
       return candidate.format === "openlyrics" || candidate.format === "bundle";
+    case "newCollection":
+      return (
+        candidate.withItemId === undefined ||
+        candidate.withItemId === null ||
+        typeof candidate.withItemId === "string"
+      );
     case "archiveCollection":
       return typeof candidate.collectionId === "string" && candidate.collectionId.length > 0;
     case "renameCollection":

@@ -104,6 +104,7 @@ const el = {
   collectionNew: document.getElementById("collection-new") as HTMLButtonElement,
   itemCollections: document.getElementById("item-collections") as HTMLElement,
   itemCollectionList: document.getElementById("item-collection-list") as HTMLOListElement,
+  itemCollectionNew: document.getElementById("item-collection-new") as HTMLButtonElement,
   deviceName: document.getElementById("device-name") as HTMLInputElement,
   devicePlatform: document.getElementById("device-platform") as HTMLParagraphElement,
   chooseLogo: document.getElementById("choose-logo") as HTMLButtonElement,
@@ -1021,13 +1022,20 @@ function renameCollection(chip: HTMLButtonElement, collectionId: string, was: st
   box.select();
 }
 
-/** The collections one item is in, as toggles on the item itself (STG-150). */
+/**
+ * Where this item is filed, as toggles on the item itself (STG-150).
+ *
+ * Shown on anything that has been saved, including a church with no collections
+ * yet, because the first one is most naturally made while looking at the song
+ * that wants it. Hidden only where there is nothing to file, or where the item
+ * belongs to the platform and this laptop does not write it.
+ */
 function renderItemCollections(): void {
   const rows = latest?.collections ?? [];
   const inIt = new Set(draft?.collections ?? []);
   const itemId = draft?.id ?? null;
 
-  el.itemCollections.hidden = itemId === null || rows.length === 0 || (draft?.readOnly ?? false);
+  el.itemCollections.hidden = itemId === null || (draft?.readOnly ?? false);
   el.itemCollectionList.replaceChildren();
   if (itemId === null) return;
 
@@ -1811,6 +1819,12 @@ el.exportOpenLyrics.addEventListener("click", () =>
 el.exportBundle.addEventListener("click", () => send({ type: "exportLibrary", format: "bundle" }));
 el.collectionAll.addEventListener("click", () => send({ type: "showCollection", collectionId: null }));
 el.collectionNew.addEventListener("click", () => send({ type: "newCollection" }));
+// From the song itself, which is where somebody realises they want one. Main
+// puts the open item straight into it, so this is one press rather than three.
+el.itemCollectionNew.addEventListener("click", () => {
+  commit();
+  send({ type: "newCollection", withItemId: draft?.id ?? null });
+});
 el.chooseLogo.addEventListener("click", () => send({ type: "chooseLogo" }));
 el.removeLogo.addEventListener("click", () => send({ type: "removeLogo" }));
 el.deviceName.addEventListener("blur", renameMachine);

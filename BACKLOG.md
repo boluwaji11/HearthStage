@@ -2229,3 +2229,33 @@ failure, and it is always invisible to the unit tests.
 | Story | What | Requirement | State |
 |---|---|---|---|
 | STG-150 | Collections, so a shelf of two hundred is findable | ST2.18 | Resolved |
+
+## STG-150, after a test
+
+Two things were wrong with the first pass.
+
+**"New collection" said what it was, not what pressing it does.** It is **Create
+new collection** now, in both places it appears.
+
+**A song could not be filed until a collection already existed.** The row on the
+item hid itself when there were none, so the only way to make the first one was
+to go back to the library, make it there, and come back. The moment a church
+wants a collection is the moment it is looking at the song that wants one, so
+the row is shown on anything saved, and **Create new collection** on it makes
+one and files the open song in it in a single press.
+
+It was also sitting below the credits block, which on a song puts it a long way
+down a page somebody was told to look at the top of. It is under the title now,
+and it is called **Filed under**, which says what it is rather than naming the
+feature.
+
+## The dispatch test
+
+Three stories in a row shipped an intent that main never routed, so it fell
+through to the session, which does not know it, and the press did nothing. Each
+half was correct on its own, which is why every other test passed.
+
+`tests/dispatch.test.ts` stands where they meet: every intent `presentations`
+handles must be named in main's dispatch, every intent in the wire contract must
+reach something, and every intent either window sends must be one something
+handles. Checked by removing a case and watching it name that case.

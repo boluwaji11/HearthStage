@@ -334,10 +334,16 @@ export class Presentations {
 
       case "newCollection": {
         this.collectionSerial += 1;
+        const id = this.nextId("collection");
         this.library.saveCollection({
-          id: this.nextId("collection"),
+          id,
           name: t("collection.untitled", { count: this.collectionSerial }),
         });
+        // Made from a song, so the song goes in it. Making a collection and
+        // then filing the thing you were looking at is two steps for one
+        // thought.
+        const withItem = intent.withItemId ?? null;
+        if (withItem !== null) this.library.setInCollection(id, withItem, true);
         this.revision += 1;
         return true;
       }
