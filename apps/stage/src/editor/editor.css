@@ -162,6 +162,9 @@ header .search-field {
   min-height: 0;
   overflow-y: auto;
   padding: var(--space-4);
+  /* A column, so an empty page can put its one thing in the middle of it. */
+  display: flex;
+  flex-direction: column;
 }
 
 /*
@@ -909,12 +912,13 @@ footer {
   border-color: var(--ember-500);
 }
 
-/* Nothing here yet, and the one thing to do about it. */
+/* Nothing here yet, and the one thing to do about it, in the middle of it. */
 .nothing {
+  flex: 1;
+  min-height: 14rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: var(--space-3);
-  padding: var(--space-6, 3rem) 0;
 }

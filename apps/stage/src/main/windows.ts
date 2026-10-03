@@ -85,7 +85,7 @@ export function createEditorWindow(): BrowserWindow {
     minWidth: 860,
     minHeight: 540,
     show: false,
-    title: t("library.title"),
+    title: t("start.name"),
     backgroundColor: "#16140f",
     webPreferences: COMMON_WEB_PREFERENCES,
   });

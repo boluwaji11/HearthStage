@@ -16,7 +16,7 @@ export const en = {
   // The window that presents
   "control.home": "Home",
   "control.slides": "Library",
-  "control.services": "Service plans",
+  "control.services": "Service Plans",
   "control.start": "Start",
   "control.deck": "Deck",
   "control.stage": "What is live",
@@ -38,7 +38,7 @@ export const en = {
   "start.name": "Hearth Stage",
   "start.makeSlide": "Make a slide",
   "start.openSong": "Open a song",
-  "start.plans": "Service plans",
+  "start.plans": "Service Plans",
   "start.library": "Library",
   "start.trySample": "Try a service",
 
@@ -212,7 +212,7 @@ export const en = {
 
   // The running order a church types for one service (STG-46)
   "library.items": "Items",
-  "library.services": "Service plans",
+  "library.services": "Service Plans",
   "service.name": "Name",
   "service.date": "Date",
   "service.add": "Add from the library",
@@ -223,11 +223,11 @@ export const en = {
   "service.pick": "Add to the service",
   "service.entries.one": "{count} item",
   "service.entries.other": "{count} items",
-  "service.noServices": "No service plans yet",
-  "service.create": "Create a service plan",
-  "service.new": "New service plan",
+  "service.noServices": "No Service Plans yet",
+  "service.create": "Create a Service Plan",
+  "service.new": "New Service Plan",
   "service.duplicate": "Use this again next week",
-  "service.plan": "Service plan",
+  "service.plan": "Service Plan",
 
   // The library, which is chosen into rather than shown whole (STG-46)
   "library.kind.song": "Songs",
