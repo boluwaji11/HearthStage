@@ -42,20 +42,15 @@ const ALLOWED = new Set([
   "runChange",
   "resetRun",
   "closeService",
-  "openEditor",
-  "makeSlide",
-  "openLibrary",
-  "openSample",
-  // The services, which are a way in rather than a thing buried in the library
-  // (STG-46). Both open the other window and write nothing.
-  "showServices",
-  "newSetList",
   // A clock over the top of whatever is open, and taking it away again
   // (STG-26). It writes nothing and the slide underneath is untouched, the
   // same as the covers.
   "startCountdown",
   "addCountdown",
   "stopCountdown",
+  // The two ways in (STG-46). Both open the other window and write nothing.
+  "showPlans",
+  "showLibrary",
 ]);
 
 /** Anything that writes, removes or restyles. None of it belongs here. */

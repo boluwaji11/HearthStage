@@ -373,8 +373,9 @@ app.whenReady().then(() => {
         openEditor();
         broadcast();
         return;
-      case "showItems":
-      case "showServices":
+      case "showPlans":
+      case "showLibrary":
+      case "showLibraryKind":
       case "newSetList":
         // The window opens whether or not the half it is being asked for is
         // already the one on screen, because this is also how the service

@@ -390,13 +390,20 @@ export interface EditorState {
    */
   samples: number;
   /**
-   * Which half of the library is on screen (STG-46).
+   * Which page the window is on (STG-46).
    *
-   * Main's, rather than the window's, because a service is reached from the
-   * window that presents as well as from in here, and a tab the renderer
-   * remembered for itself would be in the wrong state when it arrived.
+   * Main's, rather than the window's, because both pages are reached from the
+   * window that presents as well as from in here, and a page the renderer
+   * remembered for itself would arrive in the wrong state.
    */
-  tab: "items" | "services";
+  page: "plans" | "library";
+  /**
+   * Which kind of thing the library is showing, or null for the choice.
+   *
+   * A library of songs, media and slides shown all at once is a list nobody
+   * can read. The kind is chosen first, and the list is of that kind.
+   */
+  libraryKind: "song" | "media" | "slides" | null;
   /** The running orders a church has typed, newest service first (STG-46). */
   setLists: SetListRow[];
   /** The one open in the window, where one is. */
@@ -469,8 +476,9 @@ export type Intent =
   /** Back to the library, with nothing open (STG-149). */
   | { type: "closeItem" }
   /** A running order for one service (STG-46, ST2.8). */
-  | { type: "showItems" }
-  | { type: "showServices" }
+  | { type: "showPlans" }
+  | { type: "showLibrary" }
+  | { type: "showLibraryKind"; kind: "song" | "media" | "slides" }
   | { type: "newSetList" }
   | { type: "openSetList"; setListId: string }
   /**
@@ -584,6 +592,7 @@ export function isIntent(value: unknown): value is Intent {
     date?: unknown;
     entries?: unknown;
     change?: unknown;
+    kind?: unknown;
     minutes?: unknown;
     name?: unknown;
     reference?: unknown;
@@ -607,8 +616,8 @@ export function isIntent(value: unknown): value is Intent {
     case "openLibrary":
     case "openSample":
     case "closeItem":
-    case "showItems":
-    case "showServices":
+    case "showPlans":
+    case "showLibrary":
     case "newSetList":
     case "closeSetList":
     case "closeService":
@@ -645,6 +654,10 @@ export function isIntent(value: unknown): value is Intent {
       return typeof candidate.presentationId === "string" && candidate.presentationId.length > 0;
     case "openItem":
       return typeof candidate.itemId === "string" && candidate.itemId.length > 0;
+    case "showLibraryKind":
+      return (
+        candidate.kind === "song" || candidate.kind === "media" || candidate.kind === "slides"
+      );
     case "openSetList":
     case "duplicateSetList":
     case "presentSetList":

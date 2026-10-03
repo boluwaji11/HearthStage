@@ -96,8 +96,14 @@ const el = {
   chooseLogo: document.getElementById("choose-logo") as HTMLButtonElement,
   removeLogo: document.getElementById("remove-logo") as HTMLButtonElement,
   logoPreview: document.getElementById("logo-preview") as HTMLImageElement,
-  tabItems: document.getElementById("tab-items") as HTMLButtonElement,
-  tabServices: document.getElementById("tab-services") as HTMLButtonElement,
+  plansView: document.getElementById("plans-view") as HTMLElement,
+  plansEmpty: document.getElementById("plans-empty") as HTMLElement,
+  planNew: document.getElementById("plan-new") as HTMLButtonElement,
+  planCreate: document.getElementById("plan-create") as HTMLButtonElement,
+  libraryBack: document.getElementById("library-back") as HTMLButtonElement,
+  libraryTitle: document.getElementById("library-title") as HTMLHeadingElement,
+  searchField: document.getElementById("search-field") as HTMLElement,
+  kinds: document.getElementById("kinds") as HTMLElement,
   services: document.getElementById("services") as HTMLOListElement,
   serviceView: document.getElementById("service-view") as HTMLElement,
   serviceBack: document.getElementById("service-back") as HTMLButtonElement,
@@ -858,18 +864,46 @@ function removeOrder(index: number): void {
   commit();
 }
 
-/** Items or services. One library, two halves of it (STG-46). */
-function paintTabs(): void {
-  const services = (latest?.tab ?? "items") === "services";
-  el.tabItems.dataset["on"] = String(!services);
-  el.tabServices.dataset["on"] = String(services);
-  el.tiles.hidden = services;
-  el.services.hidden = !services;
+/**
+ * Which page the window is on, and what the library is showing (STG-46).
+ *
+ * A library of songs, media and slides shown all at once is a list nobody can
+ * read, so a kind is chosen first and the list is of that kind.
+ */
+const KIND_TITLE: Record<string, MessageKey> = {
+  song: "library.kind.song",
+  media: "library.kind.media",
+  slides: "library.kind.slides",
+};
 
-  if (services) {
-    el.libraryEmpty.hidden = (latest?.setLists ?? []).length > 0;
-    el.libraryEmpty.textContent = t("service.noServices");
-  }
+const KIND_EMPTY: Record<string, MessageKey> = {
+  song: "library.kind.empty.song",
+  media: "library.kind.empty.media",
+  slides: "library.kind.empty.slides",
+};
+
+function paintPages(): void {
+  const page = latest?.page ?? "plans";
+  const kind = latest?.libraryKind ?? null;
+  const open = draft !== null || service !== null || settingsOpen;
+
+  el.plansView.hidden = open || page !== "plans";
+  el.libraryView.hidden = open || page !== "library";
+
+  // The choice, or a list of one kind.
+  el.kinds.hidden = kind !== null;
+  el.tiles.hidden = kind === null;
+  el.searchField.hidden = kind === null;
+  el.libraryEmpty.hidden = true;
+  el.libraryTitle.textContent = t(kind === null ? "library.kind.choose" : KIND_TITLE[kind] ?? "library.title");
+
+  // New belongs to the slides, which are the only kind a person types here.
+  el.newButton.hidden = kind !== "slides";
+  el.addSamples.hidden = kind !== "song" || (latest?.samples ?? 0) === 0;
+
+  const plans = latest?.setLists ?? [];
+  el.plansEmpty.hidden = plans.length > 0;
+  el.planNew.hidden = plans.length === 0;
 }
 
 /** Shown on a song. A sheet of notices is written for one week. */
@@ -1012,28 +1046,35 @@ function countOf(count: number): string {
 function renderLibrary(): void {
   const rows = latest?.library ?? [];
   const themes = latest?.themes ?? [];
+  const kind = latest?.libraryKind ?? null;
+  if (kind === null) {
+    el.tiles.replaceChildren();
+    return;
+  }
+
+  const ofKind = rows.filter((row) =>
+    kind === "song"
+      ? row.kind === "song"
+      : kind === "media"
+        ? row.kind === "media"
+        : row.kind === "plain" || row.kind === "reading",
+  );
+
   const query = el.search.value.trim().toLowerCase();
   const shown =
     query === ""
-      ? rows
-      : rows.filter((row) =>
+      ? ofKind
+      : ofKind.filter((row) =>
           `${row.title} ${row.subtitle ?? ""}`.toLowerCase().includes(query),
         );
 
   el.tiles.replaceChildren();
   for (const row of shown) el.tiles.append(tileFor(row, themes));
 
-  if ((latest?.tab ?? "items") === "items") {
-    el.libraryEmpty.hidden = shown.length > 0;
-    el.libraryEmpty.textContent = t(rows.length === 0 ? "library.empty" : "library.noMatch");
-  }
-
-  // The hymns Stage carries (STG-10, ST1.2). It sits beside New, because a
-  // church looking for something to sing is in this window, and it stays there
-  // until somebody presses it. Nothing is written before that.
-  const samples = latest?.samples ?? 0;
-  el.addSamples.hidden = samples === 0;
-  el.addSamples.textContent = t("library.addHymns", { count: samples });
+  el.libraryEmpty.hidden = shown.length > 0;
+  el.libraryEmpty.textContent = t(
+    ofKind.length === 0 ? (KIND_EMPTY[kind] ?? "library.empty") : "library.noMatch",
+  );
 }
 
 function tileFor(row: LibraryItem, themes: ThemeChoice[]): HTMLLIElement {
@@ -1158,16 +1199,13 @@ function paint(next: EditorState): void {
     renderService();
   }
 
-  // One view at a time. The library is what the window opens on, and opening
-  // something fills the window with it.
-  const open = draft !== null || service !== null || settingsOpen;
-  el.libraryView.hidden = open;
+  // One view at a time. Opening something fills the window with it.
   el.editView.hidden = draft === null || settingsOpen;
   el.serviceView.hidden = service === null || settingsOpen;
   el.settingsView.hidden = !settingsOpen;
   renderDevice();
   renderServices();
-  paintTabs();
+  paintPages();
 
   el.serviceProblems.replaceChildren();
   if (service !== null) {
@@ -1561,11 +1599,27 @@ el.deviceName.addEventListener("keydown", (event) => {
 el.undo.addEventListener("click", undoRemoval);
 el.newButton.addEventListener("click", () => {
   commit();
-  send({ type: latest?.tab === "services" ? "newSetList" : "newPresentation" });
+  send({ type: "newPresentation" });
 });
 
-el.tabItems.addEventListener("click", () => send({ type: "showItems" }));
-el.tabServices.addEventListener("click", () => send({ type: "showServices" }));
+for (const [button, kind] of [
+  [document.getElementById("kind-song"), "song"],
+  [document.getElementById("kind-media"), "media"],
+  [document.getElementById("kind-slides"), "slides"],
+] as [HTMLButtonElement, "song" | "media" | "slides"][]) {
+  button.addEventListener("click", () => send({ type: "showLibraryKind", kind }));
+}
+
+// Back out of a kind to the choice, and out of the choice to the window that
+// presents.
+el.libraryBack.addEventListener("click", () => {
+  if (latest?.libraryKind === null) send({ type: "showControl" });
+  else send({ type: "showLibrary" });
+});
+
+for (const button of [el.planNew, el.planCreate]) {
+  button.addEventListener("click", () => send({ type: "newSetList" }));
+}
 
 el.serviceBack.addEventListener("click", () => {
   commitService();

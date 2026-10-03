@@ -882,3 +882,39 @@ footer {
 .pick-row:hover {
   background: var(--sunk);
 }
+
+/* The library is chosen into. Three kinds, and the list is of one of them. */
+
+.kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+}
+
+.kind {
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-4) var(--space-5, 2rem);
+  min-width: 10rem;
+  text-align: left;
+}
+
+.kind:hover {
+  border-color: var(--ember-500);
+}
+
+/* Nothing here yet, and the one thing to do about it. */
+.nothing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-6, 3rem) 0;
+}

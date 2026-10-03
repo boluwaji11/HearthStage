@@ -473,7 +473,7 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 |---|---|
 | **Active** | Nothing |
 | **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do, **STG-26** the clock and the reading, **STG-27** the operator brief, **STG-28** the render harness, **STG-29** the latency measurement, **STG-46** building a service, **STG-47** using last week's again. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-48**, choosing a service at launch, then **STG-49** adding to a running deck. **STG-30**, the WCAG audit in CI, was skipped to get here and is queued behind them. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Next** | Slides belonging to a service plan rather than landing in the library, with Save to the library as a deliberate act. Then **STG-48**, choosing a plan at launch, and **STG-49** adding to a running deck. **STG-30**, the WCAG audit in CI, is queued behind them. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1830,3 +1830,28 @@ pnpm --filter @hearth/stage dev
 in a leap year, and a daylight saving change, because a date held as text and moved by seven days is
 exactly where that kind of defect lives. Every entry of the copy gets an identity of its own, so the
 two orders cannot collide in the store.
+
+## The windows, rearranged
+
+Four tabs and two header buttons had accumulated, and the library was a tab beside the service plans
+when it is the thing service plans are built out of.
+
+| Before | Now |
+|---|---|
+| Header held Library and Services | Header holds Home and the status |
+| Landing page offered four ways in | Two: **Service plans** and **Library** |
+| Library and Services were tabs of one page | Two pages, each reached from the landing page |
+| The library listed songs, slides and media together | A kind is chosen first, and the list is of that kind |
+| "Service" | "Service plan" |
+
+**The library is chosen into.** Songs, Media, Slides. A library holding two hundred hymns, a term of
+notices and a folder of loops is a list nobody can read, and the kind somebody wants is the first
+thing they know. Media is on the choice with an empty state until the media library lands with
+STG-151.
+
+**Service plans is the page the window opens on.** Empty, it says so and offers the one thing to do
+about it in the middle of the screen. With plans in it, **New service plan** sits in the corner.
+
+**Still to come, next:** a slide typed inside a service plan belongs to that plan rather than landing
+in the library, with **Save to the library** as a deliberate act. That is a storage change, so it is
+its own step.

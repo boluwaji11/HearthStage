@@ -10,25 +10,43 @@
     <link rel="stylesheet" href="./editor.css" />
   </head>
   <body>
-    <!-- The library. What the window opens on. -->
-    <section id="library-view" class="view library-view" data-t-label="library.title">
+    <!-- The service plans. What the window opens on. -->
+    <section id="plans-view" class="view" data-t-label="library.services">
       <header>
         <button id="to-service" type="button" class="back" data-t="library.service"></button>
-        <h1 data-t="library.title"></h1>
-        <div class="field search-field">
+        <h1 data-t="library.services"></h1>
+        <button id="settings" type="button" data-t="library.settings"></button>
+        <button id="plan-new" type="button" class="primary" data-t="service.new"></button>
+      </header>
+      <div class="tiles-wrap">
+        <ol id="services" class="services"></ol>
+        <div id="plans-empty" class="nothing">
+          <p class="quiet" data-t="service.noServices"></p>
+          <button id="plan-create" type="button" class="primary" data-t="service.create"></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- The library, which is chosen into rather than shown whole. -->
+    <section id="library-view" class="view library-view" data-t-label="library.title" hidden>
+      <header>
+        <button id="library-back" type="button" class="back" data-t="library.service"></button>
+        <h1 id="library-title" data-t="library.title"></h1>
+        <div id="search-field" class="field search-field" hidden>
           <label for="search" data-t="library.search"></label>
           <input id="search" type="search" autocomplete="off" />
         </div>
-        <button id="tab-items" type="button" class="tab" data-t="library.items"></button>
-        <button id="tab-services" type="button" class="tab" data-t="library.services"></button>
-        <button id="settings" type="button" data-t="library.settings"></button>
         <button id="add-samples" type="button" hidden></button>
-        <button id="new" type="button" class="primary" data-t="library.new"></button>
+        <button id="new" type="button" class="primary" hidden data-t="library.new"></button>
       </header>
       <div class="tiles-wrap">
-        <ol id="tiles" class="tiles"></ol>
-        <ol id="services" class="services" hidden></ol>
-        <p id="library-empty" class="quiet empty"></p>
+        <div id="kinds" class="kinds">
+          <button id="kind-song" type="button" class="kind" data-t="library.kind.song"></button>
+          <button id="kind-media" type="button" class="kind" data-t="library.kind.media"></button>
+          <button id="kind-slides" type="button" class="kind" data-t="library.kind.slides"></button>
+        </div>
+        <ol id="tiles" class="tiles" hidden></ol>
+        <p id="library-empty" class="quiet empty" hidden></p>
       </div>
     </section>
 

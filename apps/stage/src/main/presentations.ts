@@ -102,8 +102,9 @@ export class Presentations {
   private setEditingId: string | null = null;
   private setDrafting = false;
   private setSerial = 0;
-  /** Which half of the library the window shows (STG-46). */
-  private tab: "items" | "services" = "items";
+  /** Which page the window shows, and which kind the library is on (STG-46). */
+  private page: "plans" | "library" = "plans";
+  private libraryKind: "song" | "media" | "slides" | null = null;
 
   constructor(library: PresentationLibrary, options: PresentationsOptions = {}) {
     this.library = library;
@@ -188,20 +189,31 @@ export class Presentations {
         return true;
       }
 
-      case "showItems":
-      case "showServices": {
-        const want = intent.type === "showServices" ? "services" : "items";
-        if (this.tab === want) return false;
-        this.tab = want;
+      case "showPlans":
+        this.closeOpen();
+        this.page = "plans";
         this.revision += 1;
         return true;
-      }
+
+      case "showLibrary":
+        this.closeOpen();
+        this.page = "library";
+        // Back to the choice. A library shown whole is a list nobody can read.
+        this.libraryKind = null;
+        this.revision += 1;
+        return true;
+
+      case "showLibraryKind":
+        this.page = "library";
+        this.libraryKind = intent.kind;
+        this.revision += 1;
+        return true;
 
       case "newSetList":
         // A running order and an item are never open at once. The window shows
         // one thing, and a church building Sunday is not also typing a hymn.
         this.closeOpen();
-        this.tab = "services";
+        this.page = "plans";
         this.setEditingId = null;
         this.setDrafting = true;
         this.setSerial += 1;
@@ -211,7 +223,7 @@ export class Presentations {
       case "openSetList": {
         if (this.library.getSetList(intent.setListId) === null) return false;
         this.closeOpen();
-        this.tab = "services";
+        this.page = "plans";
         this.setEditingId = intent.setListId;
         this.setDrafting = false;
         this.setSerial += 1;
@@ -227,7 +239,7 @@ export class Presentations {
         // Opened, because somebody who pressed it is about to change two things
         // in it and then present it.
         this.closeOpen();
-        this.tab = "services";
+        this.page = "plans";
         this.setEditingId = copy.id;
         this.setDrafting = false;
         this.setSerial += 1;
@@ -463,7 +475,8 @@ export class Presentations {
         }),
       ),
       editing: this.open(),
-      tab: this.tab,
+      page: this.page,
+      libraryKind: this.libraryKind,
       setLists: this.library.setLists().map(
         (row): SetListRow => ({
           id: row.id,

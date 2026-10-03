@@ -45,16 +45,12 @@ const el = {
   briefOpen: document.getElementById("brief-open") as HTMLButtonElement,
   briefClose: document.getElementById("brief-close") as HTMLButtonElement,
   countdownLeft: document.getElementById("countdown-left") as HTMLParagraphElement,
-  slides: document.getElementById("slides") as HTMLButtonElement,
   home: document.getElementById("home") as HTMLButtonElement,
-  services: document.getElementById("services") as HTMLButtonElement,
-  wayService: document.getElementById("way-service") as HTMLButtonElement,
+  wayPlans: document.getElementById("way-plans") as HTMLButtonElement,
   problems: document.getElementById("problems") as HTMLUListElement,
   start: document.getElementById("start") as HTMLElement,
   running: document.getElementById("running") as HTMLElement,
-  waySlide: document.getElementById("way-slide") as HTMLButtonElement,
   wayLibrary: document.getElementById("way-library") as HTMLButtonElement,
-  waySample: document.getElementById("way-sample") as HTMLButtonElement,
 };
 
 /**
@@ -623,18 +619,12 @@ el.countdownOpen.addEventListener("click", () => showCountdown(true));
 el.countdownClose.addEventListener("click", () => showCountdown(false));
 renderCountdown(null);
 el.briefClose.addEventListener("click", () => showBrief(false));
-// The one thing on this surface that is not an advance. It opens a window and
-// changes nothing on the wall, so it is safe to have in reach (ST12.3).
-el.slides.addEventListener("click", () => send({ type: "openEditor" }));
+// The two ways in, and nothing else that reaches another window. Both open the
+// other window, change nothing on the wall, and are safe to press (ST12.3).
+el.wayPlans.addEventListener("click", () => send({ type: "showPlans" }));
+el.wayLibrary.addEventListener("click", () => send({ type: "showLibrary" }));
 el.home.addEventListener("click", () => send({ type: "closeService" }));
 el.resetRun.addEventListener("click", () => send({ type: "resetRun" }));
-el.services.addEventListener("click", () => send({ type: "showServices" }));
-// A service is a thing a church builds, so it is a way in rather than something
-// found inside the library (STG-46).
-el.wayService.addEventListener("click", () => send({ type: "newSetList" }));
-el.waySlide.addEventListener("click", () => send({ type: "makeSlide" }));
-el.wayLibrary.addEventListener("click", () => send({ type: "openLibrary" }));
-el.waySample.addEventListener("click", () => send({ type: "openSample" }));
 window.addEventListener("keydown", onKey);
 
 if (bridge !== undefined) {
