@@ -191,7 +191,7 @@ export function newSetList(id: string, options: { title?: string; date?: string 
   };
 }
 
-/** Enough of a service plan to choose between them (STG-48). */
+/** Enough of a presentation plan to choose between them (STG-48). */
 export interface Dated {
   id: string;
   title: string;

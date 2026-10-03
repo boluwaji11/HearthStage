@@ -73,7 +73,7 @@ export interface Presentation {
   /**
    * Whether this sits on the library shelf (STG-169).
    *
-   * A slide typed inside a service plan belongs to that plan and starts false,
+   * A slide typed inside a presentation plan belongs to that plan and starts false,
    * so a term of one-off notices stays out of the shelf a church browses.
    * Saving it to the library is a deliberate act and sets this true.
    */

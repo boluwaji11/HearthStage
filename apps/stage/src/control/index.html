@@ -68,26 +68,26 @@
     </main>
 
     <!--
-      The service plans, the library and what is open in them (STG-170).
+      The presentation plans, the library and what is open in them (STG-170).
       One window, because a second one covers the control surface on a laptop
       with one screen, and a church running a service loses the thing it is
       running.
     -->
     <div id="workbench" hidden>
-  <!-- The service plans. What the window opens on. -->
-      <section id="plans-view" class="view" data-t-label="library.services">
+  <!-- The presentation plans. What the window opens on. -->
+      <section id="plans-view" class="view" data-t-label="library.plans">
         <header class="page-head">
           <button id="to-service" type="button" class="back" data-t-label="nav.back"></button>
-          <h1 data-t="library.services"></h1>
+          <h1 data-t="library.plans"></h1>
           <div class="actions">
-            <button id="plan-new" type="button" class="primary" data-t="service.new"></button>
+            <button id="plan-new" type="button" class="primary" data-t="plan.new"></button>
           </div>
         </header>
         <div class="tiles-wrap">
           <ol id="services" class="services"></ol>
           <div id="plans-empty" class="nothing">
-            <p class="quiet" data-t="service.noServices"></p>
-            <button id="plan-create" type="button" class="primary" data-t="service.create"></button>
+            <p class="quiet" data-t="plan.none"></p>
+            <button id="plan-create" type="button" class="primary" data-t="plan.create"></button>
           </div>
         </div>
       </section>
@@ -144,29 +144,29 @@
       </section>
 
       <!-- One running order, open (STG-46, ST2.8). -->
-      <section id="service-view" class="view service-view" data-t-label="library.services" hidden>
+      <section id="plan-view" class="view plan-view" data-t-label="library.plans" hidden>
         <header>
-          <button id="service-back" type="button" class="back" data-t-label="nav.back"></button>
+          <button id="plan-back" type="button" class="back" data-t-label="nav.back"></button>
           <div class="field grow">
-            <label for="service-name" data-t="service.name"></label>
-            <input id="service-name" type="text" autocomplete="off" />
+            <label for="plan-name" data-t="plan.name"></label>
+            <input id="plan-name" type="text" autocomplete="off" />
           </div>
           <div class="field">
-            <label for="service-date" data-t="service.date"></label>
-            <input id="service-date" type="date" />
+            <label for="plan-date" data-t="plan.date"></label>
+            <input id="plan-date" type="date" />
           </div>
-          <button id="service-present" type="button" data-t="editor.present"></button>
+          <button id="plan-present" type="button" data-t="editor.present"></button>
         </header>
 
         <div class="edit-body">
           <ol id="entries" class="entries"></ol>
-          <p id="entries-empty" class="quiet" data-t="service.empty"></p>
+          <p id="entries-empty" class="quiet" data-t="plan.empty"></p>
           <div class="add">
-            <button id="entry-slide" type="button" class="primary" data-t="service.newSlide"></button>
-            <button id="entry-add" type="button" data-t="service.add"></button>
-            <button id="entry-heading" type="button" data-t="service.heading"></button>
+            <button id="entry-slide" type="button" class="primary" data-t="plan.newSlide"></button>
+            <button id="entry-add" type="button" data-t="plan.add"></button>
+            <button id="entry-heading" type="button" data-t="plan.heading"></button>
           </div>
-          <ul id="service-problems" class="problems"></ul>
+          <ul id="plan-problems" class="problems"></ul>
         </div>
       </section>
 
@@ -261,7 +261,7 @@
 
       <dialog id="pick" class="ask pick">
         <div class="card-head">
-          <h2 data-t="service.pick"></h2>
+          <h2 data-t="plan.pick"></h2>
           <button id="pick-close" type="button" class="icon" data-t-label="card.close"></button>
         </div>
         <div class="pick-kinds">

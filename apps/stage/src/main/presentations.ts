@@ -88,7 +88,7 @@ export class Presentations {
   /**
    * Where the thing being drafted is going (STG-169).
    *
-   * A slide typed inside a service plan belongs to that plan, so it is written
+   * A slide typed inside a presentation plan belongs to that plan, so it is written
    * off the shelf and its id is appended to the plan on the first save. A slide
    * typed in the library goes on the shelf, which is what the library is.
    */
@@ -154,7 +154,7 @@ export class Presentations {
         return true;
 
       /**
-       * A slide typed inside the open service plan (STG-169, ST2.8).
+       * A slide typed inside the open presentation plan (STG-169, ST2.8).
        *
        * Nothing is written yet. The row appears on the first save, off the
        * shelf, and its id is appended to the plan at the same moment, so a

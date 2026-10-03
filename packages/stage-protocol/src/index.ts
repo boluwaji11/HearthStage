@@ -382,7 +382,7 @@ export interface EditorState {
     /**
      * Whether this sits on the library shelf (STG-169).
      *
-     * False on a slide typed inside a service plan, which is what puts **Save
+     * False on a slide typed inside a presentation plan, which is what puts **Save
      * to the library** on the screen. True on a song, because a song library
      * is the shelf.
      */
@@ -506,7 +506,7 @@ export type Intent =
    * church planned is still what they planned.
    */
   | { type: "addToDeck"; itemId: string }
-  /** A slide typed inside the open service plan (STG-169). */
+  /** A slide typed inside the open presentation plan (STG-169). */
   | { type: "newPlanSlide" }
   /** The open slide, onto the library shelf (STG-169). */
   | { type: "saveToLibrary" }

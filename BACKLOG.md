@@ -1833,8 +1833,8 @@ two orders cannot collide in the store.
 
 ## The windows, rearranged
 
-Four tabs and two header buttons had accumulated, and the library was a tab beside the service plans
-when it is the thing service plans are built out of.
+Four tabs and two header buttons had accumulated, and the library was a tab beside the presentation plans
+when it is the thing presentation plans are built out of.
 
 | Before | Now |
 |---|---|
@@ -1850,9 +1850,9 @@ thing they know. Media is on the choice with an empty state until the media libr
 STG-151.
 
 **Service plans is the page the window opens on.** Empty, it says so and offers the one thing to do
-about it in the middle of the screen. With plans in it, **New service plan** sits in the corner.
+about it in the middle of the screen. With plans in it, **New presentation plan** sits in the corner.
 
-**Still to come, next:** a slide typed inside a service plan belongs to that plan rather than landing
+**Still to come, next:** a slide typed inside a presentation plan belongs to that plan rather than landing
 in the library, with **Save to the library** as a deliberate act. That is a storage change, so it is
 its own step.
 
@@ -1864,13 +1864,13 @@ The first pass moved the pages. This one makes them read as pages.
 |---|---|
 | The window's title bar said "Library" | It says Hearth Stage, on every page |
 | Back was a word naming a fixed destination | Back is one arrow, and it goes where you came from |
-| Settings sat in the Service Plans header | Settings is on the landing page, with the two ways in |
+| Settings sat in the Presentation Plans header | Settings is on the landing page, with the two ways in |
 | Titles sat wherever the header's flex left them | A page's name is centred, the way out on the left, the one action on the right |
 | The three kinds huddled in the top left | They sit in the middle of the page as tiles |
 | **New** appeared under Slides | It appears under Songs |
 
 **Where a slide is born.** A song is typed into the library, because a song library is a shelf of
-songs. A slide is typed inside a service plan, belongs to that plan, and reaches the shelf only when
+songs. A slide is typed inside a presentation plan, belongs to that plan, and reaches the shelf only when
 someone saves it there. **Add from the library** inside a plan is a picker over the plan rather than
 a page you leave the plan for.
 
@@ -1888,7 +1888,7 @@ A church types a term of one-off notices. None of them belong on the shelf
 somebody browses looking for a hymn.
 
 `presentations.in_library` is migration 5, defaulting to 1, because everything
-written before it was typed in the library. A slide typed inside a service plan
+written before it was typed in the library. A slide typed inside a presentation plan
 is written with 0 and its id is appended to the plan in the same save, so a plan
 never names a slide that does not exist. The library lists what is on the shelf.
 The deck compiler reads every presentation, so an off-shelf slide presents like
@@ -1912,7 +1912,7 @@ step.
 
 ## STG-170, one window
 
-The service plans, the library and the slide editor opened in a second window.
+The presentation plans, the library and the slide editor opened in a second window.
 On a laptop with one screen that window covered the service a church was
 running, and the way back to it was the dock.
 
@@ -2045,3 +2045,17 @@ window.
 | Story | What | Requirement | State |
 |---|---|---|---|
 | STG-50 | Back to the chorus: any cue reachable by typing its label | ST5.9 | Resolved |
+
+## The vocabulary: a Presentation Plan
+
+"Service Plan" became **Presentation Plan** everywhere a church reads it, and
+everywhere the code names it: the catalogue keys moved from `service.*` to
+`plan.*`, the element ids from `service-view` to `plan-view`, and the window's
+functions from `renderService` to `renderPlan`.
+
+**"Service" still means the gathering.** `control.endOfService` is the end of the
+service, and the plan is the thing a church builds beforehand. The two were one
+word and the word was doing two jobs.
+
+The typed catalogue caught every renamed key as a compile error, which is what it
+is for.

@@ -152,13 +152,13 @@ await state(
   2500,
 );
 await state("this machine", `document.getElementById("library-back").click(); document.getElementById("library-back").click(); document.getElementById("way-settings").click()`);
-await state("the service plans, empty", `document.getElementById("settings-back").click(); document.getElementById("way-plans").click()`);
-await state("one service plan, open", `document.getElementById("plan-create").click()`, 900);
+await state("the presentation plans, empty", `document.getElementById("settings-back").click(); document.getElementById("way-plans").click()`);
+await state("one presentation plan, open", `document.getElementById("plan-create").click()`, 900);
 await state(
   "adding from the library",
-  `document.getElementById("service-name").value = "Morning Service";
-   document.getElementById("service-name").dispatchEvent(new Event("input"));
-   document.getElementById("service-name").dispatchEvent(new Event("blur"));
+  `document.getElementById("plan-name").value = "Morning Service";
+   document.getElementById("plan-name").dispatchEvent(new Event("input"));
+   document.getElementById("plan-name").dispatchEvent(new Event("blur"));
    document.getElementById("entry-add").click()`,
   900,
 );
@@ -166,7 +166,7 @@ await state(
   "a service running",
   `(() => { const b = document.querySelector("#pick-list button"); if (b) b.click(); })();
    document.getElementById("pick-close").click();
-   document.getElementById("service-present").click()`,
+   document.getElementById("plan-present").click()`,
   1400,
 );
 await state("the shortcuts card", `document.getElementById("brief-open").click()`);

@@ -104,16 +104,16 @@ const el = {
   searchField: document.getElementById("search-field") as HTMLElement,
   kinds: document.getElementById("kinds") as HTMLElement,
   services: document.getElementById("services") as HTMLOListElement,
-  serviceView: document.getElementById("service-view") as HTMLElement,
-  serviceBack: document.getElementById("service-back") as HTMLButtonElement,
-  serviceName: document.getElementById("service-name") as HTMLInputElement,
-  serviceDate: document.getElementById("service-date") as HTMLInputElement,
-  servicePresent: document.getElementById("service-present") as HTMLButtonElement,
+  planView: document.getElementById("plan-view") as HTMLElement,
+  planBack: document.getElementById("plan-back") as HTMLButtonElement,
+  planName: document.getElementById("plan-name") as HTMLInputElement,
+  planDate: document.getElementById("plan-date") as HTMLInputElement,
+  planPresent: document.getElementById("plan-present") as HTMLButtonElement,
   entries: document.getElementById("entries") as HTMLOListElement,
   entriesEmpty: document.getElementById("entries-empty") as HTMLParagraphElement,
   entryAdd: document.getElementById("entry-add") as HTMLButtonElement,
   entryHeading: document.getElementById("entry-heading") as HTMLButtonElement,
-  serviceProblems: document.getElementById("service-problems") as HTMLUListElement,
+  planProblems: document.getElementById("plan-problems") as HTMLUListElement,
   pick: document.getElementById("pick") as HTMLDialogElement,
   pickClose: document.getElementById("pick-close") as HTMLButtonElement,
   pickSearch: document.getElementById("pick-search") as HTMLInputElement,
@@ -176,7 +176,7 @@ let logo: string | null = null;
  */
 let service: { id: string | null; serial: number; title: string; date: string; entries: SetEntryDraft[] } | null =
   null;
-let serviceTimer: number | undefined;
+let planTimer: number | undefined;
 /** This machine is a page main owns, because the landing page reaches it too. */
 function settingsOpen(): boolean {
   return latest?.page === "settings";
@@ -909,7 +909,7 @@ function paintPages(): void {
   el.libraryEmpty.hidden = true;
   el.libraryTitle.textContent = t(kind === null ? "library.kind.choose" : KIND_TITLE[kind] ?? "library.title");
 
-  // A song is typed into the library. A slide is born inside a service plan
+  // A song is typed into the library. A slide is born inside a presentation plan
   // and reaches the shelf only when someone saves it there.
   el.newButton.hidden = kind !== "song";
   const samples = latest?.samples ?? 0;
@@ -957,7 +957,7 @@ function paintStatus(): void {
 
   el.add.disabled = draft === null || draft.readOnly;
   el.paste.hidden = copied === null;
-  // A slide that belongs to a service plan can be put on the shelf, once it
+  // A slide that belongs to a presentation plan can be put on the shelf, once it
   // has a row to put there (STG-169).
   el.toLibrary.hidden = draft === null || draft.inLibrary || draft.id === null || draft.readOnly;
   el.paste.disabled = draft === null || draft.readOnly;
@@ -1150,7 +1150,7 @@ function tileFor(row: LibraryItem, themes: ThemeChoice[]): HTMLLIElement {
 /** What stopped a running order being stored (STG-46). */
 const SET_MESSAGES: Record<string, MessageKey> = {
   "title.missing": "save.title.missing",
-  "date.invalid": "service.date",
+  "date.invalid": "plan.date",
   "entry.title.missing": "save.title.missing",
   "entry.item.missing": "save.slide.mismatch",
 };
@@ -1214,28 +1214,28 @@ function paint(next: EditorState): void {
       date: next.editingSet.date,
       entries: next.editingSet.entries.map((entry) => ({ ...entry })),
     };
-    el.serviceName.value = service.title;
-    el.serviceDate.value = service.date;
-    renderService();
+    el.planName.value = service.title;
+    el.planDate.value = service.date;
+    renderPlan();
   } else {
     service.id = next.editingSet.id;
-    renderService();
+    renderPlan();
   }
 
   // One view at a time. Opening something fills the window with it.
   el.editView.hidden = draft === null || settingsOpen();
-  el.serviceView.hidden = service === null || draft !== null || settingsOpen();
+  el.planView.hidden = service === null || draft !== null || settingsOpen();
   el.settingsView.hidden = !settingsOpen();
   renderDevice();
-  renderServices();
+  renderPlans();
   paintPages();
 
-  el.serviceProblems.replaceChildren();
+  el.planProblems.replaceChildren();
   if (service !== null) {
     for (const problem of next.problems) {
       const item = document.createElement("li");
       item.textContent = t(SET_MESSAGES[problem.code] ?? "save.title.missing");
-      el.serviceProblems.append(item);
+      el.planProblems.append(item);
     }
   }
 
@@ -1271,13 +1271,13 @@ function showOnly(dialog: HTMLDialogElement): void {
 
 // A running order for one service (STG-46, ST2.8)
 
-function scheduleService(): void {
-  window.clearTimeout(serviceTimer);
-  serviceTimer = window.setTimeout(commitService, 1000);
+function schedulePlan(): void {
+  window.clearTimeout(planTimer);
+  planTimer = window.setTimeout(commitPlan, 1000);
 }
 
-function commitService(): void {
-  window.clearTimeout(serviceTimer);
+function commitPlan(): void {
+  window.clearTimeout(planTimer);
   if (service === null || service.title.trim() === "") return;
   send({
     type: "saveSetList",
@@ -1289,7 +1289,7 @@ function commitService(): void {
 }
 
 /** The running orders a church has typed, newest service first. */
-function renderServices(): void {
+function renderPlans(): void {
   const rows = latest?.setLists ?? [];
   el.services.replaceChildren();
 
@@ -1306,7 +1306,7 @@ function renderServices(): void {
 
     const facts = document.createElement("span");
     facts.className = "service-row-facts";
-    facts.textContent = [row.date, plural("service.entries", row.entries)].join(
+    facts.textContent = [row.date, plural("plan.entries", row.entries)].join(
       t("control.separator"),
     );
 
@@ -1318,8 +1318,8 @@ function renderServices(): void {
     const again = document.createElement("button");
     again.type = "button";
     again.className = "icon";
-    again.setAttribute("aria-label", t("service.duplicate"));
-    again.title = t("service.duplicate");
+    again.setAttribute("aria-label", t("plan.duplicate"));
+    again.title = t("plan.duplicate");
     again.append(icon("copy"));
     again.addEventListener("click", () =>
       send({ type: "duplicateSetList", setListId: row.id }),
@@ -1331,7 +1331,7 @@ function renderServices(): void {
 }
 
 /** What is in the service, in the order it happens. */
-function renderService(): void {
+function renderPlan(): void {
   el.entries.replaceChildren();
   const open = service;
   if (open === null) return;
@@ -1353,12 +1353,12 @@ function renderService(): void {
       field.className = "entry-title";
       field.type = "text";
       field.value = entry.title;
-      field.setAttribute("aria-label", t("service.headingTitle"));
+      field.setAttribute("aria-label", t("plan.headingTitle"));
       field.addEventListener("input", () => {
         entry.title = field.value;
-        scheduleService();
+        schedulePlan();
       });
-      field.addEventListener("blur", commitService);
+      field.addEventListener("blur", commitPlan);
       item.append(field);
     } else {
       const title = document.createElement("span");
@@ -1377,7 +1377,7 @@ function renderService(): void {
         () => moveEntry(index, index + 1),
         index < open.entries.length - 1,
       ],
-      ["service.remove", "trash", () => removeEntry(index), true],
+      ["plan.remove", "trash", () => removeEntry(index), true],
     ] as [Parameters<typeof t>[0], Parameters<typeof icon>[0], () => void, boolean][]) {
       const button = document.createElement("button");
       button.type = "button";
@@ -1394,7 +1394,7 @@ function renderService(): void {
   });
 
   el.entriesEmpty.hidden = open.entries.length > 0;
-  el.servicePresent.disabled = open.id === null || open.entries.length === 0;
+  el.planPresent.disabled = open.id === null || open.entries.length === 0;
 }
 
 function moveEntry(from: number, to: number): void {
@@ -1402,22 +1402,22 @@ function moveEntry(from: number, to: number): void {
   const [moved] = service.entries.splice(from, 1);
   if (moved === undefined) return;
   service.entries.splice(to, 0, moved);
-  renderService();
-  commitService();
+  renderPlan();
+  commitPlan();
 }
 
 function removeEntry(index: number): void {
   if (service === null) return;
   service.entries.splice(index, 1);
-  renderService();
-  commitService();
+  renderPlan();
+  commitPlan();
 }
 
 function addEntry(entry: SetEntryDraft): void {
   if (service === null) return;
   service.entries.push(entry);
-  renderService();
-  commitService();
+  renderPlan();
+  commitPlan();
 }
 
 /**
@@ -1669,32 +1669,32 @@ for (const button of [el.planNew, el.planCreate]) {
   button.addEventListener("click", () => send({ type: "newSetList" }));
 }
 
-el.serviceBack.addEventListener("click", () => {
-  commitService();
+el.planBack.addEventListener("click", () => {
+  commitPlan();
   send({ type: "closeSetList" });
 });
-el.serviceName.addEventListener("input", () => {
+el.planName.addEventListener("input", () => {
   if (service === null) return;
-  service.title = el.serviceName.value;
-  scheduleService();
+  service.title = el.planName.value;
+  schedulePlan();
 });
-el.serviceName.addEventListener("blur", commitService);
-el.serviceDate.addEventListener("change", () => {
+el.planName.addEventListener("blur", commitPlan);
+el.planDate.addEventListener("change", () => {
   if (service === null) return;
-  service.date = el.serviceDate.value;
-  commitService();
+  service.date = el.planDate.value;
+  commitPlan();
 });
-el.servicePresent.addEventListener("click", () => {
-  commitService();
+el.planPresent.addEventListener("click", () => {
+  commitPlan();
   const id = service?.id;
   if (id !== undefined && id !== null) send({ type: "presentSetList", setListId: id });
 });
 el.entryHeading.addEventListener("click", () => {
-  addEntry({ kind: "marker", itemId: null, title: t("service.headingTitle") });
+  addEntry({ kind: "marker", itemId: null, title: t("plan.headingTitle") });
 });
 el.entrySlide.addEventListener("click", () => {
   // The plan needs a row before a slide can point at it.
-  commitService();
+  commitPlan();
   send({ type: "newPlanSlide" });
 });
 el.toLibrary.addEventListener("click", () => {

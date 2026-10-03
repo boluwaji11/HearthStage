@@ -16,7 +16,7 @@ export const en = {
   // The window that presents
   "control.home": "Home",
   "control.slides": "Library",
-  "control.services": "Service Plans",
+  "control.plans": "Presentation Plans",
   "control.start": "Start",
   "control.deck": "Deck",
   "control.stage": "What is live",
@@ -36,7 +36,7 @@ export const en = {
 
   // First run, the three ways in
   "start.name": "Hearth Stage",
-  "start.plans": "Service Plans",
+  "start.plans": "Presentation Plans",
   "start.library": "Library",
   "start.settings": "Settings",
   "jump.open": "Go to",
@@ -94,7 +94,7 @@ export const en = {
   "run.unskip": "Put it back",
   "run.repeat": "Sing it again",
   "run.drop": "Take the repeat away",
-  "run.reset": "Back to the set list",
+  "run.reset": "Back to the plan",
 
   // Putting something else on the screen while a service is running (STG-25)
   "present.replace.title": "Put {item} on the screen?",
@@ -224,23 +224,23 @@ export const en = {
 
   // The running order a church types for one service (STG-46)
   "library.items": "Items",
-  "library.services": "Service Plans",
-  "service.name": "Name",
-  "service.date": "Date",
-  "service.newSlide": "New slide",
-  "service.add": "Add from the library",
-  "service.heading": "Add a heading",
-  "service.headingTitle": "Heading",
-  "service.empty": "Nothing in it yet",
-  "service.remove": "Take out",
-  "service.pick": "Add to the service",
-  "service.entries.one": "{count} item",
-  "service.entries.other": "{count} items",
-  "service.noServices": "No Service Plans yet",
-  "service.create": "Create a Service Plan",
-  "service.new": "New Service Plan",
-  "service.duplicate": "Use this again next week",
-  "service.plan": "Service Plan",
+  "library.plans": "Presentation Plans",
+  "plan.name": "Name",
+  "plan.date": "Date",
+  "plan.newSlide": "New slide",
+  "plan.add": "Add from the library",
+  "plan.heading": "Add a heading",
+  "plan.headingTitle": "Heading",
+  "plan.empty": "Nothing in it yet",
+  "plan.remove": "Take out",
+  "plan.pick": "Add to the plan",
+  "plan.entries.one": "{count} item",
+  "plan.entries.other": "{count} items",
+  "plan.none": "No Presentation Plans yet",
+  "plan.create": "Create a Presentation Plan",
+  "plan.new": "New Presentation Plan",
+  "plan.duplicate": "Use this again next week",
+  "plan.title": "Presentation Plan",
 
   // The library, which is chosen into rather than shown whole (STG-46)
   "library.kind.song": "Songs",

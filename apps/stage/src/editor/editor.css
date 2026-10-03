@@ -1,5 +1,5 @@
 /*
- * STG-145, STG-170. The service plans, the library and the slide editor.
+ * STG-145, STG-170. The presentation plans, the library and the slide editor.
  *
  * Every rule here is scoped to #workbench, because this loads into the window
  * that presents alongside control.css and the two stylesheets name some of the
