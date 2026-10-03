@@ -71,8 +71,7 @@ export const en = {
   // The operator brief (STG-27, ST12.10)
   "brief.title": "Shortcuts",
   "brief.open": "Shortcuts",
-  "brief.close": "Close",
-  "brief.holding": "Held down, any of them moves one cue.",
+  "card.close": "Close",
 
   // What an operator does to a cue during a service (STG-24)
   "run.up": "Move up",
@@ -93,6 +92,8 @@ export const en = {
   "countdown.label": "Countdown",
   "countdown.minutes": "{count} min",
   "countdown.stop": "Stop",
+  "countdown.add": "{count} more",
+  "countdown.left": "Time left",
 
   // What is wrong with a service, said so somebody can act on it
   "problem.anItem": "An item",

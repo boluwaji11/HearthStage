@@ -454,6 +454,8 @@ export type Intent =
    * the covers are. Stopping it gives the slide back untouched.
    */
   | { type: "startCountdown"; minutes: number }
+  /** More time on a clock already running, because a service slips. */
+  | { type: "addCountdown"; minutes: number }
   | { type: "stopCountdown" }
   /** Puts the service away, back to the three ways in (STG-149, ST1.2). */
   | { type: "closeService" }
@@ -550,6 +552,7 @@ export function isIntent(value: unknown): value is Intent {
     case "stopCountdown":
       return true;
     case "startCountdown":
+    case "addCountdown":
       return (
         typeof candidate.minutes === "number" &&
         Number.isFinite(candidate.minutes) &&

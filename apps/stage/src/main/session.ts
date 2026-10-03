@@ -171,6 +171,14 @@ export class Session {
         this.revision += 1;
         return true;
       }
+      case "addCountdown": {
+        // Only onto a clock that is running. Adding five minutes to nothing is
+        // a button that looks like it worked and did not.
+        if (this.countdownEndsAt === null) return false;
+        this.countdownEndsAt += intent.minutes * 60_000;
+        this.revision += 1;
+        return true;
+      }
       case "stopCountdown":
         if (this.countdownEndsAt === null) return false;
         this.countdownEndsAt = null;

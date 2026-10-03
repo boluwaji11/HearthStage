@@ -50,6 +50,7 @@ const ALLOWED = new Set([
   // (STG-26). It writes nothing and the slide underneath is untouched, the
   // same as the covers.
   "startCountdown",
+  "addCountdown",
   "stopCountdown",
 ]);
 

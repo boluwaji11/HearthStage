@@ -659,3 +659,48 @@ footer button:hover {
 .card-choices button:hover {
   border-color: var(--ember-500);
 }
+
+/* A card says what it is and offers the way out, in its own corner. */
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.card-head h2 {
+  margin: 0;
+}
+
+.card .icon {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: 0;
+  padding: 0;
+  float: none;
+  color: var(--quiet);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+}
+
+.card .icon:hover {
+  color: var(--text);
+  background: var(--sunk);
+}
+
+.card .icon svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* The time left, at the size a number on a card wants to be. */
+.card-clock {
+  margin: var(--space-3) 0 0;
+  font-size: 2.25rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}

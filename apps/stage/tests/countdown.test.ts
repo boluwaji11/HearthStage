@@ -70,6 +70,20 @@ describe("putting a clock up", () => {
     expect(session.controlState([]).countdownEndsAt).toBe(clock + 15 * 60_000);
   });
 
+  it("takes more time, because a service slips and the screen should not say so", () => {
+    session.apply({ type: "startCountdown", minutes: 5 });
+    const was = session.controlState([]).countdownEndsAt ?? 0;
+    expect(session.apply({ type: "addCountdown", minutes: 1 })).toBe(true);
+    expect(session.controlState([]).countdownEndsAt).toBe(was + 60_000);
+  });
+
+  it("will not add time to a clock that is not running", () => {
+    // A button that looks like it worked and did not is worse than one that
+    // does nothing visible at all.
+    expect(session.apply({ type: "addCountdown", minutes: 5 })).toBe(false);
+    expect(session.outputState("out").content.kind).not.toBe("countdown");
+  });
+
   it("says nothing changed when there was no clock to stop", () => {
     expect(session.apply({ type: "stopCountdown" })).toBe(false);
   });

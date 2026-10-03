@@ -75,7 +75,15 @@ describe("the card", () => {
     expect(footer).toContain('id="countdown-open"');
   });
 
-  it("says the thing a held key does, which is the question somebody asks", () => {
-    expect(en["brief.holding"]).toContain("one cue");
+  it("closes on an x in its corner, the same as the other card", () => {
+    for (const id of ["brief-close", "countdown-close"]) {
+      const at = markup.indexOf(`id="${id}"`);
+      expect(at, id).toBeGreaterThan(-1);
+      const button = markup.slice(markup.lastIndexOf("<button", at), markup.indexOf(">", at) + 1);
+      // Drawn, and carrying its name, because an icon with nothing behind it is
+      // refused (docs/design-system.md section 12).
+      expect(button, id).toContain('class="icon"');
+      expect(button, id).toContain('data-t-label="card.close"');
+    }
   });
 });

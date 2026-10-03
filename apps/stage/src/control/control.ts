@@ -44,7 +44,7 @@ const el = {
   briefKeys: document.getElementById("brief-keys") as HTMLElement,
   briefOpen: document.getElementById("brief-open") as HTMLButtonElement,
   briefClose: document.getElementById("brief-close") as HTMLButtonElement,
-  countdownStop: document.getElementById("countdown-stop") as HTMLButtonElement,
+  countdownLeft: document.getElementById("countdown-left") as HTMLParagraphElement,
   slides: document.getElementById("slides") as HTMLButtonElement,
   home: document.getElementById("home") as HTMLButtonElement,
   problems: document.getElementById("problems") as HTMLUListElement,
@@ -176,8 +176,9 @@ let latest: ControlState | null = null;
 /** Running while a clock is on screen, and stopped the moment it is not. */
 let ticking: (() => void) | null = null;
 
-/** How long a church puts a clock up for. Three presses, no typing (ST5.10). */
-const COUNTDOWNS = [5, 10, 15];
+/** How long a church puts a clock up for, and how much more it adds. */
+const COUNTDOWNS = [5, 10, 15, 20, 30];
+const MORE = [1, 5];
 
 const fitCache = new FitCache();
 const ruler = createRuler();
@@ -466,9 +467,7 @@ function paint(state: ControlState): void {
 
   // One timer in this window, started when there is a clock and stopped when
   // there is not, so nothing runs a loop through a service.
-  // One press to take it down again, without going through the card, because
-  // that is a thing an operator does with a service already running.
-  el.countdownStop.hidden = state.countdownEndsAt === null;
+  renderCountdown(state.countdownEndsAt);
   ticking?.();
   ticking = state.countdownEndsAt === null ? null : tickClocks();
 
@@ -542,6 +541,41 @@ function showBrief(open: boolean): void {
   }
 }
 
+/**
+ * The clock card (STG-26, ST5.10).
+ *
+ * Before one is running it offers lengths. While one is running it shows the
+ * time left, offers more of it, because a service slips and the screen should
+ * not be the thing that says so, and holds the one control that takes it down.
+ */
+function renderCountdown(endsAt: number | null): void {
+  el.countdownLeft.hidden = endsAt === null;
+  if (endsAt !== null) el.countdownLeft.dataset["endsAt"] = String(endsAt);
+
+  el.countdownSet.replaceChildren();
+  const choices: { label: string; run: () => void }[] =
+    endsAt === null
+      ? COUNTDOWNS.map((minutes) => ({
+          label: t("countdown.minutes", { count: minutes }),
+          run: () => send({ type: "startCountdown", minutes }),
+        }))
+      : [
+          ...MORE.map((minutes) => ({
+            label: t("countdown.add", { count: t("countdown.minutes", { count: minutes }) }),
+            run: () => send({ type: "addCountdown", minutes }),
+          })),
+          { label: t("countdown.stop"), run: () => send({ type: "stopCountdown" }) },
+        ];
+
+  for (const choice of choices) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = choice.label;
+    button.addEventListener("click", choice.run);
+    el.countdownSet.append(button);
+  }
+}
+
 /** How long to put a clock up for, asked the same way (STG-26, ST5.10). */
 function showCountdown(open: boolean): void {
   if (open === el.countdown.open) return;
@@ -579,22 +613,13 @@ function onKey(event: KeyboardEvent): void {
 
 // The words, before anything paints over them (STG-13).
 fillText();
+for (const button of [el.briefClose, el.countdownClose]) button.append(icon("close"));
 brief();
 
-for (const minutes of COUNTDOWNS) {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.textContent = t("countdown.minutes", { count: minutes });
-  button.addEventListener("click", () => {
-    send({ type: "startCountdown", minutes });
-    showCountdown(false);
-  });
-  el.countdownSet.append(button);
-}
-el.countdownStop.addEventListener("click", () => send({ type: "stopCountdown" }));
 el.briefOpen.addEventListener("click", () => showBrief(true));
 el.countdownOpen.addEventListener("click", () => showCountdown(true));
 el.countdownClose.addEventListener("click", () => showCountdown(false));
+renderCountdown(null);
 el.briefClose.addEventListener("click", () => showBrief(false));
 // The one thing on this surface that is not an advance. It opens a window and
 // changes nothing on the wall, so it is safe to have in reach (ST12.3).
