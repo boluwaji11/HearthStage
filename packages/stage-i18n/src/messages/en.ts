@@ -207,6 +207,21 @@ export const en = {
   "save.sections.none": "It has no words yet",
   "save.detail": "{message} ({detail})",
 
+  // The running order a church types for one service (STG-46)
+  "library.items": "Items",
+  "library.services": "Services",
+  "service.name": "Name",
+  "service.date": "Date",
+  "service.add": "Add from the library",
+  "service.heading": "Add a heading",
+  "service.headingTitle": "Heading",
+  "service.empty": "Nothing in it yet",
+  "service.remove": "Take out",
+  "service.pick": "Add to the service",
+  "service.entries.one": "{count} item",
+  "service.entries.other": "{count} items",
+  "service.noServices": "No services yet",
+
   // This machine
   "library.settings": "Settings",
   "settings.title": "This machine",

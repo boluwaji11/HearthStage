@@ -91,6 +91,22 @@ export {
 
 export { labelsFor, type Labelled } from "./labels";
 
+export {
+  SET_ENTRY_KINDS,
+  ITEM_KINDS,
+  type SetEntry,
+  type SetEntryKind,
+  type SetList,
+  type ItemKind,
+  type SetListProblem,
+  type SetListProblemCode,
+  newSetList,
+  orderedEntries,
+  setListPlan,
+  validateSetList,
+  setListHasErrors,
+} from "./setlist";
+
 export { bundledHymns, BUNDLED_HYMN_COUNT, type BundledHymn } from "./hymns";
 
 export {

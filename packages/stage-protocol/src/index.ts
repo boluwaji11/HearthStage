@@ -317,6 +317,23 @@ export interface OrderDraft {
   isDefault: boolean;
 }
 
+/** One running order, in a list of them (STG-46, ST2.8). */
+export interface SetListRow {
+  id: string;
+  title: string;
+  date: string;
+  entries: number;
+}
+
+/** One line of a running order, as the window holds it. */
+export interface SetEntryDraft {
+  kind: "item" | "marker";
+  /** The library item this stands for. Null on a marker. */
+  itemId: string | null;
+  title: string;
+  notes?: string | null;
+}
+
 /**
  * Everything the slide editor shows.
  *
@@ -372,6 +389,17 @@ export interface EditorState {
    * means a church that already has them, and the offer goes.
    */
   samples: number;
+  /** The running orders a church has typed, newest service first (STG-46). */
+  setLists: SetListRow[];
+  /** The one open in the window, where one is. */
+  editingSet: {
+    /** Null until the first save, which is when the list gets a row. */
+    id: string | null;
+    serial: number;
+    title: string;
+    date: string;
+    entries: SetEntryDraft[];
+  } | null;
   /** What is wrong with the last save attempt, by code (STG-145). */
   problems: { code: string; detail: string }[];
   /** Which presentation is live on the output, where one is. */
@@ -432,6 +460,20 @@ export type Intent =
     }
   /** Back to the library, with nothing open (STG-149). */
   | { type: "closeItem" }
+  /** A running order for one service (STG-46, ST2.8). */
+  | { type: "newSetList" }
+  | { type: "openSetList"; setListId: string }
+  | { type: "closeSetList" }
+  | {
+      type: "saveSetList";
+      /** Null creates one. Main allocates the id, so a renderer cannot. */
+      setListId: string | null;
+      title: string;
+      date: string;
+      entries: SetEntryDraft[];
+    }
+  /** Put a whole running order on the screen. */
+  | { type: "presentSetList"; setListId: string }
   /** Put the bundled hymns in the library (STG-10, ST1.2). */
   | { type: "addSamples" }
   /** Rename this machine (STG-14, ST1.9). A blank name is refused. */
@@ -520,6 +562,9 @@ export function isIntent(value: unknown): value is Intent {
     presentationId?: unknown;
     itemId?: unknown;
     entryId?: unknown;
+    setListId?: unknown;
+    date?: unknown;
+    entries?: unknown;
     change?: unknown;
     minutes?: unknown;
     name?: unknown;
@@ -544,6 +589,8 @@ export function isIntent(value: unknown): value is Intent {
     case "openLibrary":
     case "openSample":
     case "closeItem":
+    case "newSetList":
+    case "closeSetList":
     case "closeService":
     case "addSamples":
     case "chooseLogo":
@@ -578,6 +625,17 @@ export function isIntent(value: unknown): value is Intent {
       return typeof candidate.presentationId === "string" && candidate.presentationId.length > 0;
     case "openItem":
       return typeof candidate.itemId === "string" && candidate.itemId.length > 0;
+    case "openSetList":
+    case "presentSetList":
+      return typeof candidate.setListId === "string" && candidate.setListId.length > 0;
+    case "saveSetList":
+      return (
+        (candidate.setListId === null ||
+          (typeof candidate.setListId === "string" && candidate.setListId.length > 0)) &&
+        typeof candidate.title === "string" &&
+        typeof candidate.date === "string" &&
+        isSetEntries(candidate.entries)
+      );
     case "renameDevice":
       return typeof candidate.name === "string" && candidate.name.length <= 200;
     case "savePresentation":
@@ -638,6 +696,23 @@ function isSlideDrafts(value: unknown): value is SlideDraft[] {
       typeof slide.body === "string" &&
       (slide.note === undefined || slide.note === null || typeof slide.note === "string") &&
       (slide.sectionType === undefined || typeof slide.sectionType === "string")
+    );
+  });
+}
+
+/** More items than a service will ever hold. */
+const MOST_ENTRIES = 200;
+
+function isSetEntries(value: unknown): value is SetEntryDraft[] {
+  if (!Array.isArray(value) || value.length > MOST_ENTRIES) return false;
+  return value.every((entry) => {
+    if (typeof entry !== "object" || entry === null) return false;
+    const one = entry as { kind?: unknown; itemId?: unknown; title?: unknown; notes?: unknown };
+    return (
+      (one.kind === "item" || one.kind === "marker") &&
+      (one.itemId === null || typeof one.itemId === "string") &&
+      typeof one.title === "string" &&
+      (one.notes === undefined || one.notes === null || typeof one.notes === "string")
     );
   });
 }

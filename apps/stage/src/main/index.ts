@@ -22,7 +22,14 @@ import {
   type OutputState,
   type OutputView,
 } from "@hearth/stage-protocol";
-import { compileDeck, lookupFrom, presentationPlan, songPlan, type ServicePlan } from "@hearth/songs";
+import {
+  compileDeck,
+  lookupFrom,
+  presentationPlan,
+  setListPlan,
+  songPlan,
+  type ServicePlan,
+} from "@hearth/songs";
 import { sampleLibrary, sampleService } from "@hearth/songs/fixtures";
 import { openLibrary } from "@hearth/stage-store";
 import { Presentations } from "./presentations";
@@ -403,6 +410,19 @@ app.whenReady().then(() => {
         broadcast();
         return;
       }
+      case "presentSetList": {
+        const list = store.library.getSetList(payload.setListId);
+        if (list === null) return;
+        const plan = setListPlan(list, (itemId) => store.library.kindOf(itemId));
+        session.open(
+          compileDeck(plan, songs(), { presentations: presentations.lookup() }),
+          plan,
+        );
+        presenting = null;
+        showControl();
+        broadcast();
+        return;
+      }
       case "presentNow":
         if (presentNow(payload.presentationId)) broadcast();
         return;
@@ -410,6 +430,10 @@ app.whenReady().then(() => {
       case "openItem":
       case "closeItem":
       case "addSamples":
+      case "newSetList":
+      case "openSetList":
+      case "closeSetList":
+      case "saveSetList":
       case "savePresentation":
       case "saveSong":
         if (presentations.apply(payload)) broadcast();

@@ -741,3 +741,138 @@ footer {
 .titles .field:not(.grow) {
   width: 11rem;
 }
+
+/* The library has two halves: the items, and the services built from them. */
+
+.tab {
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--quiet);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-3);
+}
+
+.tab[data-on="true"] {
+  color: var(--text);
+  background: var(--raised);
+  border-color: var(--line);
+}
+
+.services {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.service-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+}
+
+.service-row:hover {
+  border-color: var(--stone-700);
+}
+
+.service-row-title {
+  font-weight: 600;
+}
+
+.service-row-facts {
+  color: var(--quiet);
+  font-size: 0.8125rem;
+}
+
+/* One running order. Each line is one thing that happens. */
+
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+}
+
+.entry[data-marker="true"] {
+  background: var(--sunk);
+}
+
+.entry-number {
+  min-width: 1.25rem;
+  color: var(--quiet);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.entry-title-text {
+  flex: 1;
+}
+
+.entry-title {
+  flex: 1;
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 2px 0;
+}
+
+.entry .card-buttons {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+
+/* Choosing something out of the library to add. */
+
+.pick {
+  width: min(32rem, calc(100vw - 2 * var(--space-4)));
+}
+
+.pick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 22rem;
+  overflow-y: auto;
+  margin-top: var(--space-3);
+}
+
+.pick-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+}
+
+.pick-row:hover {
+  background: var(--sunk);
+}

@@ -23,6 +23,7 @@ export {
   LibraryError,
   type ListOptions,
   type SongSummary,
+  type SetListSummary,
   type PresentationSummary,
   LIBRARY_KINDS,
   type LibraryKind,

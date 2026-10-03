@@ -47,6 +47,7 @@ import {
   type LibraryItem,
   type LibraryKind,
   type OrderDraft,
+  type SetEntryDraft,
   type SlideDraft,
   type SongFields,
   type ThemeChoice,
@@ -95,6 +96,23 @@ const el = {
   chooseLogo: document.getElementById("choose-logo") as HTMLButtonElement,
   removeLogo: document.getElementById("remove-logo") as HTMLButtonElement,
   logoPreview: document.getElementById("logo-preview") as HTMLImageElement,
+  tabItems: document.getElementById("tab-items") as HTMLButtonElement,
+  tabServices: document.getElementById("tab-services") as HTMLButtonElement,
+  services: document.getElementById("services") as HTMLOListElement,
+  serviceView: document.getElementById("service-view") as HTMLElement,
+  serviceBack: document.getElementById("service-back") as HTMLButtonElement,
+  serviceName: document.getElementById("service-name") as HTMLInputElement,
+  serviceDate: document.getElementById("service-date") as HTMLInputElement,
+  servicePresent: document.getElementById("service-present") as HTMLButtonElement,
+  entries: document.getElementById("entries") as HTMLOListElement,
+  entriesEmpty: document.getElementById("entries-empty") as HTMLParagraphElement,
+  entryAdd: document.getElementById("entry-add") as HTMLButtonElement,
+  entryHeading: document.getElementById("entry-heading") as HTMLButtonElement,
+  serviceProblems: document.getElementById("service-problems") as HTMLUListElement,
+  pick: document.getElementById("pick") as HTMLDialogElement,
+  pickClose: document.getElementById("pick-close") as HTMLButtonElement,
+  pickSearch: document.getElementById("pick-search") as HTMLInputElement,
+  pickList: document.getElementById("pick-list") as HTMLOListElement,
   ask: document.getElementById("ask") as HTMLDialogElement,
   askTitle: document.getElementById("ask-title") as HTMLHeadingElement,
   askDetail: document.getElementById("ask-detail") as HTMLParagraphElement,
@@ -138,6 +156,18 @@ let copied: SlideDraft | null = null;
 let proposal: { index: number; split: SplitProposal; text: string } | null = null;
 /** The church's logo, pushed on its own channel (STG-22). */
 let logo: string | null = null;
+/** Which half of the library is on screen (STG-46). */
+let tab: "items" | "services" = "items";
+/**
+ * The running order being built, held here while somebody types it.
+ *
+ * The same rule the slides follow: state comes down whole, and the window
+ * replaces what is in its boxes only when the serial changes, which happens
+ * when a different order is opened.
+ */
+let service: { id: string | null; serial: number; title: string; date: string; entries: SetEntryDraft[] } | null =
+  null;
+let serviceTimer: number | undefined;
 /** True while the machine's name is on screen (STG-14). */
 let settingsOpen = false;
 /** Slides whose note box is open although the note is still empty. */
@@ -830,6 +860,26 @@ function removeOrder(index: number): void {
   commit();
 }
 
+/** Items or services. One library, two halves of it (STG-46). */
+function paintTabs(): void {
+  const services = tab === "services";
+  el.tabItems.dataset["on"] = String(!services);
+  el.tabServices.dataset["on"] = String(services);
+  el.tiles.hidden = services;
+  el.services.hidden = !services;
+
+  if (services) {
+    el.libraryEmpty.hidden = (latest?.setLists ?? []).length > 0;
+    el.libraryEmpty.textContent = t("service.noServices");
+  }
+}
+
+function showTab(which: "items" | "services"): void {
+  tab = which;
+  paintTabs();
+  renderLibrary();
+}
+
 /** Shown on a song. A sheet of notices is written for one week. */
 function paintOrders(): void {
   const song = draft !== null && draft.kind === "song";
@@ -981,8 +1031,10 @@ function renderLibrary(): void {
   el.tiles.replaceChildren();
   for (const row of shown) el.tiles.append(tileFor(row, themes));
 
-  el.libraryEmpty.hidden = shown.length > 0;
-  el.libraryEmpty.textContent = t(rows.length === 0 ? "library.empty" : "library.noMatch");
+  if (tab === "items") {
+    el.libraryEmpty.hidden = shown.length > 0;
+    el.libraryEmpty.textContent = t(rows.length === 0 ? "library.empty" : "library.noMatch");
+  }
 
   // The hymns Stage carries (STG-10, ST1.2). It sits beside New, because a
   // church looking for something to sing is in this window, and it stays there
@@ -1041,6 +1093,14 @@ function tileFor(row: LibraryItem, themes: ThemeChoice[]): HTMLLIElement {
 }
 
 /** What a problem code says on screen. The codes come from the model. */
+/** What stopped a running order being stored (STG-46). */
+const SET_MESSAGES: Record<string, MessageKey> = {
+  "title.missing": "save.title.missing",
+  "date.invalid": "service.date",
+  "entry.title.missing": "save.title.missing",
+  "entry.item.missing": "save.slide.mismatch",
+};
+
 const MESSAGES: Record<string, MessageKey> = {
   "title.missing": "save.title.missing",
   "sections.none": "save.sections.none",
@@ -1086,12 +1146,45 @@ function paint(next: EditorState): void {
     draft.readOnly = next.editing.readOnly;
   }
 
+  // A running order, built the same way: replaced only when the serial says a
+  // different one was opened.
+  if (next.editingSet === null) {
+    service = null;
+  } else if (service === null || service.serial !== next.editingSet.serial) {
+    service = {
+      id: next.editingSet.id,
+      serial: next.editingSet.serial,
+      title: next.editingSet.title,
+      date: next.editingSet.date,
+      entries: next.editingSet.entries.map((entry) => ({ ...entry })),
+    };
+    el.serviceName.value = service.title;
+    el.serviceDate.value = service.date;
+    renderService();
+  } else {
+    service.id = next.editingSet.id;
+    renderService();
+  }
+
   // One view at a time. The library is what the window opens on, and opening
   // something fills the window with it.
-  el.libraryView.hidden = draft !== null || settingsOpen;
+  const open = draft !== null || service !== null || settingsOpen;
+  el.libraryView.hidden = open;
   el.editView.hidden = draft === null || settingsOpen;
+  el.serviceView.hidden = service === null || settingsOpen;
   el.settingsView.hidden = !settingsOpen;
   renderDevice();
+  renderServices();
+  paintTabs();
+
+  el.serviceProblems.replaceChildren();
+  if (service !== null) {
+    for (const problem of next.problems) {
+      const item = document.createElement("li");
+      item.textContent = t(SET_MESSAGES[problem.code] ?? "save.title.missing");
+      el.serviceProblems.append(item);
+    }
+  }
 
   renderThemes();
   renderLibrary();
@@ -1107,6 +1200,187 @@ function paint(next: EditorState): void {
   }
 
   paintStatus();
+}
+
+/**
+ * Opens one dialog, having closed whatever was open.
+ *
+ * The only call to `showModal` in this window, so two cannot stack. Modal
+ * stacking is refused outright (docs/design-system.md section 12), and the way
+ * to refuse it is to leave one door rather than to remember not to use two.
+ */
+function showOnly(dialog: HTMLDialogElement): void {
+  for (const other of document.querySelectorAll("dialog")) {
+    if (other !== dialog && other.open) other.close();
+  }
+  if (!dialog.open) dialog.showModal();
+}
+
+// A running order for one service (STG-46, ST2.8)
+
+function scheduleService(): void {
+  window.clearTimeout(serviceTimer);
+  serviceTimer = window.setTimeout(commitService, 1000);
+}
+
+function commitService(): void {
+  window.clearTimeout(serviceTimer);
+  if (service === null || service.title.trim() === "") return;
+  send({
+    type: "saveSetList",
+    setListId: service.id,
+    title: service.title,
+    date: service.date,
+    entries: service.entries,
+  });
+}
+
+/** The running orders a church has typed, newest service first. */
+function renderServices(): void {
+  const rows = latest?.setLists ?? [];
+  el.services.replaceChildren();
+
+  for (const row of rows) {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "service-row";
+    button.addEventListener("click", () => send({ type: "openSetList", setListId: row.id }));
+
+    const title = document.createElement("span");
+    title.className = "service-row-title";
+    title.textContent = row.title;
+
+    const facts = document.createElement("span");
+    facts.className = "service-row-facts";
+    facts.textContent = [row.date, plural("service.entries", row.entries)].join(
+      t("control.separator"),
+    );
+
+    button.append(title, facts);
+    item.append(button);
+    el.services.append(item);
+  }
+}
+
+/** What is in the service, in the order it happens. */
+function renderService(): void {
+  el.entries.replaceChildren();
+  const open = service;
+  if (open === null) return;
+
+  open.entries.forEach((entry, index) => {
+    const item = document.createElement("li");
+    item.className = "entry";
+    if (entry.kind === "marker") item.dataset["marker"] = "true";
+
+    const number = document.createElement("span");
+    number.className = "entry-number";
+    number.textContent = String(index + 1);
+    item.append(number);
+
+    if (entry.kind === "marker") {
+      // A heading is words somebody typed, so it is typed here rather than
+      // chosen. An item's name belongs to the library and is shown.
+      const field = document.createElement("input");
+      field.className = "entry-title";
+      field.type = "text";
+      field.value = entry.title;
+      field.setAttribute("aria-label", t("service.headingTitle"));
+      field.addEventListener("input", () => {
+        entry.title = field.value;
+        scheduleService();
+      });
+      field.addEventListener("blur", commitService);
+      item.append(field);
+    } else {
+      const title = document.createElement("span");
+      title.className = "entry-title-text";
+      title.textContent = entry.title;
+      item.append(title);
+    }
+
+    const buttons = document.createElement("span");
+    buttons.className = "card-buttons";
+    for (const [name, mark, run, usable] of [
+      ["slide.moveUp", "chevron-up", () => moveEntry(index, index - 1), index > 0],
+      [
+        "slide.moveDown",
+        "chevron-down",
+        () => moveEntry(index, index + 1),
+        index < open.entries.length - 1,
+      ],
+      ["service.remove", "trash", () => removeEntry(index), true],
+    ] as [Parameters<typeof t>[0], Parameters<typeof icon>[0], () => void, boolean][]) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "icon";
+      button.setAttribute("aria-label", t(name));
+      button.title = t(name);
+      button.append(icon(mark));
+      button.disabled = !usable;
+      button.addEventListener("click", run);
+      buttons.append(button);
+    }
+    item.append(buttons);
+    el.entries.append(item);
+  });
+
+  el.entriesEmpty.hidden = open.entries.length > 0;
+  el.servicePresent.disabled = open.id === null || open.entries.length === 0;
+}
+
+function moveEntry(from: number, to: number): void {
+  if (service === null || to < 0 || to >= service.entries.length) return;
+  const [moved] = service.entries.splice(from, 1);
+  if (moved === undefined) return;
+  service.entries.splice(to, 0, moved);
+  renderService();
+  commitService();
+}
+
+function removeEntry(index: number): void {
+  if (service === null) return;
+  service.entries.splice(index, 1);
+  renderService();
+  commitService();
+}
+
+function addEntry(entry: SetEntryDraft): void {
+  if (service === null) return;
+  service.entries.push(entry);
+  renderService();
+  commitService();
+}
+
+/** The library, as a list to add from. */
+function renderPick(): void {
+  const query = el.pickSearch.value.trim().toLowerCase();
+  const rows = (latest?.library ?? []).filter(
+    (row) => query === "" || `${row.title} ${row.subtitle ?? ""}`.toLowerCase().includes(query),
+  );
+
+  el.pickList.replaceChildren();
+  for (const row of rows.slice(0, 200)) {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "pick-row";
+
+    const title = document.createElement("span");
+    title.textContent = row.title;
+    const facts = document.createElement("span");
+    facts.className = "quiet";
+    facts.textContent = countOf(row.count);
+    button.append(title, facts);
+
+    button.addEventListener("click", () => {
+      addEntry({ kind: "item", itemId: row.id, title: row.title });
+      el.pick.close();
+    });
+    item.append(button);
+    el.pickList.append(item);
+  }
 }
 
 /**
@@ -1142,7 +1416,7 @@ function ask(options: {
     el.askConfirm.addEventListener("click", yes);
     el.askKeep.addEventListener("click", no);
     el.ask.addEventListener("close", closed);
-    el.ask.showModal();
+    showOnly(el.ask);
     el.askKeep.focus();
   });
 }
@@ -1280,8 +1554,43 @@ el.deviceName.addEventListener("keydown", (event) => {
 el.undo.addEventListener("click", undoRemoval);
 el.newButton.addEventListener("click", () => {
   commit();
-  send({ type: "newPresentation" });
+  send({ type: tab === "services" ? "newSetList" : "newPresentation" });
 });
+
+el.tabItems.addEventListener("click", () => showTab("items"));
+el.tabServices.addEventListener("click", () => showTab("services"));
+
+el.serviceBack.addEventListener("click", () => {
+  commitService();
+  send({ type: "closeSetList" });
+});
+el.serviceName.addEventListener("input", () => {
+  if (service === null) return;
+  service.title = el.serviceName.value;
+  scheduleService();
+});
+el.serviceName.addEventListener("blur", commitService);
+el.serviceDate.addEventListener("change", () => {
+  if (service === null) return;
+  service.date = el.serviceDate.value;
+  commitService();
+});
+el.servicePresent.addEventListener("click", () => {
+  commitService();
+  const id = service?.id;
+  if (id !== undefined && id !== null) send({ type: "presentSetList", setListId: id });
+});
+el.entryHeading.addEventListener("click", () => {
+  addEntry({ kind: "marker", itemId: null, title: t("service.headingTitle") });
+});
+el.entryAdd.addEventListener("click", () => {
+  el.pickSearch.value = "";
+  renderPick();
+  showOnly(el.pick);
+  el.pickSearch.focus();
+});
+el.pickSearch.addEventListener("input", renderPick);
+el.pickClose.addEventListener("click", () => el.pick.close());
 el.present.addEventListener("click", () => {
   void present();
 });

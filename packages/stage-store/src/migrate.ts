@@ -139,6 +139,41 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE presentations ADD COLUMN reference TEXT;
     `,
   },
+  {
+    version: 4,
+    name: "set lists",
+    up: `
+      -- The running order a church types for one service (STG-46, ST2.8). An
+      -- entry points at a library row rather than copying it, so fixing a typo
+      -- in a hymn fixes it in next Sunday's order as well.
+      CREATE TABLE set_lists (
+        id          TEXT PRIMARY KEY,
+        title       TEXT NOT NULL,
+        date        TEXT NOT NULL,
+        archived_at TEXT,
+        created_at  TEXT NOT NULL,
+        updated_at  TEXT NOT NULL
+      );
+
+      CREATE TABLE set_entries (
+        id          TEXT PRIMARY KEY,
+        set_list_id TEXT NOT NULL REFERENCES set_lists(id) ON DELETE CASCADE,
+        sort_order  INTEGER NOT NULL,
+        kind        TEXT NOT NULL DEFAULT 'item'
+                      CHECK (kind IN ('item', 'marker')),
+        -- No foreign key on purpose. An order that names a song somebody later
+        -- archived still has to read as an order, and the deck compiler reports
+        -- the gap by name (ST5.2).
+        item_id     TEXT,
+        title       TEXT NOT NULL,
+        notes       TEXT
+      );
+
+      CREATE INDEX set_entries_order ON set_entries(set_list_id, sort_order);
+      CREATE INDEX set_lists_date ON set_lists(date);
+      CREATE INDEX set_lists_archived ON set_lists(archived_at);
+    `,
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.reduce(

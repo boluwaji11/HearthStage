@@ -101,6 +101,8 @@ describe("migrate", () => {
       "arrangements",
       "presentation_slides",
       "presentations",
+      "set_entries",
+      "set_lists",
       "song_sections",
       "songs",
     ]);

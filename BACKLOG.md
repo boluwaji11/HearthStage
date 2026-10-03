@@ -173,7 +173,7 @@ The release a church with a 300 song ProPresenter library can actually adopt. No
 | STG-43 | Edit and archive a song, keeping its usage history | ST2.5 | New |
 | STG-44 | Hold a ChordPro chart per order, transposable, and show it. Carries the key and the tempo fields STG-9 left off the screen | ST2.6 | New |
 | STG-45 | Attach reference audio and practice tracks to an arrangement | ST2.7 | New |
-| STG-46 | **Build a set list**: named, dated, ordered songs, scripture and markers | ST2.8 | New |
+| STG-46 | **Build a service**: named, dated, ordered items and headings, pointing at the library rather than copying it | ST2.8 | Resolved |
 | STG-47 | Duplicate a set list from a previous week, carrying structure | ST2.9 | New |
 | STG-48 | Choose a set list at launch, defaulting to the next one by date | ST12.5 | New |
 | STG-49 | Add a song to the live deck from the library by typing, in under five seconds | ST5.8 | New |
@@ -472,8 +472,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do, **STG-26** the clock and the reading, **STG-27** the operator brief, **STG-28** the render harness, **STG-29** the latency measurement. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-30**, auditing the control surface to WCAG 2.2 AA in CI. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do, **STG-26** the clock and the reading, **STG-27** the operator brief, **STG-28** the render harness, **STG-29** the latency measurement, **STG-46** building a service. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-47**, duplicating last week's service, then **STG-48** choosing one at launch and **STG-49** adding to a running deck. **STG-30**, the WCAG audit in CI, was skipped to get here and is queued behind them. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1771,3 +1771,41 @@ be assumed to be measuring the rig.
 integrated graphics. This machine has eight cores and 16GB, so the report records what it ran on and
 says plainly that it is faster than the hardware the requirement names. The number on a church's media
 desk is not yet known.
+
+## STG-46, how to test it
+
+Until this, a service was either the sample or one thing pressed Present on. This is the story that
+makes Stage a presenter a church can actually run a Sunday from.
+
+**It was built out of board order.** STG-30, the WCAG audit in CI, was next and is now queued behind
+STG-47 to STG-49. The reason: every story after this one is easier to judge once a service can be
+assembled, and a presenter that cannot hold a running order is not yet a presenter.
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+- Press **Library**. There are two tabs now: **Items** and **Services**.
+- Press **Services**, then **New**. Name it, set the date.
+- Press **Add from the library**. Search, press a hymn, and it goes on the end.
+- Press **Add a heading** and type "Sermon". A heading puts nothing on the screen and keeps the order
+  readable, so the operator knows the next press is the song after it.
+- Move things with the arrows, take one out with the bin.
+- Press **Present**. The whole order goes on the service window as one deck, groups and all.
+- Go back, correct a word in that hymn under **Items**, and present the service again. The correction
+  is there, because an order points at the library rather than copying it. That is the whole reason a
+  library exists.
+
+**Twenty six new tests**, eleven on the model, ten on the store and eight through the editor's side of
+main. The one that matters most corrects a hymn after the service was built and then checks the deck
+shows the correction.
+
+**Schema 4** adds `set_lists` and `set_entries`. It ran against your library on the way up, which now
+reads schema 4 with 185 songs and both items untouched. An entry carries the title beside the
+reference, so an order still reads as an order when an item has been archived, and the compiler
+reports the gap by name.
+
+**One thing closed on the way past.** The editor had two dialogs for the first time, and the test that
+said "one dialog, never stacked" was asserting the wrong thing: the count rather than the stacking.
+There is now one `showModal` call in the window, inside a helper that closes whatever was open, so
+stacking is impossible rather than avoided.

@@ -14,6 +14,7 @@ import {
   compileDeck,
   lookupFrom,
   presentationPlan,
+  setListPlan,
   songPlan,
 } from "@hearth/songs";
 import { amazingGrace } from "@hearth/songs/fixtures";
@@ -831,5 +832,126 @@ describe("a reading", () => {
       slides: PSALM,
     });
     expect(opened.library.getPresentation("pres_1")?.reference).toBe("Psalm 23:1-6");
+  });
+});
+
+/**
+ * STG-46, ST2.8. Building a service, through the path a person walks.
+ *
+ * New, name it, add two things from the library and a heading, present it. The
+ * part worth defending is that the order points at the library, so the service
+ * a church built on Thursday shows Thursday's words on Sunday.
+ */
+describe("building a service", () => {
+  beforeEach(() => {
+    opened.library.save(amazingGrace);
+  });
+
+  function built() {
+    presentations.apply({ type: "newSetList" });
+    presentations.apply({
+      type: "saveSetList",
+      setListId: null,
+      title: "Morning Service",
+      date: "2026-10-04",
+      entries: [
+        { kind: "marker", itemId: null, title: "Welcome" },
+        { kind: "item", itemId: "song-amazing-grace", title: "Amazing Grace" },
+        { kind: "marker", itemId: null, title: "Sermon" },
+      ],
+    });
+    return presentations.state();
+  }
+
+  it("opens an empty one on New, dated today", () => {
+    expect(presentations.apply({ type: "newSetList" })).toBe(true);
+    const open = presentations.state().editingSet;
+    expect(open?.entries).toEqual([]);
+    expect(open?.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("stores it, and the list of services has a row", () => {
+    const state = built();
+    expect(state.setLists.map((row) => [row.title, row.entries])).toEqual([["Morning Service", 3]]);
+    expect(state.problems).toEqual([]);
+  });
+
+  it("reads back in the order it was built", () => {
+    built();
+    const id = presentations.state().setLists[0]?.id ?? "";
+    presentations.apply({ type: "openSetList", setListId: id });
+    expect(presentations.state().editingSet?.entries.map((one) => one.title)).toEqual([
+      "Welcome",
+      "Amazing Grace",
+      "Sermon",
+    ]);
+  });
+
+  it("compiles to a deck of the things it names", () => {
+    built();
+    const id = presentations.state().setLists[0]?.id ?? "";
+    const list = opened.library.getSetList(id);
+    if (list === null) throw new Error("not stored");
+
+    const plan = setListPlan(list, (itemId) => opened.library.kindOf(itemId));
+    const deck = compileDeck(plan, lookupFrom([amazingGrace]), {
+      presentations: presentations.lookup(),
+    });
+
+    expect(deck.problems).toEqual([]);
+    expect(deck.groups.map((group) => group.title)).toEqual([
+      "Welcome",
+      "Amazing Grace",
+      "Sermon",
+    ]);
+  });
+
+  it("shows the library's words rather than a copy taken on Thursday", () => {
+    built();
+    // The hymn is corrected after the service was built.
+    const fixed = {
+      ...amazingGrace,
+      sections: amazingGrace.sections.map((section, index) =>
+        index === 0 ? { ...section, lines: ["A line somebody corrected"] } : section,
+      ),
+    };
+    opened.library.save(fixed);
+
+    const id = presentations.state().setLists[0]?.id ?? "";
+    const list = opened.library.getSetList(id);
+    if (list === null) throw new Error("not stored");
+    const deck = compileDeck(
+      setListPlan(list, (itemId) => opened.library.kindOf(itemId)),
+      lookupFrom([fixed]),
+    );
+    expect(deck.cues.some((cue) => cue.lines?.[0] === "A line somebody corrected")).toBe(true);
+  });
+
+  it("reports a service with no name, and keeps nothing", () => {
+    presentations.apply({ type: "newSetList" });
+    presentations.apply({
+      type: "saveSetList",
+      setListId: null,
+      title: "  ",
+      date: "2026-10-04",
+      entries: [],
+    });
+    expect(presentations.state().problems.map((problem) => problem.code)).toContain("title.missing");
+    expect(presentations.state().setLists).toEqual([]);
+  });
+
+  it("has one thing open at a time, so a service and a hymn never share the window", () => {
+    presentations.apply({ type: "openItem", itemId: "song-amazing-grace" });
+    expect(presentations.state().editing).not.toBeNull();
+
+    presentations.apply({ type: "newSetList" });
+    expect(presentations.state().editing).toBeNull();
+    expect(presentations.state().editingSet).not.toBeNull();
+  });
+
+  it("closes back to the list", () => {
+    built();
+    expect(presentations.apply({ type: "closeSetList" })).toBe(true);
+    expect(presentations.state().editingSet).toBeNull();
   });
 });

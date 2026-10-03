@@ -34,6 +34,12 @@ import {
   type PresentationProblem,
   type PresentationSlide,
   type PresentationKind,
+  orderedEntries,
+  setListHasErrors,
+  validateSetList,
+  type ItemKind,
+  type SetEntry,
+  type SetList,
 } from "@hearth/songs";
 import type { Db } from "./open";
 
@@ -217,6 +223,15 @@ export interface ListOptions {
   includeArchived?: boolean;
   limit?: number;
   offset?: number;
+}
+
+/** A set list in a list of them: enough to pick next Sunday's (STG-46). */
+export interface SetListSummary {
+  id: string;
+  title: string;
+  date: string;
+  entries: number;
+  archived_at: string | null;
 }
 
 export interface SongSummary {
@@ -785,5 +800,135 @@ export class Library {
     return this.listPresentations(options)
       .map((summary) => this.getPresentation(summary.id))
       .filter((one): one is Presentation => one !== null);
+  }
+  /**
+   * STG-46, ST2.8. The running order a church types for one service.
+   *
+   * Written as one unit, entries and all, the same way a song is: a set list
+   * half saved is a service half planned, and the order is what somebody is
+   * holding when they walk to the desk.
+   */
+  saveSetList(list: SetList): void {
+    const problems = validateSetList(list);
+    if (setListHasErrors(problems)) {
+      throw new LibraryError(
+        `"${list.title}" cannot be stored: ${problems.map((one) => one.code).join(", ")}.`,
+      );
+    }
+
+    const timestamp = this.now();
+
+    this.db.transaction(() => {
+      const existing = this.db
+        .prepare("SELECT created_at FROM set_lists WHERE id = ?")
+        .get(list.id) as { created_at: string } | undefined;
+
+      this.db
+        .prepare(
+          `INSERT INTO set_lists (id, title, date, archived_at, created_at, updated_at)
+           VALUES (@id, @title, @date, NULL, @created_at, @updated_at)
+           ON CONFLICT(id) DO UPDATE SET
+             title = excluded.title,
+             date = excluded.date,
+             updated_at = excluded.updated_at`,
+        )
+        .run({
+          id: list.id,
+          title: list.title.trim(),
+          date: list.date,
+          created_at: existing?.created_at ?? timestamp,
+          updated_at: timestamp,
+        });
+
+      // Replaced rather than merged, for the same reason a song's sections are:
+      // what is on the screen is the whole order, so the whole order is written.
+      this.db.prepare("DELETE FROM set_entries WHERE set_list_id = ?").run(list.id);
+      const entry = this.db.prepare(
+        `INSERT INTO set_entries (id, set_list_id, sort_order, kind, item_id, title, notes)
+         VALUES (@id, @set_list_id, @sort_order, @kind, @item_id, @title, @notes)`,
+      );
+      orderedEntries(list).forEach((one, index) => {
+        entry.run({
+          // Numbered by position within this order rather than taken from the
+          // caller. An entry has nothing hanging off it, so its identity is
+          // where it sits, and two orders cannot collide on an id a window
+          // made up.
+          id: `${list.id}:entry:${index}`,
+          set_list_id: list.id,
+          sort_order: index,
+          kind: one.kind,
+          item_id: one.itemId,
+          title: one.title.trim(),
+          notes: one.notes,
+        });
+      });
+    })();
+
+    this.afterWrite?.();
+  }
+
+  getSetList(setListId: string): SetList | null {
+    const row = this.db.prepare("SELECT * FROM set_lists WHERE id = ?").get(setListId) as
+      | { id: string; title: string; date: string; updated_at: string }
+      | undefined;
+    if (row === undefined) return null;
+
+    const entries = (
+      this.db
+        .prepare("SELECT * FROM set_entries WHERE set_list_id = ? ORDER BY sort_order")
+        .all(setListId) as {
+        id: string;
+        set_list_id: string;
+        sort_order: number;
+        kind: string;
+        item_id: string | null;
+        title: string;
+        notes: string | null;
+      }[]
+    ).map(
+      (one): SetEntry => ({
+        id: one.id,
+        setListId: one.set_list_id,
+        sortOrder: one.sort_order,
+        kind: one.kind === "marker" ? "marker" : "item",
+        itemId: one.item_id,
+        title: one.title,
+        notes: one.notes,
+      }),
+    );
+
+    return { id: row.id, title: row.title, date: row.date, entries, updatedAt: row.updated_at };
+  }
+
+  /** Every set list, newest service first, which is how a church looks. */
+  setLists(options: ListOptions = {}): SetListSummary[] {
+    const all = options.includeArchived === true;
+    return this.db
+      .prepare(
+        `SELECT s.id, s.title, s.date, s.archived_at,
+                (SELECT COUNT(*) FROM set_entries e WHERE e.set_list_id = s.id) AS entries
+           FROM set_lists s
+           ${all ? "" : "WHERE s.archived_at IS NULL"}
+           ORDER BY s.date DESC, s.title COLLATE NOCASE
+           LIMIT ? OFFSET ?`,
+      )
+      .all(options.limit ?? 200, options.offset ?? 0) as SetListSummary[];
+  }
+
+  /** Puts one away. Nothing is deleted, the same as everywhere else. */
+  archiveSetList(setListId: string): boolean {
+    const done = this.db
+      .prepare("UPDATE set_lists SET archived_at = ?, updated_at = ? WHERE id = ? AND archived_at IS NULL")
+      .run(this.now(), this.now(), setListId);
+    if (done.changes > 0) this.afterWrite?.();
+    return done.changes > 0;
+  }
+
+  /** Which table a library item is in, for `setListPlan`. */
+  kindOf(itemId: string): ItemKind | undefined {
+    const song = this.db.prepare("SELECT 1 FROM songs WHERE id = ?").get(itemId);
+    if (song !== undefined) return "song";
+    const presentation = this.db.prepare("SELECT 1 FROM presentations WHERE id = ?").get(itemId);
+    return presentation === undefined ? undefined : "presentation";
   }
 }

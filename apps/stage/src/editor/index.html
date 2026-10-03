@@ -19,12 +19,15 @@
           <label for="search" data-t="library.search"></label>
           <input id="search" type="search" autocomplete="off" />
         </div>
+        <button id="tab-items" type="button" class="tab" data-t="library.items"></button>
+        <button id="tab-services" type="button" class="tab" data-t="library.services"></button>
         <button id="settings" type="button" data-t="library.settings"></button>
         <button id="add-samples" type="button" hidden></button>
         <button id="new" type="button" class="primary" data-t="library.new"></button>
       </header>
       <div class="tiles-wrap">
         <ol id="tiles" class="tiles"></ol>
+        <ol id="services" class="services" hidden></ol>
         <p id="library-empty" class="quiet empty"></p>
       </div>
     </section>
@@ -51,6 +54,32 @@
             <button id="remove-logo" type="button" hidden data-t="settings.removeLogo"></button>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- One running order, open (STG-46, ST2.8). -->
+    <section id="service-view" class="view service-view" data-t-label="library.services" hidden>
+      <header>
+        <button id="service-back" type="button" class="back" data-t="editor.back"></button>
+        <div class="field grow">
+          <label for="service-name" data-t="service.name"></label>
+          <input id="service-name" type="text" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="service-date" data-t="service.date"></label>
+          <input id="service-date" type="date" />
+        </div>
+        <button id="service-present" type="button" data-t="editor.present"></button>
+      </header>
+
+      <div class="edit-body">
+        <ol id="entries" class="entries"></ol>
+        <p id="entries-empty" class="quiet" data-t="service.empty"></p>
+        <div class="add">
+          <button id="entry-add" type="button" class="primary" data-t="service.add"></button>
+          <button id="entry-heading" type="button" data-t="service.heading"></button>
+        </div>
+        <ul id="service-problems" class="problems"></ul>
       </div>
     </section>
 
@@ -140,6 +169,18 @@
         <button id="ask-keep" type="button"></button>
         <button id="ask-confirm" type="button" class="primary"></button>
       </div>
+    </dialog>
+
+    <dialog id="pick" class="ask pick">
+      <div class="card-head">
+        <h2 data-t="service.pick"></h2>
+        <button id="pick-close" type="button" class="icon" data-t-label="card.close"></button>
+      </div>
+      <div class="field">
+        <label for="pick-search" data-t="library.search"></label>
+        <input id="pick-search" type="search" autocomplete="off" />
+      </div>
+      <ol id="pick-list" class="pick-list"></ol>
     </dialog>
 
     <script type="module" src="./editor.ts"></script>

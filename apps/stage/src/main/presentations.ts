@@ -14,22 +14,29 @@
 import {
   BUNDLED_HYMN_COUNT,
   bundledHymns,
+  newSetList,
+  orderedEntries,
   newPresentation,
   presentationsFrom,
   slideInputs,
   slidesFrom,
   validatePresentation,
+  type ItemKind,
   type Presentation,
   type PresentationLookup,
+  type SetEntry,
+  type SetList,
   type WholeSong,
 } from "@hearth/songs";
-import type { LibraryItem as StoredItem } from "@hearth/stage-store";
-import { hasErrors, validateWholeSong } from "@hearth/songs";
+import type { LibraryItem as StoredItem, SetListSummary } from "@hearth/stage-store";
+import { hasErrors, setListHasErrors, validateSetList, validateWholeSong } from "@hearth/songs";
 import type {
   EditorState,
   Intent,
   LibraryItem,
   OrderDraft,
+  SetEntryDraft,
+  SetListRow,
   SlideDraft,
   SongFields,
   ThemeChoice,
@@ -47,6 +54,11 @@ export interface PresentationLibrary {
   items(): StoredItem[];
   get(songId: string): WholeSong | null;
   save(whole: WholeSong): void;
+  /** Running orders (STG-46). */
+  saveSetList(list: SetList): void;
+  getSetList(setListId: string): SetList | null;
+  setLists(): SetListSummary[];
+  kindOf(itemId: string): ItemKind | undefined;
 }
 
 export interface PresentationsOptions {
@@ -85,6 +97,10 @@ export class Presentations {
   private machine: EditorState["device"] = { name: "Stage", platform: process.platform };
   /** Whether the church has given Stage a logo (STG-22). */
   private logo = false;
+  /** The running order open in the window, where one is (STG-46). */
+  private setEditingId: string | null = null;
+  private setDrafting = false;
+  private setSerial = 0;
 
   constructor(library: PresentationLibrary, options: PresentationsOptions = {}) {
     this.library = library;
@@ -169,6 +185,37 @@ export class Presentations {
         return true;
       }
 
+      case "newSetList":
+        // A running order and an item are never open at once. The window shows
+        // one thing, and a church building Sunday is not also typing a hymn.
+        this.closeOpen();
+        this.setEditingId = null;
+        this.setDrafting = true;
+        this.setSerial += 1;
+        this.revision += 1;
+        return true;
+
+      case "openSetList": {
+        if (this.library.getSetList(intent.setListId) === null) return false;
+        this.closeOpen();
+        this.setEditingId = intent.setListId;
+        this.setDrafting = false;
+        this.setSerial += 1;
+        this.revision += 1;
+        return true;
+      }
+
+      case "closeSetList":
+        if (this.setEditingId === null && !this.setDrafting) return false;
+        this.setEditingId = null;
+        this.setDrafting = false;
+        this.setSerial += 1;
+        this.revision += 1;
+        return true;
+
+      case "saveSetList":
+        return this.saveSet(intent.setListId, intent.title, intent.date, intent.entries);
+
       case "closeItem":
         if (this.editingId === null && !this.drafting && this.problems.length === 0) return false;
         this.editingId = null;
@@ -181,6 +228,67 @@ export class Presentations {
       default:
         return false;
     }
+  }
+
+  /** Closes whatever item is open, so one thing is open at a time. */
+  private closeOpen(): void {
+    this.editingId = null;
+    this.drafting = false;
+    this.problems = [];
+    this.serial += 1;
+  }
+
+  /**
+   * Writes a running order (STG-46, ST2.8).
+   *
+   * The same shape as saving anything else here: the window sends what it has,
+   * the model validates, and a problem comes back on the state rather than as
+   * an exception, because a person who left the name empty should see the
+   * reason beside the field rather than lose the order they just built.
+   */
+  private saveSet(
+    setListId: string | null,
+    title: string,
+    date: string,
+    entries: SetEntryDraft[],
+  ): boolean {
+    const id = setListId ?? this.nextId("set");
+    const existing = this.library.getSetList(id);
+
+    const list: SetList = {
+      ...(existing ?? newSetList(id)),
+      id,
+      title: title.trim(),
+      date,
+      entries: entries.map(
+        (entry, index): SetEntry => ({
+          id: `${id}:entry:${index}`,
+          setListId: id,
+          sortOrder: index,
+          kind: entry.kind,
+          itemId: entry.kind === "marker" ? null : entry.itemId,
+          title: entry.title.trim(),
+          notes: entry.notes ?? null,
+        }),
+      ),
+    };
+
+    const found = validateSetList(list);
+    if (setListHasErrors(found)) {
+      this.problems = found
+        .filter((problem) => problem.severity === "error")
+        .map((problem) => ({ code: problem.code, detail: detailOf({ ...problem }) }));
+      this.setEditingId = existing === null ? null : id;
+      this.revision += 1;
+      return true;
+    }
+
+    this.library.saveSetList(list);
+    this.setEditingId = id;
+    this.setDrafting = false;
+    this.problems = [];
+    this.revision += 1;
+    return true;
   }
 
   /**
@@ -325,6 +433,15 @@ export class Presentations {
         }),
       ),
       editing: this.open(),
+      setLists: this.library.setLists().map(
+        (row): SetListRow => ({
+          id: row.id,
+          title: row.title,
+          date: row.date,
+          entries: row.entries,
+        }),
+      ),
+      editingSet: this.openSet(),
       device: this.machine,
       hasLogo: this.logo,
       samples: this.samplesLeft(),
@@ -332,6 +449,39 @@ export class Presentations {
       presentingId,
       service,
     };
+  }
+
+  /** The running order in the window, where one is (STG-46). */
+  private openSet(): EditorState["editingSet"] {
+    if (this.setEditingId !== null) {
+      const list = this.library.getSetList(this.setEditingId);
+      if (list !== null) {
+        return {
+          id: list.id,
+          serial: this.setSerial,
+          title: list.title,
+          date: list.date,
+          entries: orderedEntries(list).map((entry) => ({
+            kind: entry.kind,
+            itemId: entry.itemId,
+            title: entry.title,
+            notes: entry.notes,
+          })),
+        };
+      }
+    }
+
+    if (this.setDrafting) {
+      return {
+        id: this.setEditingId,
+        serial: this.setSerial,
+        title: "",
+        date: new Date().toISOString().slice(0, 10),
+        entries: [],
+      };
+    }
+
+    return null;
   }
 
   /** How many of the bundled hymns the library does not have (STG-10). */

@@ -119,12 +119,19 @@ describe("putting something else on the screen", () => {
     }
   });
 
-  it("has one dialog, never stacked, and it closes on Escape", () => {
+  it("never stacks two dialogs, because there is one way to open one", () => {
+    const source = readFileSync(join(root, "src/editor/editor.ts"), "utf8");
+    // One call to showModal in the whole window, inside a helper that closes
+    // whatever was open. Modal stacking is refused outright, and the way to
+    // refuse it is to leave one door rather than to remember not to use two.
+    expect([...source.matchAll(/\.showModal\(\)/g)]).toHaveLength(1);
+    expect(source).toContain("function showOnly(");
+
     const markup = readFileSync(join(root, "src/editor/index.html"), "utf8");
-    expect([...markup.matchAll(/<dialog/g)]).toHaveLength(1);
-    // A native dialog element closes on Escape and traps focus without a line
-    // of script, which is why it is one rather than a div.
+    // Native dialog elements, which close on Escape and trap focus without a
+    // line of script.
     expect(markup).toMatch(/<dialog id="ask"/);
+    expect(markup).toMatch(/<dialog id="pick"/);
   });
 });
 
