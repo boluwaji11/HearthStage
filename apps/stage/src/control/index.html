@@ -67,7 +67,16 @@
         <span id="countdown-set"></span>
         <button id="countdown-stop" type="button" hidden data-t="countdown.stop"></button>
       </div>
+      <button id="brief-open" type="button" data-t="brief.open"></button>
     </footer>
+
+    <!-- What the keys do, on one card (STG-27, ST12.10). -->
+    <dialog id="brief" class="brief" data-t-label="brief.title">
+      <h2 data-t="brief.title"></h2>
+      <dl id="brief-keys"></dl>
+      <p class="quiet" data-t="brief.holding"></p>
+      <button id="brief-close" type="button" class="primary" data-t="brief.close"></button>
+    </dialog>
 
     <script type="module" src="./control.ts"></script>
   </body>

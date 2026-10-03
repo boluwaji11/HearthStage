@@ -603,3 +603,70 @@ footer dd {
   display: flex;
   gap: 2px;
 }
+
+/*
+ * What the keys do, on one card (STG-27, ST12.10).
+ *
+ * The strip along the bottom is for glancing at. This is for the person who
+ * has never run a service, at 10:28, with nobody to ask.
+ */
+
+.brief {
+  margin: auto;
+  width: min(30rem, calc(100vw - 2 * var(--space-4)));
+  padding: var(--space-4);
+  color: var(--text);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) * 1.5);
+  box-shadow: 0 1.5rem 3rem oklch(0 0 0 / 0.55);
+}
+
+.brief::backdrop {
+  background: oklch(0 0 0 / 0.65);
+}
+
+.brief h2 {
+  margin: 0 0 var(--space-3);
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.brief dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
+.brief dt {
+  justify-self: start;
+  padding: 2px var(--space-2);
+  color: var(--text);
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.brief dd {
+  margin: 0;
+}
+
+.brief-also {
+  display: block;
+  color: var(--quiet);
+  font-size: 0.75rem;
+}
+
+.brief p {
+  margin: var(--space-3) 0 0;
+}
+
+.brief button {
+  margin-top: var(--space-4);
+  float: right;
+}

@@ -133,7 +133,7 @@ thing a person does with Stage and until now there was no way to do it. See
 | STG-24 | Reorder, skip and repeat a cue for this run, leaving the set list untouched | ST5.7 | Resolved |
 | STG-25 | Keep the library, import and theme editing out of the live surface, enforced by a test, and ask before replacing a running service | ST12.3, ST2.15 | Resolved |
 | STG-26 | Present a song, a reading and a countdown with no service open | ST5.10 | Resolved |
-| STG-27 | Write the operator brief: one screen saying what the four keys do | ST12.10 | New |
+| STG-27 | Write the operator brief: one card saying what every key does, driven by the same table the keys are | ST12.10 | Resolved |
 
 ### SF21. The measurements
 
@@ -472,8 +472,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do, **STG-26** the clock and the reading. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-27**, the operator brief: one screen saying what the keys do. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do, **STG-26** the clock and the reading, **STG-27** the operator brief. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-28**, the render harness: every slide rasterised at three resolutions, safe area and contrast asserted. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1676,3 +1676,29 @@ passage up by typing it.
 
 **Fifteen new tests**, and a schema step: `presentations` gained a `reference` column. It ran against
 your library on the way up, which now reads schema 3 with both items and all 185 songs untouched.
+
+## STG-27, how to test it
+
+The strip along the bottom of the service window named six keys. Three more worked and were written
+down nowhere, which is the quiet failure this story is about: a key that works and nobody knows, or a
+key written on a card that stopped working two releases ago.
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+- Press **?** anywhere on the service window, or **Keys** at the bottom right. The card lists every
+  key, with the alternate spellings underneath the ones that have them.
+- Press **Escape**. The card closes and the screen behind it is untouched, because Escape belongs to
+  the card while the card is up rather than uncovering the wall.
+- Press **Home** during a service. Back to the first cue. It was always there and the strip had no
+  room to say so.
+- Hold any of them. One cue, which the card says in a line underneath.
+
+**One table, three jobs.** `KEYS` in the control window holds every spelling, what it does and whether
+it is glanceable enough for the strip. The handler looks the pressed key up in it, the strip is built
+from it, and so is the card. The three cannot disagree, because there is nothing to keep in step.
+
+**Seven new tests** hold that shape: one keydown listener and no second switch on a key anywhere in the
+window, no key with two meanings, every meaning in the catalogue, and the strip a proper subset of the
+card.

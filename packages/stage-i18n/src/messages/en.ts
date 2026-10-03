@@ -49,10 +49,14 @@ export const en = {
   "status.problems.other": "{count} problems",
 
   // The keys, which is what the operator reads at 10:28
-  "keys.next": "Space  or  →",
+  "keys.next": "Space  or  \u2192",
   "keys.next.meaning": "Next",
-  "keys.back": "←",
+  "keys.next.also": "Down arrow, or Page Down",
+  "keys.back": "\u2190",
   "keys.back.meaning": "Back",
+  "keys.back.also": "Up arrow, or Page Up",
+  "keys.first": "Home",
+  "keys.first.meaning": "Back to the first cue",
   "keys.black": "B",
   "keys.black.meaning": "Black the screen",
   "keys.clear": "C",
@@ -61,6 +65,14 @@ export const en = {
   "keys.logo.meaning": "Logo",
   "keys.escape": "Esc",
   "keys.escape.meaning": "Back to the slide",
+  "keys.brief": "?",
+  "keys.brief.meaning": "What the keys do",
+
+  // The operator brief (STG-27, ST12.10)
+  "brief.title": "The keys",
+  "brief.open": "Keys",
+  "brief.close": "Close",
+  "brief.holding": "Held down, any of them moves one cue.",
 
   // What an operator does to a cue during a service (STG-24)
   "run.up": "Move up",

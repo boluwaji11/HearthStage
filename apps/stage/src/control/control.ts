@@ -38,6 +38,10 @@ const el = {
   keys: document.getElementById("keys") as HTMLElement,
   resetRun: document.getElementById("reset-run") as HTMLButtonElement,
   countdownSet: document.getElementById("countdown-set") as HTMLElement,
+  brief: document.getElementById("brief") as HTMLDialogElement,
+  briefKeys: document.getElementById("brief-keys") as HTMLElement,
+  briefOpen: document.getElementById("brief-open") as HTMLButtonElement,
+  briefClose: document.getElementById("brief-close") as HTMLButtonElement,
   countdownStop: document.getElementById("countdown-stop") as HTMLButtonElement,
   slides: document.getElementById("slides") as HTMLButtonElement,
   home: document.getElementById("home") as HTMLButtonElement,
@@ -88,13 +92,86 @@ function problemSays(code: string, item: string): string {
  * This is what the sixteen year old reads at 10:28, so it is four keys and it
  * is always visible.
  */
-const KEYS: [MessageKey, MessageKey][] = [
-  ["keys.next", "keys.next.meaning"],
-  ["keys.back", "keys.back.meaning"],
-  ["keys.black", "keys.black.meaning"],
-  ["keys.clear", "keys.clear.meaning"],
-  ["keys.logo", "keys.logo.meaning"],
-  ["keys.escape", "keys.escape.meaning"],
+interface KeyRow {
+  /** Every spelling that does this. Compared against `event.key`. */
+  keys: string[];
+  /** The one shown, which is the one a person would say. */
+  label: MessageKey;
+  meaning: MessageKey;
+  /** The other spellings, named on the brief rather than in the strip. */
+  also?: MessageKey;
+  /** Along the bottom of the service window, where it is always in view. */
+  inStrip: boolean;
+  run: () => void;
+}
+
+/**
+ * Every key the service window answers to (STG-27, ST12.10).
+ *
+ * One table drives three things: what the keys do, the strip along the bottom
+ * and the brief a volunteer opens at 10:28. A key that works and is written
+ * down nowhere, or written down and no longer working, is the failure this
+ * shape makes impossible rather than tests.
+ */
+const KEYS: KeyRow[] = [
+  {
+    keys: [" ", "ArrowRight", "ArrowDown", "PageDown"],
+    label: "keys.next",
+    meaning: "keys.next.meaning",
+    also: "keys.next.also",
+    inStrip: true,
+    run: () => send({ type: "advance" }),
+  },
+  {
+    keys: ["ArrowLeft", "ArrowUp", "PageUp"],
+    label: "keys.back",
+    meaning: "keys.back.meaning",
+    also: "keys.back.also",
+    inStrip: true,
+    run: () => send({ type: "reverse" }),
+  },
+  {
+    keys: ["Home"],
+    label: "keys.first",
+    meaning: "keys.first.meaning",
+    inStrip: false,
+    run: () => send({ type: "goTo", position: 0 }),
+  },
+  {
+    keys: ["b", "B"],
+    label: "keys.black",
+    meaning: "keys.black.meaning",
+    inStrip: true,
+    run: () => send({ type: "toggleBlank", blank: "black" }),
+  },
+  {
+    keys: ["c", "C"],
+    label: "keys.clear",
+    meaning: "keys.clear.meaning",
+    inStrip: true,
+    run: () => send({ type: "toggleBlank", blank: "clear" }),
+  },
+  {
+    keys: ["l", "L"],
+    label: "keys.logo",
+    meaning: "keys.logo.meaning",
+    inStrip: true,
+    run: () => send({ type: "toggleBlank", blank: "logo" }),
+  },
+  {
+    keys: ["Escape"],
+    label: "keys.escape",
+    meaning: "keys.escape.meaning",
+    inStrip: true,
+    run: () => send({ type: "setBlank", blank: "none" }),
+  },
+  {
+    keys: ["?"],
+    label: "keys.brief",
+    meaning: "keys.brief.meaning",
+    inStrip: false,
+    run: () => showBrief(true),
+  },
 ];
 
 function send(intent: Intent): void {
@@ -444,12 +521,42 @@ function runButtons(cue: CueView): HTMLElement {
 
 function brief(): void {
   el.keys.replaceChildren();
-  for (const [key, meaning] of KEYS) {
+  for (const row of KEYS) {
+    if (!row.inStrip) continue;
     const term = document.createElement("dt");
-    term.textContent = t(key);
+    term.textContent = t(row.label);
     const detail = document.createElement("dd");
-    detail.textContent = t(meaning);
+    detail.textContent = t(row.meaning);
     el.keys.append(term, detail);
+  }
+
+  // The brief is every key, including the ones the strip has no room for.
+  el.briefKeys.replaceChildren();
+  for (const row of KEYS) {
+    const term = document.createElement("dt");
+    term.textContent = t(row.label);
+
+    const detail = document.createElement("dd");
+    detail.textContent = t(row.meaning);
+    if (row.also !== undefined) {
+      const also = document.createElement("span");
+      also.className = "brief-also";
+      also.textContent = t(row.also);
+      detail.append(also);
+    }
+
+    el.briefKeys.append(term, detail);
+  }
+}
+
+/** The card a volunteer reads at 10:28 (STG-27, ST12.10). */
+function showBrief(open: boolean): void {
+  if (open === el.brief.open) return;
+  if (open) {
+    el.brief.showModal();
+    el.briefClose.focus();
+  } else {
+    el.brief.close();
   }
 }
 
@@ -462,50 +569,17 @@ function brief(): void {
 function onKey(event: KeyboardEvent): void {
   if (event.repeat) return;
 
-  const blank = (mode: Blank): void => {
-    event.preventDefault();
-    send({ type: "toggleBlank", blank: mode });
-  };
-
-  switch (event.key) {
-    case " ":
-    case "ArrowRight":
-    case "ArrowDown":
-    case "PageDown":
-      event.preventDefault();
-      send({ type: "advance" });
-      return;
-    case "ArrowLeft":
-    case "ArrowUp":
-    case "PageUp":
-      event.preventDefault();
-      send({ type: "reverse" });
-      return;
-    case "Home":
-      event.preventDefault();
-      send({ type: "goTo", position: 0 });
-      return;
-    case "Escape":
-      event.preventDefault();
-      send({ type: "setBlank", blank: "none" });
-      return;
-    default:
-      break;
+  // Escape belongs to the brief while it is open, because a person pressing it
+  // is closing what is in front of them rather than uncovering a screen.
+  if (el.brief.open) {
+    if (event.key === "Escape") showBrief(false);
+    return;
   }
 
-  switch (event.key.toLowerCase()) {
-    case "b":
-      blank("black");
-      return;
-    case "c":
-      blank("clear");
-      return;
-    case "l":
-      blank("logo");
-      return;
-    default:
-      break;
-  }
+  const row = KEYS.find((candidate) => candidate.keys.includes(event.key));
+  if (row === undefined) return;
+  event.preventDefault();
+  row.run();
 }
 
 // The words, before anything paints over them (STG-13).
@@ -520,6 +594,8 @@ for (const minutes of COUNTDOWNS) {
   el.countdownSet.append(button);
 }
 el.countdownStop.addEventListener("click", () => send({ type: "stopCountdown" }));
+el.briefOpen.addEventListener("click", () => showBrief(true));
+el.briefClose.addEventListener("click", () => showBrief(false));
 // The one thing on this surface that is not an advance. It opens a window and
 // changes nothing on the wall, so it is safe to have in reach (ST12.3).
 el.slides.addEventListener("click", () => send({ type: "openEditor" }));
