@@ -29,7 +29,7 @@ import {
   type SetList,
   type WholeSong,
 } from "@hearth/songs";
-import type { LibraryItem as StoredItem, SetListSummary } from "@hearth/stage-store";
+import type { Collection, LibraryItem as StoredItem, SetListSummary } from "@hearth/stage-store";
 import type { UsageRow } from "@hearth/songs";
 import {
   hasErrors,
@@ -67,6 +67,13 @@ export interface PresentationLibrary {
   getSetList(setListId: string): SetList | null;
   setLists(): SetListSummary[];
   kindOf(itemId: string): ItemKind | undefined;
+  /** A church's own grouping of the library (STG-150). */
+  collections(): Collection[];
+  saveCollection(collection: { id: string; name: string; sortOrder?: number }): void;
+  archiveCollection(collectionId: string): boolean;
+  setInCollection(collectionId: string, itemId: string, inIt: boolean): void;
+  collectionsOf(itemId: string): string[];
+  itemsInCollection(collectionId: string): string[];
   /** The usage log, for the CCLI report (STG-53). */
   usage(period?: { from?: string; to?: string }): UsageRow[];
 }
@@ -139,6 +146,9 @@ export class Presentations {
   /** Which page the window shows, and which kind the library is on (STG-46). */
   private page: "none" | "plans" | "library" | "settings" = "none";
   private libraryKind: "song" | "media" | "slides" | null = null;
+  /** Which collection the library is narrowed to. Null is the whole kind. */
+  private libraryCollection: string | null = null;
+  private collectionSerial = 0;
   /**
    * The period the CCLI report covers (STG-53, ST2.11).
    *
@@ -304,8 +314,58 @@ export class Presentations {
       case "showLibraryKind":
         this.page = "library";
         this.libraryKind = intent.kind;
+        // A collection chosen under one kind means nothing under the next.
+        this.libraryCollection = null;
         this.revision += 1;
         return true;
+
+      case "showCollection": {
+        if (intent.collectionId === null) {
+          this.libraryCollection = null;
+          this.revision += 1;
+          return true;
+        }
+        const found = this.library.collections().some((one) => one.id === intent.collectionId);
+        if (!found) return false;
+        this.libraryCollection = intent.collectionId;
+        this.revision += 1;
+        return true;
+      }
+
+      case "newCollection": {
+        this.collectionSerial += 1;
+        this.library.saveCollection({
+          id: this.nextId("collection"),
+          name: t("collection.untitled", { count: this.collectionSerial }),
+        });
+        this.revision += 1;
+        return true;
+      }
+
+      case "renameCollection": {
+        const name = intent.name.trim();
+        if (name === "") return false;
+        const found = this.library.collections().find((one) => one.id === intent.collectionId);
+        if (found === undefined) return false;
+        this.library.saveCollection({ id: found.id, name, sortOrder: found.sortOrder });
+        this.revision += 1;
+        return true;
+      }
+
+      case "archiveCollection": {
+        if (!this.library.archiveCollection(intent.collectionId)) return false;
+        if (this.libraryCollection === intent.collectionId) this.libraryCollection = null;
+        this.revision += 1;
+        return true;
+      }
+
+      case "setInCollection": {
+        const found = this.library.collections().some((one) => one.id === intent.collectionId);
+        if (!found) return false;
+        this.library.setInCollection(intent.collectionId, intent.itemId, intent.inIt);
+        this.revision += 1;
+        return true;
+      }
 
       case "newSetList":
         // A running order and an item are never open at once. The window shows
@@ -599,7 +659,7 @@ export class Presentations {
           textAlign: entry.theme.textAlign,
         }),
       ),
-      library: this.library.items().map(
+      library: this.narrowed().map(
         (row): LibraryItem => ({
           id: row.id,
           kind: row.kind,
@@ -626,11 +686,29 @@ export class Presentations {
       device: this.machine,
       hasLogo: this.logo,
       usage: this.usage(),
+      collections: this.library
+        .collections()
+        .map((one) => ({ id: one.id, name: one.name, items: one.items })),
+      libraryCollection: this.libraryCollection,
       samples: this.samplesLeft(),
       problems: this.problems,
       presentingId,
       service,
     };
+  }
+
+  /**
+   * The library, narrowed to the chosen collection (STG-150, ST2.18).
+   *
+   * Narrowed here rather than in the window, because membership lives in the
+   * store and sending it on every row would put a church's whole grouping
+   * behind every keypress to save one query.
+   */
+  private narrowed(): StoredItem[] {
+    const rows = this.library.items();
+    if (this.libraryCollection === null) return rows;
+    const inIt = new Set(this.library.itemsInCollection(this.libraryCollection));
+    return rows.filter((row) => inIt.has(row.id));
   }
 
   /** What the CCLI report would hold, for the period chosen (STG-53). */
@@ -713,6 +791,7 @@ export class Presentations {
           // A synced presentation belongs to the platform, so the laptop shows
           // it and does not write it.
           readOnly: presentation.origin !== "local",
+          collections: this.library.collectionsOf(presentation.id),
           inLibrary: presentation.inLibrary,
         };
       }
@@ -732,6 +811,7 @@ export class Presentations {
           // A synced song belongs to the platform, so the laptop shows it and
           // does not write it (PRD section 2, the two-writer rule).
           readOnly: song.song.origin !== "local",
+          collections: this.library.collectionsOf(song.song.id),
           inLibrary: true,
         };
       }
@@ -749,6 +829,7 @@ export class Presentations {
         song: null,
         orders: [],
         readOnly: false,
+        collections: [],
         inLibrary: this.draftShelf,
       };
     }

@@ -228,6 +228,39 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX song_usage_period ON song_usage(service_date);
     `,
   },
+  {
+    version: 7,
+    name: "collections",
+    up: `
+      -- A church's own grouping of the library (STG-150, ST2.18).
+      --
+      -- Two hundred presentations are not findable by a search box alone,
+      -- because a search box needs you to already know the name. "Christmas"
+      -- and "Communion" are how a church actually looks for what it has.
+      CREATE TABLE collections (
+        id          TEXT PRIMARY KEY,
+        name        TEXT NOT NULL,
+        sort_order  INTEGER NOT NULL DEFAULT 0,
+        archived_at TEXT,
+        created_at  TEXT NOT NULL,
+        updated_at  TEXT NOT NULL
+      );
+
+      -- No foreign key on item_id, for the reason set_entries has none: a
+      -- collection that names a song somebody archived still has to read as a
+      -- collection, and an item can be a song or a presentation, which are two
+      -- tables.
+      CREATE TABLE collection_items (
+        collection_id TEXT NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+        item_id       TEXT NOT NULL,
+        sort_order    INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (collection_id, item_id)
+      );
+
+      CREATE INDEX collection_items_item ON collection_items(item_id);
+      CREATE INDEX collections_archived ON collections(archived_at);
+    `,
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.reduce(

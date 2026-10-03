@@ -99,6 +99,8 @@ describe("migrate", () => {
     expect(tables.sort()).toEqual([
       "arrangement_media",
       "arrangements",
+      "collection_items",
+      "collections",
       "presentation_slides",
       "presentations",
       "set_entries",

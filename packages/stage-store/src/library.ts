@@ -111,6 +111,21 @@ interface MediaRow {
  * log outlives the song: a church that archives a hymn in March still has to
  * report the February service it was sung in.
  */
+/**
+ * A church's own grouping of the library (STG-150, ST2.18).
+ *
+ * Two hundred presentations are not findable by a search box alone, because a
+ * search box needs you to already know the name. "Christmas" is how a church
+ * actually looks for what it has.
+ */
+export interface Collection {
+  id: string;
+  name: string;
+  sortOrder: number;
+  /** How many library items are in it. */
+  items: number;
+}
+
 export interface SongUse {
   songId: string;
   title: string;
@@ -1049,6 +1064,112 @@ export class Library {
       key: row.song_key,
       shownAt: row.shown_at,
     }));
+  }
+
+  /** Writes a collection, keeping whatever is already in it. */
+  saveCollection(collection: { id: string; name: string; sortOrder?: number }): void {
+    const timestamp = this.now();
+    this.db
+      .prepare(
+        `INSERT INTO collections (id, name, sort_order, archived_at, created_at, updated_at)
+         VALUES (
+           @id, @name, @sort_order,
+           COALESCE((SELECT archived_at FROM collections WHERE id = @id), NULL),
+           COALESCE((SELECT created_at FROM collections WHERE id = @id), @now),
+           @now
+         )
+         ON CONFLICT(id) DO UPDATE SET
+           name = excluded.name,
+           sort_order = excluded.sort_order,
+           updated_at = excluded.updated_at`,
+      )
+      .run({
+        id: collection.id,
+        name: collection.name.trim(),
+        sort_order: collection.sortOrder ?? 0,
+        now: timestamp,
+      });
+    this.afterWrite?.();
+  }
+
+  /** Every collection, with how much is in each. */
+  collections(options: ListOptions = {}): Collection[] {
+    const where = options.includeArchived === true ? "" : "WHERE c.archived_at IS NULL";
+    const rows = this.db
+      .prepare(
+        `SELECT c.id AS id, c.name AS name, c.sort_order AS sort_order,
+                (SELECT COUNT(*) FROM collection_items i WHERE i.collection_id = c.id) AS items
+           FROM collections c
+           ${where}
+          ORDER BY c.sort_order, c.name COLLATE NOCASE`,
+      )
+      .all() as { id: string; name: string; sort_order: number; items: number }[];
+
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      sortOrder: row.sort_order,
+      items: row.items,
+    }));
+  }
+
+  /**
+   * Puts a library item in a collection, or takes it out.
+   *
+   * Idempotent either way, because the window sends what it wants to be true
+   * rather than what it believes is currently true.
+   */
+  setInCollection(collectionId: string, itemId: string, inIt: boolean): void {
+    if (inIt) {
+      this.db
+        .prepare(
+          `INSERT INTO collection_items (collection_id, item_id, sort_order)
+           VALUES (?, ?, (SELECT COUNT(*) FROM collection_items WHERE collection_id = ?))
+           ON CONFLICT DO NOTHING`,
+        )
+        .run(collectionId, itemId, collectionId);
+    } else {
+      this.db
+        .prepare("DELETE FROM collection_items WHERE collection_id = ? AND item_id = ?")
+        .run(collectionId, itemId);
+    }
+    this.afterWrite?.();
+  }
+
+  /** The collections one item is in. */
+  collectionsOf(itemId: string): string[] {
+    const rows = this.db
+      .prepare(
+        `SELECT i.collection_id AS id
+           FROM collection_items i
+           JOIN collections c ON c.id = i.collection_id
+          WHERE i.item_id = ? AND c.archived_at IS NULL
+          ORDER BY c.sort_order, c.name COLLATE NOCASE`,
+      )
+      .all(itemId) as { id: string }[];
+    return rows.map((row) => row.id);
+  }
+
+  /** The library items in one collection. */
+  itemsInCollection(collectionId: string): string[] {
+    const rows = this.db
+      .prepare(
+        "SELECT item_id AS id FROM collection_items WHERE collection_id = ? ORDER BY sort_order",
+      )
+      .all(collectionId) as { id: string }[];
+    return rows.map((row) => row.id);
+  }
+
+  /** Takes a collection off the list. What was in it is untouched. */
+  archiveCollection(collectionId: string): boolean {
+    const timestamp = this.now();
+    const result = this.db
+      .prepare(
+        "UPDATE collections SET archived_at = ?, updated_at = ? WHERE id = ? AND archived_at IS NULL",
+      )
+      .run(timestamp, timestamp, collectionId);
+    if (result.changes > 0) this.afterWrite?.();
+    return result.changes > 0;
   }
 
   kindOf(itemId: string): ItemKind | undefined {

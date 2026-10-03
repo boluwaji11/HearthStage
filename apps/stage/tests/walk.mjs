@@ -85,6 +85,34 @@ await new Promise(s=>setTimeout(s,2500));
 console.log("   songs on the shelf:", await evalIn(`document.querySelectorAll("#tiles li").length`));
 console.log("   library title:", await evalIn(`document.getElementById("library-title").textContent`));
 
+// STG-150. A church's own grouping of the library.
+console.log("-- collections (STG-150)");
+await check("the chip row", "#collections", visible);
+const allSongs = await evalIn(`document.querySelectorAll("#tiles li").length`);
+await evalIn(`document.getElementById("collection-new").click()`);
+await new Promise(s=>setTimeout(s,700));
+console.log("   made:", JSON.stringify(await evalIn(`document.querySelector("#collection-list .chip")?.textContent ?? ""`)));
+// Put one song in it, through the item it belongs to.
+await evalIn(`document.querySelector("#tiles button")?.click()`);
+await new Promise(s=>setTimeout(s,900));
+await check("collections on the item", "#item-collections", visible);
+await evalIn(`document.querySelector("#item-collection-list .chip")?.click()`);
+await new Promise(s=>setTimeout(s,700));
+console.log("   in it:", await evalIn(`document.querySelector("#item-collection-list .chip")?.getAttribute("aria-pressed")`));
+await evalIn(`document.getElementById("back").click()`);
+await new Promise(s=>setTimeout(s,800));
+await evalIn(`document.querySelector("#collection-list .chip")?.click()`);
+await new Promise(s=>setTimeout(s,700));
+const narrowed = await evalIn(`document.querySelectorAll("#tiles li").length`);
+console.log(`   library went from ${allSongs} to ${narrowed}`);
+if (!(narrowed === 1 && allSongs > 1)) fail.push("the collection did not narrow the library");
+else console.log("ok    the collection narrows the library");
+await evalIn(`document.getElementById("collection-all").click()`);
+await new Promise(s=>setTimeout(s,700));
+const back = await evalIn(`document.querySelectorAll("#tiles li").length`);
+if (back !== allSongs) fail.push("All did not bring the library back");
+else console.log("ok    All brings the whole kind back");
+
 await evalIn(`document.getElementById("way-settings") && 0; document.getElementById("library-back").click()`);
 await new Promise(s=>setTimeout(s,600));
 await check("back to kinds", "#kinds", visible);

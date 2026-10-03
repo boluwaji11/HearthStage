@@ -68,6 +68,7 @@ describe("the first ten minutes", () => {
       themeId: null,
       song: null,
       readOnly: false,
+      collections: [],
       inLibrary: true,
     });
   });
@@ -1168,5 +1169,94 @@ describe("the CCLI report", () => {
     });
     presentations.apply({ type: "setUsagePeriod", from: "2026-01-01", to: "2026-06-30" });
     expect(presentations.state().usage.missingNumbers).toBe(1);
+  });
+});
+
+/**
+ * STG-150, ST2.18. A church's own grouping of the library.
+ *
+ * A search box needs you to already know the name. "Christmas" is how a church
+ * looks for what it has, so what matters is that choosing one narrows the list
+ * and that the grouping is never the things grouped.
+ */
+describe("collections", () => {
+  beforeEach(() => {
+    opened.library.save(amazingGrace);
+    opened.library.save(holyHolyHoly);
+    presentations.apply({ type: "showLibraryKind", kind: "song" });
+  });
+
+  function made(): string {
+    presentations.apply({ type: "newCollection" });
+    const rows = presentations.state().collections;
+    return rows[rows.length - 1]?.id ?? "";
+  }
+
+  it("makes one with a name somebody can replace", () => {
+    const id = made();
+    expect(presentations.state().collections).toHaveLength(1);
+    expect(presentations.apply({ type: "renameCollection", collectionId: id, name: "Christmas" })).toBe(true);
+    expect(presentations.state().collections[0]?.name).toBe("Christmas");
+  });
+
+  it("refuses a name that is nothing", () => {
+    const id = made();
+    expect(presentations.apply({ type: "renameCollection", collectionId: id, name: "   " })).toBe(false);
+  });
+
+  it("narrows the library to what is in it", () => {
+    const id = made();
+    presentations.apply({ type: "setInCollection", collectionId: id, itemId: amazingGrace.song.id, inIt: true });
+    presentations.apply({ type: "showCollection", collectionId: id });
+
+    expect(presentations.state().library.map((row) => row.id)).toEqual([amazingGrace.song.id]);
+    expect(presentations.state().collections[0]?.items).toBe(1);
+  });
+
+  it("goes back to the whole kind", () => {
+    const id = made();
+    presentations.apply({ type: "setInCollection", collectionId: id, itemId: amazingGrace.song.id, inIt: true });
+    presentations.apply({ type: "showCollection", collectionId: id });
+    presentations.apply({ type: "showCollection", collectionId: null });
+    expect(presentations.state().library).toHaveLength(2);
+  });
+
+  it("forgets the collection when the kind changes, because it means nothing there", () => {
+    const id = made();
+    presentations.apply({ type: "showCollection", collectionId: id });
+    presentations.apply({ type: "showLibraryKind", kind: "slides" });
+    expect(presentations.state().libraryCollection).toBeNull();
+  });
+
+  it("tells an open item which collections it is in", () => {
+    const id = made();
+    presentations.apply({ type: "setInCollection", collectionId: id, itemId: amazingGrace.song.id, inIt: true });
+    presentations.apply({ type: "openItem", itemId: amazingGrace.song.id });
+    expect(presentations.state().editing?.collections).toEqual([id]);
+  });
+
+  it("takes an item back out", () => {
+    const id = made();
+    presentations.apply({ type: "setInCollection", collectionId: id, itemId: amazingGrace.song.id, inIt: true });
+    presentations.apply({ type: "setInCollection", collectionId: id, itemId: amazingGrace.song.id, inIt: false });
+    expect(presentations.state().collections[0]?.items).toBe(0);
+  });
+
+  it("refuses a collection that is not there", () => {
+    expect(presentations.apply({ type: "showCollection", collectionId: "nope" })).toBe(false);
+    expect(
+      presentations.apply({ type: "setInCollection", collectionId: "nope", itemId: amazingGrace.song.id, inIt: true }),
+    ).toBe(false);
+  });
+
+  it("removes one without removing the songs, and stops narrowing to it", () => {
+    const id = made();
+    presentations.apply({ type: "setInCollection", collectionId: id, itemId: amazingGrace.song.id, inIt: true });
+    presentations.apply({ type: "showCollection", collectionId: id });
+    expect(presentations.apply({ type: "archiveCollection", collectionId: id })).toBe(true);
+
+    expect(presentations.state().collections).toEqual([]);
+    expect(presentations.state().libraryCollection).toBeNull();
+    expect(presentations.state().library).toHaveLength(2);
   });
 });

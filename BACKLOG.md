@@ -222,7 +222,7 @@ hymns in, **STG-172** for the rest).
 | STG-52 | **Log usage when a song is actually shown**, with date, set list, arrangement and key | ST2.10, ST18.7 | Resolved |
 | STG-53 | **Export a CCLI usage report** for a period, validated against the same fixture as the platform's R12.10 | ST2.11, ST18.7 | Resolved |
 | STG-54 | Export the whole library as OpenLyrics and as a Hearth-schema bundle, ungated | ST2.12 | New |
-| STG-150 | Collections in the library, so two hundred presentations are findable | ST2.18 | New |
+| STG-150 | Collections in the library, so two hundred presentations are findable | ST2.18 | Resolved |
 | STG-151 | **A media library**: images, video and audio added once and reusable anywhere | ST9.10 | New |
 | STG-152 | Reference media by content hash, so reorganising folders does not break last year's playlists | ST9.11 | New |
 | STG-153 | Pick media from the library when building a playlist or a theme | ST9.10 | New |
@@ -513,7 +513,7 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 |---|---|
 | **Active** | Nothing |
 | **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do, **STG-26** the clock and the reading, **STG-27** the operator brief, **STG-28** the render harness, **STG-29** the latency measurement, **STG-46** building a service, **STG-47** using last week's again. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-54**, exporting the whole library as OpenLyrics and as a Hearth bundle. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Next** | **STG-151**, the media library. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -2199,3 +2199,33 @@ opening. The unit tests could not see it.
 | Story | What | Requirement | State |
 |---|---|---|---|
 | STG-53 | The CCLI usage export, and the fixture the platform shares | ST2.11, ST18.7 | Resolved |
+
+## STG-150, collections
+
+A search box needs you to already know the name. With a hundred and eighty three
+hymns on the shelf, "Christmas" is how a church actually looks for what it has.
+
+Migration 7 is `collections` and `collection_items`. A collection is chosen under
+a kind, because narrowing a list needs a list, and choosing a different kind
+clears it, because "Christmas" under Songs means nothing under Slides.
+
+**The grouping is never the things grouped.** Removing a collection leaves every
+song in it alone, and a song somebody archives stays in the collection, so the
+collection still reads as one. There is no foreign key on `item_id`, for the
+reason `set_entries` has none: an item is a song or a presentation, which are two
+tables.
+
+**The library is narrowed in main**, not in the window. Membership lives in the
+store, and sending it on every row would put a church's whole grouping behind
+every keypress to save one query.
+
+**Renaming happens in the chip.** A dialog for one short word is a dialog too
+many, and a second button on every chip is a row nobody can read.
+
+The walk caught the defect again: five new intents, none of them routed in main's
+dispatch, so the button made nothing. That is the third time this has been the
+failure, and it is always invisible to the unit tests.
+
+| Story | What | Requirement | State |
+|---|---|---|---|
+| STG-150 | Collections, so a shelf of two hundred is findable | ST2.18 | Resolved |

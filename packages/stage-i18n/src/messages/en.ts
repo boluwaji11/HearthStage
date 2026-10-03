@@ -259,6 +259,15 @@ export const en = {
 
   // This machine
   "settings.title": "This machine",
+  "collection.untitled": "Collection {count}",
+  "collection.all": "All",
+  "collection.new": "New collection",
+  "collection.rename": "Rename",
+  "collection.remove": "Remove this collection",
+  "collection.in": "Collections",
+  "collection.none": "No collections yet",
+  "collection.count.one": "{count} item",
+  "collection.count.other": "{count} items",
   "library.export": "Export the library",
   "library.exportOpenLyrics": "As OpenLyrics",
   "library.exportBundle": "As a Hearth bundle",

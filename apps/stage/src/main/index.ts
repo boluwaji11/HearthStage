@@ -720,6 +720,11 @@ app.whenReady().then(() => {
         return;
 
       case "setUsagePeriod":
+      case "newCollection":
+      case "renameCollection":
+      case "archiveCollection":
+      case "showCollection":
+      case "setInCollection":
       case "showPlans":
       case "showLibrary":
       case "showSettings":

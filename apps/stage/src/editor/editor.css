@@ -982,3 +982,87 @@ body[data-themed="true"] #workbench .card-body {
 #workbench .usage button {
   margin-top: var(--space-2);
 }
+
+/* A church's own grouping of the library (STG-150, ST2.18). */
+#workbench .collections {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-bottom: var(--space-3);
+}
+
+#workbench .chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#workbench .chips li {
+  display: flex;
+  align-items: center;
+}
+
+#workbench .chip {
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: var(--space-1) var(--space-3);
+  color: var(--quiet);
+  background: var(--sunk);
+  border: 1px solid transparent;
+  border-radius: 999px;
+}
+
+#workbench .chip[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--raised);
+  border-color: var(--ember-500);
+}
+
+#workbench .chip-name {
+  min-width: 8rem;
+  color: var(--text);
+  border-color: var(--ember-500);
+}
+
+/* Only beside the chip it belongs to, so a row of them stays readable. */
+#workbench .chip-remove {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-left: calc(var(--space-1) * -1);
+  padding: 0;
+  color: var(--quiet);
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  opacity: 0;
+}
+
+#workbench .chips li:hover .chip-remove,
+#workbench .chip-remove:focus-visible {
+  opacity: 1;
+}
+
+#workbench .chip-remove svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+#workbench .item-collections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+#workbench .item-collections h2 {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--quiet);
+}

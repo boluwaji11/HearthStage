@@ -98,6 +98,12 @@ const el = {
   exportWhat: document.getElementById("export-what") as HTMLParagraphElement,
   exportOpenLyrics: document.getElementById("export-openlyrics") as HTMLButtonElement,
   exportBundle: document.getElementById("export-bundle") as HTMLButtonElement,
+  collections: document.getElementById("collections") as HTMLDivElement,
+  collectionAll: document.getElementById("collection-all") as HTMLButtonElement,
+  collectionList: document.getElementById("collection-list") as HTMLOListElement,
+  collectionNew: document.getElementById("collection-new") as HTMLButtonElement,
+  itemCollections: document.getElementById("item-collections") as HTMLElement,
+  itemCollectionList: document.getElementById("item-collection-list") as HTMLOListElement,
   deviceName: document.getElementById("device-name") as HTMLInputElement,
   devicePlatform: document.getElementById("device-platform") as HTMLParagraphElement,
   chooseLogo: document.getElementById("choose-logo") as HTMLButtonElement,
@@ -149,6 +155,8 @@ interface Draft {
   song: SongFields | null;
   orders: OrderDraft[];
   readOnly: boolean;
+  /** The collections this item is in (STG-150). */
+  collections: string[];
   /** Whether this is on the library shelf (STG-169). */
   inLibrary: boolean;
 }
@@ -917,6 +925,7 @@ function paintPages(): void {
   el.libraryEmpty.hidden = true;
   el.libraryTitle.textContent = t(kind === null ? "library.kind.choose" : KIND_TITLE[kind] ?? "library.title");
 
+  renderCollections();
   // A song is typed into the library. A slide is born inside a presentation plan
   // and reaches the shelf only when someone saves it there.
   el.newButton.hidden = kind !== "song";
@@ -930,6 +939,116 @@ function paintPages(): void {
   const plans = latest?.setLists ?? [];
   el.plansEmpty.hidden = plans.length > 0;
   el.planNew.hidden = plans.length === 0;
+}
+
+/**
+ * A church's own grouping, as a row of chips (STG-150, ST2.18).
+ *
+ * Shown once a kind is chosen, because a collection is a way of narrowing a
+ * list and there is no list before that. Renaming is a double press, which is
+ * the one gesture that needs no second button on a row of them.
+ */
+function renderCollections(): void {
+  const kind = latest?.libraryKind ?? null;
+  const rows = latest?.collections ?? [];
+  const only = latest?.libraryCollection ?? null;
+
+  el.collections.hidden = kind === null;
+  el.collectionAll.setAttribute("aria-pressed", String(only === null));
+
+  el.collectionList.replaceChildren();
+  for (const row of rows) {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "chip";
+    button.textContent = row.name;
+    button.setAttribute("aria-pressed", String(only === row.id));
+    button.title = plural("collection.count", row.items);
+    button.addEventListener("click", () =>
+      send({ type: "showCollection", collectionId: only === row.id ? null : row.id }),
+    );
+    button.addEventListener("dblclick", () => renameCollection(button, row.id, row.name));
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "chip-remove";
+    remove.setAttribute("aria-label", t("collection.remove"));
+    remove.append(icon("close"));
+    remove.addEventListener("click", () =>
+      send({ type: "archiveCollection", collectionId: row.id }),
+    );
+
+    item.append(button, remove);
+    el.collectionList.append(item);
+  }
+}
+
+/**
+ * Renaming, in the chip itself.
+ *
+ * A dialog for one short word is a dialog too many, and a second button on
+ * every chip is a row nobody can read. The chip becomes a box, and leaving it
+ * is the save, which is how the rest of this window already works.
+ */
+function renameCollection(chip: HTMLButtonElement, collectionId: string, was: string): void {
+  const box = document.createElement("input");
+  box.type = "text";
+  box.className = "chip chip-name";
+  box.value = was;
+  box.setAttribute("aria-label", t("collection.rename"));
+
+  let done = false;
+  const finish = (save: boolean): void => {
+    if (done) return;
+    done = true;
+    const name = box.value.trim();
+    if (save && name !== "" && name !== was) {
+      send({ type: "renameCollection", collectionId, name });
+    } else {
+      renderCollections();
+    }
+  };
+
+  box.addEventListener("blur", () => finish(true));
+  box.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") finish(true);
+    if (event.key === "Escape") finish(false);
+  });
+
+  chip.replaceWith(box);
+  box.focus();
+  box.select();
+}
+
+/** The collections one item is in, as toggles on the item itself (STG-150). */
+function renderItemCollections(): void {
+  const rows = latest?.collections ?? [];
+  const inIt = new Set(draft?.collections ?? []);
+  const itemId = draft?.id ?? null;
+
+  el.itemCollections.hidden = itemId === null || rows.length === 0 || (draft?.readOnly ?? false);
+  el.itemCollectionList.replaceChildren();
+  if (itemId === null) return;
+
+  for (const row of rows) {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "chip";
+    button.textContent = row.name;
+    button.setAttribute("aria-pressed", String(inIt.has(row.id)));
+    button.addEventListener("click", () =>
+      send({
+        type: "setInCollection",
+        collectionId: row.id,
+        itemId,
+        inIt: !inIt.has(row.id),
+      }),
+    );
+    item.append(button);
+    el.itemCollectionList.append(item);
+  }
 }
 
 /** Shown on a song. A sheet of notices is written for one week. */
@@ -1224,6 +1343,7 @@ function paint(next: EditorState): void {
       song: next.editing.song,
       orders: next.editing.orders.map((order) => ({ ...order, sequence: [...order.sequence] })),
       readOnly: next.editing.readOnly,
+      collections: [...next.editing.collections],
       inLibrary: next.editing.inLibrary,
     };
     removed = null;
@@ -1239,6 +1359,7 @@ function paint(next: EditorState): void {
     draft.id = next.editing.id;
     draft.kind = next.editing.kind;
     draft.readOnly = next.editing.readOnly;
+    draft.collections = [...next.editing.collections];
     draft.inLibrary = next.editing.inLibrary;
   }
 
@@ -1268,6 +1389,7 @@ function paint(next: EditorState): void {
   el.settingsView.hidden = !settingsOpen();
   renderDevice();
   renderUsage();
+  renderItemCollections();
   renderPlans();
   paintPages();
 
@@ -1687,6 +1809,8 @@ el.exportOpenLyrics.addEventListener("click", () =>
   send({ type: "exportLibrary", format: "openlyrics" }),
 );
 el.exportBundle.addEventListener("click", () => send({ type: "exportLibrary", format: "bundle" }));
+el.collectionAll.addEventListener("click", () => send({ type: "showCollection", collectionId: null }));
+el.collectionNew.addEventListener("click", () => send({ type: "newCollection" }));
 el.chooseLogo.addEventListener("click", () => send({ type: "chooseLogo" }));
 el.removeLogo.addEventListener("click", () => send({ type: "removeLogo" }));
 el.deviceName.addEventListener("blur", renameMachine);

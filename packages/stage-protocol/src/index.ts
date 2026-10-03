@@ -334,6 +334,18 @@ export interface OrderDraft {
 }
 
 /** One running order, in a list of them (STG-46, ST2.8). */
+/**
+ * A church's own grouping of the library (STG-150, ST2.18).
+ *
+ * Two hundred presentations are not findable by a search box alone, because a
+ * search box needs you to already know the name.
+ */
+export interface CollectionRow {
+  id: string;
+  name: string;
+  items: number;
+}
+
 export interface SetListRow {
   id: string;
   title: string;
@@ -387,6 +399,8 @@ export interface EditorState {
     /** The ways it can be sung (STG-9). Empty on a presentation. */
     orders: OrderDraft[];
     readOnly: boolean;
+    /** The collections this item is in (STG-150, ST2.18). */
+    collections: string[];
     /**
      * Whether this sits on the library shelf (STG-169).
      *
@@ -441,6 +455,9 @@ export interface EditorState {
   libraryKind: "song" | "media" | "slides" | null;
   /** The running orders a church has typed, newest service first (STG-46). */
   setLists: SetListRow[];
+  /** The church's own groupings, and which one the library is narrowed to. */
+  collections: CollectionRow[];
+  libraryCollection: string | null;
   /** The one open in the window, where one is. */
   editingSet: {
     /** Null until the first save, which is when the list gets a row. */
@@ -525,6 +542,13 @@ export type Intent =
    * not one.
    */
   | { type: "exportLibrary"; format: "openlyrics" | "bundle" }
+  /** A church's own grouping of the library (STG-150, ST2.18). */
+  | { type: "newCollection" }
+  | { type: "renameCollection"; collectionId: string; name: string }
+  | { type: "archiveCollection"; collectionId: string }
+  /** Narrows the library to one collection. Null is the whole kind. */
+  | { type: "showCollection"; collectionId: string | null }
+  | { type: "setInCollection"; collectionId: string; itemId: string; inIt: boolean }
   /**
    * One more item on a service that is running (STG-49, ST5.8).
    *
@@ -653,6 +677,8 @@ export function isIntent(value: unknown): value is Intent {
     from?: unknown;
     to?: unknown;
     format?: unknown;
+    collectionId?: unknown;
+    inIt?: unknown;
     position?: unknown;
     cueId?: unknown;
     blank?: unknown;
@@ -690,6 +716,7 @@ export function isIntent(value: unknown): value is Intent {
     case "showPlans":
     case "showLibrary":
     case "exportUsage":
+    case "newCollection":
     case "showSettings":
     case "newPlanSlide":
     case "saveToLibrary":
@@ -734,6 +761,24 @@ export function isIntent(value: unknown): value is Intent {
       return typeof candidate.from === "string" && typeof candidate.to === "string";
     case "exportLibrary":
       return candidate.format === "openlyrics" || candidate.format === "bundle";
+    case "archiveCollection":
+      return typeof candidate.collectionId === "string" && candidate.collectionId.length > 0;
+    case "renameCollection":
+      return (
+        typeof candidate.collectionId === "string" &&
+        candidate.collectionId.length > 0 &&
+        typeof candidate.name === "string"
+      );
+    case "showCollection":
+      return candidate.collectionId === null || typeof candidate.collectionId === "string";
+    case "setInCollection":
+      return (
+        typeof candidate.collectionId === "string" &&
+        candidate.collectionId.length > 0 &&
+        typeof candidate.itemId === "string" &&
+        candidate.itemId.length > 0 &&
+        typeof candidate.inIt === "boolean"
+      );
     case "keepCorrection":
       return typeof candidate.cueId === "string" && candidate.cueId.length > 0;
     case "correctCue":

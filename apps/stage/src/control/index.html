@@ -112,6 +112,12 @@
             <button id="kind-media" type="button" class="kind" data-t="library.kind.media"></button>
             <button id="kind-slides" type="button" class="kind" data-t="library.kind.slides"></button>
           </div>
+          <!-- A church's own grouping of the library (STG-150, ST2.18). -->
+          <div id="collections" class="collections" hidden>
+            <button id="collection-all" type="button" class="chip" data-t="collection.all"></button>
+            <ol id="collection-list" class="chips"></ol>
+            <button id="collection-new" type="button" class="chip" data-t="collection.new"></button>
+          </div>
           <ol id="tiles" class="tiles" hidden></ol>
           <p id="library-empty" class="quiet empty" hidden></p>
         </div>
@@ -245,7 +251,12 @@
             </label>
           </div>
 
-          <ol id="slides" class="slides"></ol>
+          <section id="item-collections" class="item-collections" data-t-label="collection.in" hidden>
+          <h2 data-t="collection.in"></h2>
+          <ol id="item-collection-list" class="chips"></ol>
+        </section>
+
+        <ol id="slides" class="slides"></ol>
 
           <div class="add">
             <button id="add" type="button" class="primary" data-t="editor.addSlide"></button>
