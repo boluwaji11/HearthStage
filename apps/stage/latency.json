@@ -1,0 +1,16 @@
+{
+  "measuredAt": "2026-10-03T14:25:33.791Z",
+  "machine": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "cores": 8,
+    "memoryGb": 16,
+    "reference": false
+  },
+  "rounds": 60,
+  "budgetMs": 100,
+  "p50": 11.3,
+  "p95": 17.8,
+  "p99": 74.7,
+  "worst": 74.7
+}

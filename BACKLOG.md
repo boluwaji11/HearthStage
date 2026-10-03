@@ -140,7 +140,7 @@ thing a person does with Stage and until now there was no way to do it. See
 | ID | Story | Req | State |
 |---|---|---|---|
 | STG-28 | Build the render harness: lay out every slide in the bundled library at three resolutions, assert the safe area and the cap height floor | ST6.4, ST20.4 | Resolved |
-| STG-29 | Measure advance latency by frame capture and record it per release, on reference hardware | ST21.1, ST21.5 | New |
+| STG-29 | Measure advance latency by frame capture and record it per release. The run on reference hardware is still owed | ST21.1, ST21.5 | Resolved |
 | STG-30 | Audit the control surface to WCAG 2.2 AA in CI, the same bar as the platform | ST20.1, ST20.2 | New |
 | STG-31 | Add the architecture test that fails the build if the render path can reach the network | ST21.8 | Resolved |
 
@@ -472,8 +472,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do, **STG-26** the clock and the reading, **STG-27** the operator brief, **STG-28** the render harness. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-29**, measuring advance latency by frame capture and recording it per release. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do, **STG-26** the clock and the reading, **STG-27** the operator brief, **STG-28** the render harness, **STG-29** the latency measurement. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-30**, auditing the control surface to WCAG 2.2 AA in CI. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1739,3 +1739,35 @@ headroom all along and were simply being allowed to shrink too far.
 **What it does not do yet.** ST20.4's contrast half is already covered by `theme.test.ts`, which checks
 every theme against every stop of its own gradient through `packages/colour`. Sampling contrast off
 rasterised pixels, which is what catches an image background, waits for the media library in STG-151.
+
+## STG-29, how to test it
+
+```
+pnpm --filter @hearth/stage build
+pnpm --filter @hearth/stage latency
+```
+
+Sixty advances, measured from the key event to pixels changed on the output. The budget is 100ms at
+the 99th percentile (ST21.1), and the number is written to `apps/stage/latency.json` so a release can
+be compared with the one before it.
+
+**On this machine: 50th 11ms, 95th 18ms, 99th 75ms.** Inside the budget, with the 99th percentile
+using most of it.
+
+**It drives the real application.** The built app is launched with the debugging port open and spoken
+to over the DevTools protocol: a real key event into the control window, and a screencast on the
+output window, which emits a frame when and only when something is painted. Nothing is instrumented,
+so there is no code path here that a church does not run. It uses a scratch library in a temporary
+folder, so measuring cannot touch what a church typed.
+
+**The first numbers it produced were nonsense, and that is worth writing down.** It read 878ms at the
+median. The rig was clicking "Try a service" before the window had its state back, so the click did
+nothing and the deck was empty. Advancing an empty deck paints nothing, so the first frame the rig
+saw after each key was the clock in the corner of the window repainting on the second. It now waits
+for the deck to have groups in it before it starts, and a measurement rig's first number should always
+be assumed to be measuring the rig.
+
+**What is still owed.** ST21.5 names the reference hardware as a 2019 laptop: four cores, 8GB,
+integrated graphics. This machine has eight cores and 16GB, so the report records what it ran on and
+says plainly that it is faster than the hardware the requirement names. The number on a church's media
+desk is not yet known.
