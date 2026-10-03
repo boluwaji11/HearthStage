@@ -152,7 +152,7 @@ await state(
   2500,
 );
 await state("this machine", `document.getElementById("library-back").click(); document.getElementById("library-back").click(); document.getElementById("way-settings").click()`);
-await state("the CCLI report, with something in it", `(() => { const f = document.getElementById("usage-from"); f.value = "2020-01-01"; f.dispatchEvent(new Event("change")); })()`);
+await state("the CCLI report and the doors out", `(() => { const f = document.getElementById("usage-from"); f.value = "2020-01-01"; f.dispatchEvent(new Event("change")); })()`);
 await state("the presentation plans, empty", `document.getElementById("settings-back").click(); document.getElementById("way-plans").click()`);
 await state("one presentation plan, open", `document.getElementById("plan-create").click()`, 900);
 await state(

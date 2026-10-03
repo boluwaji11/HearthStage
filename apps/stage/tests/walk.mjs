@@ -101,6 +101,9 @@ await check("the report", "#usage-export", visible);
 console.log("   period:", await evalIn(`document.getElementById("usage-from").value + " to " + document.getElementById("usage-to").value`));
 console.log("   counts:", JSON.stringify(await evalIn(`document.getElementById("usage-count").textContent`)));
 console.log("   export disabled with nothing sung:", await evalIn(`document.getElementById("usage-export").disabled`));
+// STG-54. The doors out, on the same screen.
+await check("export the library", "#export-openlyrics", visible);
+console.log("   says:", JSON.stringify(await evalIn(`document.getElementById("export-what").textContent`)));
 await evalIn(`document.getElementById("settings-back").click()`);
 await new Promise(s=>setTimeout(s,500));
 await check("landing back", "#start", visible);

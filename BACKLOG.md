@@ -164,6 +164,39 @@ The release a church with a 300 song ProPresenter library can actually adopt. No
 | STG-39 | Handle duplicates on CCLI number, then title and first line, with skip, replace or keep both | ST3.5 | New |
 | STG-40 | Make an import reversible for thirty days | ST3.4 | New |
 | STG-41 | Match imported media on disk, and list what is missing | ST3.6 | New |
+| STG-171 | **Bring a church's own songs in from the service it already uses**: Planning Center Online first, then WorshipPlanning. OAuth the church grants, words and arrangements, matched on CCLI number | ST3.8 | New |
+| STG-173 | **CCLI SongSelect**, under a partner agreement with CCLI: search a church's licensed catalogue and bring a song in with its words, author and number | ST3.8 | Blocked |
+| STG-172 | More public domain words: Hymnary and the OpenLyrics public collections, on the same converter STG-10 used | ST3.7 | New |
+
+**On bringing words in over an API.** Three different things get called this.
+Two are routes Stage should take and one it should not, and the difference is
+not technical: it is who holds the right to put the words on a wall.
+
+- **The church's own library, through their own account (STG-171).** Planning
+  Center Online and WorshipPlanning both expose songs with their words and
+  arrangements, authenticated per organisation. This is a church's own data,
+  which it already holds the rights to, moving from a tool it pays for into one
+  it does not. It is the fastest real answer and the one most target churches
+  can use on day one, because the 50 to 500 church leaving a paid planner is
+  exactly who Stage is for. Match on CCLI number first, then title and first
+  line, the same rule STG-39 uses.
+- **CCLI SongSelect (STG-173).** The canonical source, and the church is already
+  paying CCLI for the right to project these words. Reaching it needs a partner
+  agreement, which is how every paid presenter does it. That is a conversation
+  before it is a commit, so the story is Blocked and the thing blocking it is
+  not code.
+- **A public lyrics database.** Refused. The right a presenter needs is public
+  display to a congregation, and a lyrics site does not hold that right, so it
+  cannot pass it on. Buying a dump does not help: the one such offer checked
+  sells 115,338 lyrics for $129, states no provenance, and publishes no licence
+  terms. Shipping any of this would make Hearth the distributor, across every
+  church at once, of words it has no right to. Stage is the thing a church puts
+  on a wall in front of two hundred people.
+
+Two more routes carry no licensing question at all, and both are already on the
+board: what the church owns on disk (**STG-32** to **STG-41**, a ProPresenter
+folder a church leaving already has) and the public domain (**STG-10**, 183
+hymns in, **STG-172** for the rest).
 
 ### SF2. The library, in full
 

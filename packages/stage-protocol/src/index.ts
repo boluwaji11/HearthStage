@@ -518,6 +518,14 @@ export type Intent =
   | { type: "setUsagePeriod"; from: string; to: string }
   | { type: "exportUsage" }
   /**
+   * The whole library, out (STG-54, ST2.12).
+   *
+   * Ungated. A church leaving Stage takes its library, which is the same trust
+   * commitment the platform makes, and a commitment with a condition on it is
+   * not one.
+   */
+  | { type: "exportLibrary"; format: "openlyrics" | "bundle" }
+  /**
    * One more item on a service that is running (STG-49, ST5.8).
    *
    * The leader calls a song that is not in the set. It goes on the deck after
@@ -644,6 +652,7 @@ export function isIntent(value: unknown): value is Intent {
     lines?: unknown;
     from?: unknown;
     to?: unknown;
+    format?: unknown;
     position?: unknown;
     cueId?: unknown;
     blank?: unknown;
@@ -723,6 +732,8 @@ export function isIntent(value: unknown): value is Intent {
       return typeof candidate.itemId === "string" && candidate.itemId.length > 0;
     case "setUsagePeriod":
       return typeof candidate.from === "string" && typeof candidate.to === "string";
+    case "exportLibrary":
+      return candidate.format === "openlyrics" || candidate.format === "bundle";
     case "keepCorrection":
       return typeof candidate.cueId === "string" && candidate.cueId.length > 0;
     case "correctCue":

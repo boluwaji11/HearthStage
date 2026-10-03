@@ -120,6 +120,16 @@ export {
   type Report,
   type ReportLine,
 } from "./ccli";
+export { toOpenLyrics, fileNameFor } from "./openlyrics";
+export {
+  toBundle,
+  bundleJson,
+  readBundle,
+  BUNDLE_SCHEMA,
+  type Bundle,
+  type BundleParts,
+  type BundleProblem,
+} from "./bundle";
 export { CCLI_FIXTURE, CCLI_PERIOD, CCLI_EXPECTED_CSV } from "./ccli-fixture";
 export { bundledHymns, BUNDLED_HYMN_COUNT, type BundledHymn } from "./hymns";
 

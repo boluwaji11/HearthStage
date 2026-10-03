@@ -95,6 +95,9 @@ const el = {
   usageCount: document.getElementById("usage-count") as HTMLParagraphElement,
   usageMissing: document.getElementById("usage-missing") as HTMLParagraphElement,
   usageExport: document.getElementById("usage-export") as HTMLButtonElement,
+  exportWhat: document.getElementById("export-what") as HTMLParagraphElement,
+  exportOpenLyrics: document.getElementById("export-openlyrics") as HTMLButtonElement,
+  exportBundle: document.getElementById("export-bundle") as HTMLButtonElement,
   deviceName: document.getElementById("device-name") as HTMLInputElement,
   devicePlatform: document.getElementById("device-platform") as HTMLParagraphElement,
   chooseLogo: document.getElementById("choose-logo") as HTMLButtonElement,
@@ -954,6 +957,12 @@ function renderUsage(): void {
   el.usageMissing.hidden = usage.missingNumbers === 0;
   el.usageMissing.textContent = plural("usage.missing", usage.missingNumbers);
   el.usageExport.disabled = usage.songs === 0;
+
+  // The library, out (STG-54). Said in songs, because that is what a church
+  // counts its library in, and the rest goes with them either way.
+  const songs = (latest?.library ?? []).filter((row) => row.kind === "song").length;
+  el.exportWhat.textContent = plural("library.exportWhat", songs);
+  el.exportOpenLyrics.disabled = songs === 0;
 }
 
 function paintOrders(): void {
@@ -1674,6 +1683,10 @@ for (const field of [el.usageFrom, el.usageTo]) {
   );
 }
 el.usageExport.addEventListener("click", () => send({ type: "exportUsage" }));
+el.exportOpenLyrics.addEventListener("click", () =>
+  send({ type: "exportLibrary", format: "openlyrics" }),
+);
+el.exportBundle.addEventListener("click", () => send({ type: "exportLibrary", format: "bundle" }));
 el.chooseLogo.addEventListener("click", () => send({ type: "chooseLogo" }));
 el.removeLogo.addEventListener("click", () => send({ type: "removeLogo" }));
 el.deviceName.addEventListener("blur", renameMachine);

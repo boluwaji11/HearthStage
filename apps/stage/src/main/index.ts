@@ -29,6 +29,10 @@ import {
   correctSlide,
   usageCsv,
   usageReport,
+  toOpenLyrics,
+  fileNameFor,
+  toBundle,
+  bundleJson,
   presentationPlan,
   setListPlan,
   withItem,
@@ -38,6 +42,7 @@ import {
 } from "@hearth/songs";
 import { sampleLibrary, sampleService } from "@hearth/songs/fixtures";
 import { openLibrary } from "@hearth/stage-store";
+import { t } from "@hearth/stage-i18n";
 import { Presentations } from "./presentations";
 import { restoredOrders } from "./repair";
 import { APP_NAME, OLD_FOLDER, relocation } from "./userdata";
@@ -195,6 +200,72 @@ async function exportUsage(): Promise<void> {
 
   if (chosen.canceled || chosen.filePath === undefined) return;
   writeFileSync(chosen.filePath, usageCsv(report), "utf8");
+  shell.showItemInFolder(chosen.filePath);
+}
+
+/**
+ * The whole library, out (STG-54, ST2.12).
+ *
+ * Ungated. A church leaving Stage takes its library, which is the same trust
+ * commitment the platform makes, and a commitment with a condition on it is not
+ * one.
+ *
+ * OpenLyrics writes a folder of songs, because that is how every reader of the
+ * format expects to find them. The bundle writes one file, because its job is
+ * to lose nothing rather than to be read by something else.
+ */
+async function exportLibrary(format: "openlyrics" | "bundle"): Promise<void> {
+  const parent = control;
+  const at = new Date().toISOString();
+  const day = at.slice(0, 10);
+
+  if (format === "bundle") {
+    const options = {
+      defaultPath: `hearth-library-${day}.json`,
+      filters: [{ name: "Hearth bundle", extensions: ["json"] }],
+    };
+    const chosen =
+      parent === null || parent.isDestroyed()
+        ? await dialog.showSaveDialog(options)
+        : await dialog.showSaveDialog(parent, options);
+    if (chosen.canceled || chosen.filePath === undefined) return;
+
+    writeFileSync(
+      chosen.filePath,
+      bundleJson(
+        toBundle(
+          {
+            songs: store.library.all(),
+            presentations: store.library.allPresentations(),
+            plans: store.library
+              .setLists()
+              .map((row) => store.library.getSetList(row.id))
+              .filter((list): list is NonNullable<typeof list> => list !== null),
+          },
+          at,
+        ),
+      ),
+      "utf8",
+    );
+    shell.showItemInFolder(chosen.filePath);
+    return;
+  }
+
+  const options = {
+    defaultPath: `hearth-openlyrics-${day}`,
+    buttonLabel: t("library.exportHere"),
+    properties: ["createDirectory"] as const,
+  };
+  const chosen =
+    parent === null || parent.isDestroyed()
+      ? await dialog.showSaveDialog({ ...options, properties: ["createDirectory"] })
+      : await dialog.showSaveDialog(parent, { ...options, properties: ["createDirectory"] });
+  if (chosen.canceled || chosen.filePath === undefined) return;
+
+  mkdirSync(chosen.filePath, { recursive: true });
+  for (const whole of store.library.all()) {
+    writeFileSync(join(chosen.filePath, fileNameFor(whole)), toOpenLyrics(whole, { at }), "utf8");
+  }
   shell.showItemInFolder(chosen.filePath);
 }
 
@@ -642,6 +713,10 @@ app.whenReady().then(() => {
        */
       case "exportUsage":
         void exportUsage();
+        return;
+
+      case "exportLibrary":
+        void exportLibrary(payload.format);
         return;
 
       case "setUsagePeriod":

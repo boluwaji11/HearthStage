@@ -259,6 +259,12 @@ export const en = {
 
   // This machine
   "settings.title": "This machine",
+  "library.export": "Export the library",
+  "library.exportOpenLyrics": "As OpenLyrics",
+  "library.exportBundle": "As a Hearth bundle",
+  "library.exportHere": "Export here",
+  "library.exportWhat.one": "{count} song, with every presentation and plan",
+  "library.exportWhat.other": "{count} songs, with every presentation and plan",
   "usage.title": "CCLI report",
   "usage.from": "From",
   "usage.to": "To",
