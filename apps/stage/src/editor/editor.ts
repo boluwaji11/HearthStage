@@ -82,8 +82,8 @@ const el = {
   orders: document.getElementById("orders") as HTMLElement,
   orderList: document.getElementById("order-list") as HTMLOListElement,
   addOrder: document.getElementById("add-order") as HTMLButtonElement,
-  problems: document.getElementById("problems") as HTMLUListElement,
-  status: document.getElementById("status") as HTMLParagraphElement,
+  problems: document.getElementById("item-problems") as HTMLUListElement,
+  status: document.getElementById("item-status") as HTMLParagraphElement,
   undone: document.getElementById("undone") as HTMLParagraphElement,
   undoneWhat: document.getElementById("undone-what") as HTMLSpanElement,
   undo: document.getElementById("undo") as HTMLButtonElement,
@@ -119,6 +119,7 @@ const el = {
   pickSearch: document.getElementById("pick-search") as HTMLInputElement,
   pickList: document.getElementById("pick-list") as HTMLOListElement,
   pickEmpty: document.getElementById("pick-empty") as HTMLParagraphElement,
+  workbench: document.getElementById("workbench") as HTMLDivElement,
   entrySlide: document.getElementById("entry-slide") as HTMLButtonElement,
   toLibrary: document.getElementById("to-library") as HTMLButtonElement,
   ask: document.getElementById("ask") as HTMLDialogElement,
@@ -889,7 +890,12 @@ const KIND_EMPTY: Record<string, MessageKey> = {
 };
 
 function paintPages(): void {
-  const page = latest?.page ?? "plans";
+  const page = latest?.page ?? "none";
+  // The workbench is a page of the window that presents (STG-51). The body
+  // says so, and control.css puts the service away underneath it, so neither
+  // half has to know when the other painted.
+  el.workbench.hidden = page === "none";
+  document.body.dataset["workbench"] = page === "none" ? "closed" : "open";
   const kind = latest?.libraryKind ?? null;
   const open = draft !== null || service !== null || settingsOpen();
 

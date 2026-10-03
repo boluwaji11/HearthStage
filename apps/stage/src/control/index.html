@@ -8,6 +8,7 @@
     />
     <title>Hearth Stage</title>
     <link rel="stylesheet" href="./control.css" />
+    <link rel="stylesheet" href="../editor/editor.css" />
   </head>
   <body>
     <header>
@@ -58,6 +59,217 @@
       </section>
     </main>
 
+    <!--
+      The service plans, the library and what is open in them (STG-51).
+      One window, because a second one covers the control surface on a laptop
+      with one screen, and a church running a service loses the thing it is
+      running.
+    -->
+    <div id="workbench" hidden>
+  <!-- The service plans. What the window opens on. -->
+      <section id="plans-view" class="view" data-t-label="library.services">
+        <header class="page-head">
+          <button id="to-service" type="button" class="back" data-t-label="nav.back"></button>
+          <h1 data-t="library.services"></h1>
+          <div class="actions">
+            <button id="plan-new" type="button" class="primary" data-t="service.new"></button>
+          </div>
+        </header>
+        <div class="tiles-wrap">
+          <ol id="services" class="services"></ol>
+          <div id="plans-empty" class="nothing">
+            <p class="quiet" data-t="service.noServices"></p>
+            <button id="plan-create" type="button" class="primary" data-t="service.create"></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- The library, which is chosen into rather than shown whole. -->
+      <section id="library-view" class="view library-view" data-t-label="library.title" hidden>
+        <header class="page-head">
+          <button id="library-back" type="button" class="back" data-t-label="nav.back"></button>
+          <h1 id="library-title" data-t="library.title"></h1>
+          <div class="actions">
+            <div id="search-field" class="field search-field" hidden>
+              <label for="search" data-t="library.search"></label>
+              <input id="search" type="search" autocomplete="off" />
+            </div>
+            <button id="add-samples" type="button" hidden></button>
+            <button id="new" type="button" class="primary" hidden data-t="library.newSong"></button>
+          </div>
+        </header>
+        <div class="tiles-wrap">
+          <div id="kinds" class="kinds">
+            <button id="kind-song" type="button" class="kind" data-t="library.kind.song"></button>
+            <button id="kind-media" type="button" class="kind" data-t="library.kind.media"></button>
+            <button id="kind-slides" type="button" class="kind" data-t="library.kind.slides"></button>
+          </div>
+          <ol id="tiles" class="tiles" hidden></ol>
+          <p id="library-empty" class="quiet empty" hidden></p>
+        </div>
+      </section>
+
+      <!-- This machine (STG-14). -->
+      <section id="settings-view" class="view settings-view" data-t-label="settings.title" hidden>
+        <header class="page-head">
+          <button id="settings-back" type="button" class="back" data-t-label="nav.back"></button>
+          <h1 data-t="settings.title"></h1>
+          <div class="actions"></div>
+        </header>
+
+        <div class="edit-body">
+          <div class="field">
+            <label for="device-name" data-t="settings.name"></label>
+            <input id="device-name" type="text" autocomplete="off" maxlength="60" />
+          </div>
+          <p id="device-platform" class="quiet"></p>
+
+          <div class="field">
+            <span data-t="settings.logo"></span>
+            <img id="logo-preview" class="logo-preview" alt="" hidden />
+            <div class="logo-buttons">
+              <button id="choose-logo" type="button" data-t="settings.chooseLogo"></button>
+              <button id="remove-logo" type="button" hidden data-t="settings.removeLogo"></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- One running order, open (STG-46, ST2.8). -->
+      <section id="service-view" class="view service-view" data-t-label="library.services" hidden>
+        <header>
+          <button id="service-back" type="button" class="back" data-t-label="nav.back"></button>
+          <div class="field grow">
+            <label for="service-name" data-t="service.name"></label>
+            <input id="service-name" type="text" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="service-date" data-t="service.date"></label>
+            <input id="service-date" type="date" />
+          </div>
+          <button id="service-present" type="button" data-t="editor.present"></button>
+        </header>
+
+        <div class="edit-body">
+          <ol id="entries" class="entries"></ol>
+          <p id="entries-empty" class="quiet" data-t="service.empty"></p>
+          <div class="add">
+            <button id="entry-slide" type="button" class="primary" data-t="service.newSlide"></button>
+            <button id="entry-add" type="button" data-t="service.add"></button>
+            <button id="entry-heading" type="button" data-t="service.heading"></button>
+          </div>
+          <ul id="service-problems" class="problems"></ul>
+        </div>
+      </section>
+
+      <!-- One thing, open. -->
+      <section id="edit-view" class="view edit-view" data-t-label="editor.back" hidden>
+        <header>
+          <button id="back" type="button" class="back" data-t-label="nav.back"></button>
+          <div class="field">
+            <label for="theme" data-t="editor.look"></label>
+            <select id="theme"></select>
+          </div>
+          <button id="present" type="button" data-t="editor.present"></button>
+        </header>
+
+        <div class="edit-body">
+          <div class="titles">
+            <div class="field grow">
+              <label for="title" data-t="editor.title"></label>
+              <input id="title" type="text" autocomplete="off" spellcheck="false" />
+            </div>
+            <!-- Fill this in and the item is a reading (STG-26, ST7.3). -->
+            <div id="reference-field" class="field">
+              <label for="reference" data-t="editor.reference"></label>
+              <input id="reference" type="text" autocomplete="off" spellcheck="false" />
+            </div>
+          </div>
+
+          <div id="credits" class="credits" hidden>
+            <div class="field">
+              <label for="author" data-t="editor.author"></label>
+              <input id="author" type="text" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="year" data-t="editor.year"></label>
+              <input id="year" type="text" inputmode="numeric" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="ccli" data-t="editor.ccli"></label>
+              <input id="ccli" type="text" inputmode="numeric" autocomplete="off" />
+            </div>
+            <div class="field grow">
+              <label for="copyright" data-t="editor.copyright"></label>
+              <input id="copyright" type="text" autocomplete="off" />
+            </div>
+            <label class="check" for="public-domain">
+              <input id="public-domain" type="checkbox" />
+              <span data-t="editor.publicDomain"></span>
+            </label>
+          </div>
+
+          <ol id="slides" class="slides"></ol>
+
+          <div class="add">
+            <button id="add" type="button" class="primary" data-t="editor.addSlide"></button>
+            <button id="paste" type="button" hidden data-t="editor.pasteSlide"></button>
+            <button id="to-library" type="button" hidden data-t="editor.toLibrary"></button>
+          </div>
+
+          <!-- The ways a song is sung (STG-9). Absent on a sheet of slides. -->
+          <section id="orders" class="orders" data-t-label="orders.heading" hidden>
+            <h2 data-t="orders.heading"></h2>
+            <ol id="order-list" class="order-list"></ol>
+            <button id="add-order" type="button" data-t="orders.add"></button>
+          </section>
+
+          <ul id="item-problems" class="problems"></ul>
+        </div>
+
+        <footer>
+          <p id="item-status" class="quiet"></p>
+          <p id="undone" class="undone" hidden>
+            <span id="undone-what"></span>
+            <button id="undo" type="button" data-t="editor.undo"></button>
+          </p>
+          <p class="quiet keys" data-t="editor.keyHint"></p>
+        </footer>
+      </section>
+
+      <!--
+        Asking, in the application's own voice (STG-25). A native box is the
+        operating system speaking, and the one thing it is ever used for here is
+        taking a church's service off the screen.
+      -->
+      <dialog id="ask" class="ask">
+        <h2 id="ask-title"></h2>
+        <p id="ask-detail"></p>
+        <div class="ask-buttons">
+          <button id="ask-keep" type="button"></button>
+          <button id="ask-confirm" type="button" class="primary"></button>
+        </div>
+      </dialog>
+
+      <dialog id="pick" class="ask pick">
+        <div class="card-head">
+          <h2 data-t="service.pick"></h2>
+          <button id="pick-close" type="button" class="icon" data-t-label="card.close"></button>
+        </div>
+        <div class="pick-kinds">
+          <button id="pick-song" type="button" class="pick-kind" data-t="library.kind.song"></button>
+          <button id="pick-media" type="button" class="pick-kind" data-t="library.kind.media"></button>
+          <button id="pick-slides" type="button" class="pick-kind" data-t="library.kind.slides"></button>
+        </div>
+        <div class="field">
+          <label for="pick-search" data-t="library.search"></label>
+          <input id="pick-search" type="search" autocomplete="off" />
+        </div>
+        <ol id="pick-list" class="pick-list"></ol>
+        <p id="pick-empty" class="quiet" hidden></p>
+      </dialog>
+    </div>
+
     <footer>
       <button id="brief-open" type="button" data-t="brief.open"></button>
       <button id="countdown-open" type="button" data-t="countdown.label"></button>
@@ -83,5 +295,6 @@
     </dialog>
 
     <script type="module" src="./control.ts"></script>
+    <script type="module" src="../editor/editor.ts"></script>
   </body>
 </html>

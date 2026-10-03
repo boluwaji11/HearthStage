@@ -41,7 +41,6 @@ import { openDevice, renameDevice } from "./device";
 import { readLogo, removeLogo, setLogo } from "./branding";
 import {
   createControlWindow,
-  createEditorWindow,
   createOutputWindow,
   displays,
   type DisplayChoice,
@@ -171,12 +170,11 @@ function sendLogo(): void {
     if (!entry.window.isDestroyed()) entry.window.webContents.send(CHANNELS.logo, logo);
   }
   if (control !== null && !control.isDestroyed()) control.webContents.send(CHANNELS.logo, logo);
-  if (editor !== null && !editor.isDestroyed()) editor.webContents.send(CHANNELS.logo, logo);
 }
 
 /** A church choosing their mark. Nothing ships one, because it is theirs. */
 async function chooseLogo(): Promise<void> {
-  const parent = editor ?? control;
+  const parent = control;
   const options: OpenDialogOptions = {
     properties: ["openFile"],
     filters: [{ name: "Image", extensions: ["png", "jpg", "jpeg", "webp", "gif", "svg"] }],
@@ -233,7 +231,6 @@ const session = new Session(compileDeck(NOTHING_OPEN, songs()), null);
 let presenting: string | null = null;
 
 let control: BrowserWindow | null = null;
-let editor: BrowserWindow | null = null;
 const outputs = new Map<string, { window: BrowserWindow; choice: DisplayChoice }>();
 
 function outputViews(): OutputView[] {
@@ -262,17 +259,21 @@ function broadcast(): void {
     const state: ControlState = session.controlState(outputViews());
     control.webContents.send(CHANNELS.controlState, state);
   }
-  if (editor !== null && !editor.isDestroyed()) {
-    const state: EditorState = presentations.state(presenting, session.controlState([]).service?.title ?? null);
-    editor.webContents.send(CHANNELS.editorState, state);
+  if (control !== null && !control.isDestroyed()) {
+    const state: EditorState = presentations.state(
+      presenting,
+      session.controlState([]).service?.title ?? null,
+    );
+    control.webContents.send(CHANNELS.editorState, state);
   }
 }
 
 /**
- * Brings the main window forward (STG-149).
+ * Brings the window forward (STG-149).
  *
- * The editor is its own window, so on a laptop with one screen it covers the
- * control surface and there is no way back to it from inside the application.
+ * The workbench is a page of this window rather than a second one (STG-51), so
+ * leaving it is a page change. Focus is still taken, because a church reaching
+ * the service from the dock expects the window in front.
  */
 function showControl(): void {
   if (control === null || control.isDestroyed()) {
@@ -281,18 +282,6 @@ function showControl(): void {
   }
   if (control.isMinimized()) control.restore();
   control.focus();
-}
-
-/** Opens the editor, or brings it forward if it is already open. */
-function openEditor(): void {
-  if (editor !== null && !editor.isDestroyed()) {
-    editor.focus();
-    return;
-  }
-  editor = createEditorWindow();
-  editor.on("closed", () => {
-    editor = null;
-  });
 }
 
 /**
@@ -358,30 +347,21 @@ app.whenReady().then(() => {
 
     switch (payload.type) {
       case "openEditor":
-        openEditor();
+        showControl();
+        presentations.apply({ type: "showPlans" });
         broadcast();
         return;
       case "showControl":
         showControl();
+        presentations.apply(payload);
+        broadcast();
         return;
       case "makeSlide":
-        openEditor();
         presentations.apply({ type: "newPresentation" });
         broadcast();
         return;
       case "openLibrary":
-        openEditor();
-        broadcast();
-        return;
-      case "showPlans":
-      case "showLibrary":
-      case "showLibraryKind":
-      case "newSetList":
-        // The window opens whether or not the half it is being asked for is
-        // already the one on screen, because this is also how the service
-        // window reaches the services.
-        openEditor();
-        presentations.apply(payload);
+        presentations.apply({ type: "showLibrary" });
         broadcast();
         return;
       case "openSample":
@@ -437,6 +417,13 @@ app.whenReady().then(() => {
       case "presentNow":
         if (presentNow(payload.presentationId)) broadcast();
         return;
+      case "showPlans":
+      case "showLibrary":
+      case "showSettings":
+      case "showLibraryKind":
+      case "newSetList":
+      case "newPlanSlide":
+      case "saveToLibrary":
       case "newPresentation":
       case "openItem":
       case "closeItem":
@@ -465,11 +452,11 @@ app.whenReady().then(() => {
     if (entry !== undefined) {
       return { output: session.outputState(entry[0]), control: null, editor: null };
     }
-    const fromEditor = editor !== null && !editor.isDestroyed() && editor.webContents.id === event.sender.id;
+    // One window, so it is handed both halves of what it paints (STG-51).
     return {
       output: null,
-      control: fromEditor ? null : session.controlState(outputViews()),
-      editor: fromEditor ? presentations.state(presenting, session.controlState([]).service?.title ?? null) : null,
+      control: session.controlState(outputViews()),
+      editor: presentations.state(presenting, session.controlState([]).service?.title ?? null),
     };
   });
 

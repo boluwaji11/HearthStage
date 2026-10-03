@@ -1,77 +1,36 @@
 /*
- * STG-145. The slide editor, at office density.
+ * STG-145, STG-51. The service plans, the library and the slide editor.
  *
- * Same palette and the same tokens as the control surface, because the two
- * windows are one product and a person moves between them in a minute. Written
- * here rather than imported from packages/ui for the reason given in
- * control.css: the component library is React and this window is not, yet.
+ * Every rule here is scoped to #workbench, because this loads into the window
+ * that presents alongside control.css and the two stylesheets name some of the
+ * same things. The tokens, the resets and the type scale come from control.css,
+ * which is the one place they are set.
  *
- * Two columns. The library on the left, and the presentation itself as a
- * column of slides, each one a box. A card is the editor and the preview at
- * once, so nothing on screen is the same words twice.
+ * A card is the editor and the preview at once, so nothing on screen is the
+ * same words twice.
  */
 
-:root {
-  --stone-50: oklch(0.985 0.003 75);
-  --stone-200: oklch(0.925 0.008 75);
-  --stone-400: oklch(0.706 0.013 75);
-  --stone-700: oklch(0.366 0.012 75);
-  --stone-800: oklch(0.262 0.01 75);
-  --stone-900: oklch(0.198 0.009 75);
-  --stone-950: oklch(0.142 0.008 75);
-  --ember-500: oklch(0.742 0.162 62);
-  --danger: oklch(0.658 0.178 25);
-
-  --canvas: var(--stone-950);
-  --raised: var(--stone-900);
-  --sunk: oklch(0.172 0.008 75);
-  --line: var(--stone-800);
-  --text: var(--stone-50);
-  --quiet: var(--stone-400);
-
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-6: 1.5rem;
-  --radius: 0.5rem;
-
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-weight: 400;
-  color-scheme: dark;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  height: 100vh;
-  background: var(--canvas);
-  color: var(--text);
-  font-size: 0.875rem;
-  overflow: hidden;
-}
-
-/* `hidden` beats any layout rule, whatever order the rules fall in. */
-[hidden] {
-  display: none !important;
-}
-
-.view {
-  height: 100vh;
+/*
+ * The workbench fills what the header and the footer leave, so a page inside it
+ * scrolls in its own box rather than pushing the live status off the window.
+ */
+#workbench {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
 
-:focus-visible {
-  outline: 2px solid var(--ember-500);
-  outline-offset: 2px;
+/* `hidden` beats any layout rule, whatever order the rules fall in. */
+
+#workbench .view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-header {
+#workbench header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -80,18 +39,12 @@ header {
   border-bottom: 1px solid var(--line);
 }
 
-h1 {
-  font-size: 1.0625rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.actions {
+#workbench .actions {
   display: flex;
   gap: var(--space-2);
 }
 
-button {
+#workbench button {
   font: inherit;
   font-weight: 500;
   padding: var(--space-2) var(--space-3);
@@ -102,18 +55,18 @@ button {
   cursor: pointer;
 }
 
-button:hover:not([disabled]) {
+#workbench button:hover:not([disabled]) {
   border-color: var(--stone-700);
 }
 
-button.primary {
+#workbench button.primary {
   background: var(--ember-500);
   border-color: var(--ember-500);
   /* Ink on ember, which clears 4.5:1 (docs/design-system.md section 4). */
   color: oklch(0.142 0.008 75);
 }
 
-button.icon {
+#workbench button.icon {
   display: grid;
   place-items: center;
   width: 1.75rem;
@@ -124,40 +77,40 @@ button.icon {
   color: var(--quiet);
 }
 
-button.icon svg {
+#workbench button.icon svg {
   width: 1rem;
   height: 1rem;
 }
 
-button.icon:hover:not([disabled]) {
+#workbench button.icon:hover:not([disabled]) {
   color: var(--text);
   background: var(--sunk);
   border-color: var(--line);
 }
 
-button[disabled] {
+#workbench button[disabled] {
   opacity: 0.4;
   cursor: default;
 }
 
-ol {
+#workbench ol {
   list-style: none;
 }
 
-#to-service {
+#workbench #to-service {
   margin-right: var(--space-2);
 }
 
-header .search-field {
+#workbench header .search-field {
   flex: 1;
   max-width: 24rem;
 }
 
-#search {
+#workbench #search {
   font-size: 0.875rem;
 }
 
-.tiles-wrap {
+#workbench .tiles-wrap {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -174,13 +127,13 @@ header .search-field {
  * in. A church recognises the notices by what they look like faster than by
  * reading a row in a list.
  */
-.tiles {
+#workbench .tiles {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
   gap: var(--space-4);
 }
 
-.tile {
+#workbench .tile {
   width: 100%;
   padding: 0;
   display: grid;
@@ -190,7 +143,7 @@ header .search-field {
   text-align: left;
 }
 
-.tile-screen {
+#workbench .tile-screen {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -204,38 +157,38 @@ header .search-field {
   line-height: 1.25;
 }
 
-.tiles li[data-live="true"] .tile-screen {
+#workbench .tiles li[data-live="true"] .tile-screen {
   border-color: var(--ember-500);
   box-shadow: 0 0 0 2px var(--ember-500);
 }
 
-.tile:hover .tile-screen {
+#workbench .tile:hover .tile-screen {
   border-color: var(--stone-700);
 }
 
-.tile:focus-visible .tile-screen {
+#workbench .tile:focus-visible .tile-screen {
   outline: 2px solid var(--ember-500);
   outline-offset: 2px;
 }
 
-.tile-line {
+#workbench .tile-line {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.tile-title {
+#workbench .tile-title {
   margin-top: var(--space-1);
   font-weight: 500;
 }
 
-.tile-facts {
+#workbench .tile-facts {
   color: var(--quiet);
   font-size: 0.75rem;
 }
 
-.empty {
+#workbench .empty {
   padding: var(--space-4) 0;
 }
 
@@ -244,7 +197,7 @@ header .search-field {
  * (docs/design-system.md section 3), so a song and a set of slides are told
  * apart before either title is read.
  */
-.row-kind {
+#workbench .row-kind {
   flex: none;
   font-size: 0.625rem;
   font-weight: 600;
@@ -256,29 +209,29 @@ header .search-field {
   color: var(--quiet);
 }
 
-.row-kind[data-kind="song"] {
+#workbench .row-kind[data-kind="song"] {
   color: oklch(0.76 0.1 250);
 }
 
-.row-kind[data-kind="plain"] {
+#workbench .row-kind[data-kind="plain"] {
   color: oklch(0.78 0.1 140);
 }
 
-.row-kind[data-kind="reading"] {
+#workbench .row-kind[data-kind="reading"] {
   color: oklch(0.8 0.1 90);
 }
 
-.row-kind[data-kind="media"] {
+#workbench .row-kind[data-kind="media"] {
   color: oklch(0.78 0.1 330);
 }
 
-.row-facts {
+#workbench .row-facts {
   color: var(--quiet);
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
 
-.edit-body {
+#workbench .edit-body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -297,7 +250,7 @@ header .search-field {
  * there named a destination that changes with the trail, which read as a lie
  * half the time.
  */
-.back {
+#workbench .back {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -305,7 +258,7 @@ header .search-field {
   line-height: 0;
 }
 
-.back svg {
+#workbench .back svg {
   width: 1.25rem;
   height: 1.25rem;
 }
@@ -316,26 +269,26 @@ header .search-field {
  * so the title sits on the centre of the page rather than the centre of what
  * is left over.
  */
-.page-head {
+#workbench .page-head {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
 }
 
-.page-head h1 {
+#workbench .page-head h1 {
   text-align: center;
   white-space: nowrap;
 }
 
-.page-head .back {
+#workbench .page-head .back {
   justify-self: start;
 }
 
-.page-head .actions {
+#workbench .page-head .actions {
   justify-self: end;
   align-items: center;
 }
 
-.credits {
+#workbench .credits {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -345,17 +298,17 @@ header .search-field {
   border-radius: var(--radius);
 }
 
-.credits .field {
+#workbench .credits .field {
   width: 9rem;
 }
 
-.credits .field.grow {
+#workbench .credits .field.grow {
   flex: 1;
   min-width: 14rem;
   width: auto;
 }
 
-.check {
+#workbench .check {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -364,17 +317,17 @@ header .search-field {
   font-weight: 400;
 }
 
-.field {
+#workbench .field {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
 }
 
-.field.grow {
+#workbench .field.grow {
   flex: 1;
 }
 
-select {
+#workbench select {
   font: inherit;
   color: var(--text);
   background: var(--sunk);
@@ -384,14 +337,14 @@ select {
   min-width: 11rem;
 }
 
-label {
+#workbench label {
   color: var(--quiet);
   font-size: 0.75rem;
   font-weight: 500;
 }
 
-input,
-textarea {
+#workbench input,
+#workbench textarea {
   font: inherit;
   color: var(--text);
   background: var(--sunk);
@@ -400,28 +353,28 @@ textarea {
   padding: var(--space-2) var(--space-3);
 }
 
-#title {
+#workbench #title {
   font-size: 1rem;
   font-weight: 500;
 }
 
-#search {
+#workbench #search {
   font-size: 0.8125rem;
   padding: var(--space-1) var(--space-2);
 }
 
-input:read-only,
-textarea:read-only {
+#workbench input:read-only,
+#workbench textarea:read-only {
   color: var(--quiet);
 }
 
-.slides {
+#workbench .slides {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
 
-.card {
+#workbench .card {
   background: var(--raised);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -431,24 +384,24 @@ textarea:read-only {
   gap: var(--space-2);
 }
 
-.card:focus-within {
+#workbench .card:focus-within {
   border-color: var(--stone-700);
 }
 
-.card.dragging {
+#workbench .card.dragging {
   opacity: 0.4;
 }
 
 /* Where the slide lands, drawn on the edge it would land against. */
-.card[data-drop="above"] {
+#workbench .card[data-drop="above"] {
   box-shadow: 0 -3px 0 -1px var(--ember-500);
 }
 
-.card[data-drop="below"] {
+#workbench .card[data-drop="below"] {
   box-shadow: 0 3px 0 -1px var(--ember-500);
 }
 
-.card-grip {
+#workbench .card-grip {
   display: grid;
   place-items: center;
   width: 1.25rem;
@@ -457,26 +410,26 @@ textarea:read-only {
   cursor: grab;
 }
 
-.card-grip svg {
+#workbench .card-grip svg {
   width: 1rem;
   height: 1rem;
 }
 
-.card-grip:hover {
+#workbench .card-grip:hover {
   color: var(--quiet);
 }
 
-.card.dragging .card-grip {
+#workbench .card.dragging .card-grip {
   cursor: grabbing;
 }
 
-.card-head {
+#workbench .card-head {
   display: flex;
   align-items: center;
   gap: var(--space-2);
 }
 
-.card-number {
+#workbench .card-number {
   font-size: 0.8125rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -484,24 +437,24 @@ textarea:read-only {
   min-width: 1rem;
 }
 
-.card-label-name {
+#workbench .card-label-name {
   margin-left: var(--space-2);
   white-space: nowrap;
 }
 
-.card-label {
+#workbench .card-label {
   width: 10rem;
   font-size: 0.8125rem;
   padding: var(--space-1) var(--space-2);
 }
 
-.card-buttons {
+#workbench .card-buttons {
   margin-left: auto;
   display: flex;
   gap: 2px;
 }
 
-.card-body {
+#workbench .card-body {
   resize: vertical;
   line-height: 1.45;
   font-size: 0.9375rem;
@@ -513,7 +466,7 @@ textarea:read-only {
  * something a person sees rather than a word they have to imagine (ST8.4 does
  * this properly, at the real output resolution).
  */
-body[data-themed="true"] .card-body {
+body[data-themed="true"] #workbench .card-body {
   background-color: var(--slide-background);
   background-image: var(--slide-image, none);
   color: var(--slide-colour);
@@ -522,13 +475,13 @@ body[data-themed="true"] .card-body {
   border-color: transparent;
 }
 
-.card-note-field {
+#workbench .card-note-field {
   display: flex;
   align-items: center;
   gap: var(--space-2);
 }
 
-.card-note-field input {
+#workbench .card-note-field input {
   flex: 1;
   font-size: 0.8125rem;
   padding: var(--space-1) var(--space-2);
@@ -541,7 +494,7 @@ body[data-themed="true"] .card-body {
  * because the thing being decided about is that box and a dialogue would cover
  * it.
  */
-.proposal {
+#workbench .proposal {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -551,15 +504,15 @@ body[data-themed="true"] .card-body {
   background: var(--sunk);
 }
 
-.proposal[data-guessed="true"] {
+#workbench .proposal[data-guessed="true"] {
   border-color: var(--stone-700);
 }
 
-.proposal-what {
+#workbench .proposal-what {
   font-weight: 500;
 }
 
-.proposal-list {
+#workbench .proposal-list {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -569,7 +522,7 @@ body[data-themed="true"] .card-body {
   overflow-y: auto;
 }
 
-.proposal-label {
+#workbench .proposal-label {
   display: inline-block;
   min-width: 2rem;
   color: var(--ember-500);
@@ -577,25 +530,25 @@ body[data-themed="true"] .card-body {
   font-size: 0.6875rem;
 }
 
-.proposal-buttons {
+#workbench .proposal-buttons {
   display: flex;
   gap: var(--space-2);
 }
 
-.card-note {
+#workbench .card-note {
   font-size: 0.75rem;
 }
 
-.card-note:empty {
+#workbench .card-note:empty {
   display: none;
 }
 
-.add {
+#workbench .add {
   display: flex;
   gap: var(--space-2);
 }
 
-.problems {
+#workbench .problems {
   list-style: none;
   display: flex;
   flex-direction: column;
@@ -603,19 +556,15 @@ body[data-themed="true"] .card-body {
   color: var(--danger);
 }
 
-.problems:empty {
+#workbench .problems:empty {
   display: none;
 }
 
-.quiet {
+#workbench .quiet {
   color: var(--quiet);
 }
 
-[hidden] {
-  display: none;
-}
-
-footer {
+#workbench footer {
   display: flex;
   align-items: center;
   gap: var(--space-4);
@@ -624,28 +573,28 @@ footer {
   font-size: 0.8125rem;
 }
 
-.undone {
+#workbench .undone {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   color: var(--quiet);
 }
 
-.keys {
+#workbench .keys {
   margin-left: auto;
   font-size: 0.75rem;
 }
 
 /* The ways a song is sung (STG-9). */
 
-.orders {
+#workbench .orders {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   align-items: flex-start;
 }
 
-.orders h2 {
+#workbench .orders h2 {
   font-size: 0.8125rem;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -654,14 +603,14 @@ footer {
   margin: 0;
 }
 
-.order-list {
+#workbench .order-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   width: 100%;
 }
 
-.order {
+#workbench .order {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -672,43 +621,43 @@ footer {
   padding: var(--space-3);
 }
 
-.order:focus-within {
+#workbench .order:focus-within {
   border-color: var(--stone-700);
 }
 
-.order .field {
+#workbench .order .field {
   min-width: 8rem;
 }
 
-.order .check {
+#workbench .order .check {
   padding-bottom: var(--space-2);
 }
 
-.order-sequence {
+#workbench .order-sequence {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
 }
 
-.order-problem {
+#workbench .order-problem {
   flex-basis: 100%;
   color: var(--ember-500);
   font-size: 0.8125rem;
   min-height: 0;
 }
 
-.order-problem:empty {
+#workbench .order-problem:empty {
   display: none;
 }
 
 /* This machine (STG-14). One field, so it is not given the width of a screen. */
 
-.settings-view .field {
+#workbench .settings-view .field {
   max-width: 24rem;
 }
 
 /* The church's mark (STG-22). Shown rather than described. */
 
-.logo-preview {
+#workbench .logo-preview {
   max-width: 12rem;
   max-height: 6rem;
   object-fit: contain;
@@ -719,7 +668,7 @@ footer {
   padding: var(--space-2);
 }
 
-.logo-buttons {
+#workbench .logo-buttons {
   display: flex;
   gap: var(--space-2);
 }
@@ -732,7 +681,7 @@ footer {
  * stacked, closing on Escape, with the focus ring intact.
  */
 
-.ask {
+#workbench .ask {
   /*
    * A modal dialog centres itself on `margin: auto`, and the reset at the top
    * of this file sets every margin to zero, which pinned it to the top left
@@ -748,24 +697,24 @@ footer {
   box-shadow: 0 1.5rem 3rem oklch(0 0 0 / 0.55);
 }
 
-.ask::backdrop {
+#workbench .ask::backdrop {
   background: oklch(0 0 0 / 0.6);
 }
 
-.ask h2 {
+#workbench .ask h2 {
   margin: 0 0 var(--space-2);
   font-size: 1.0625rem;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
-.ask p {
+#workbench .ask p {
   margin: 0;
   color: var(--quiet);
   line-height: 1.5;
 }
 
-.ask-buttons {
+#workbench .ask-buttons {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
@@ -774,18 +723,18 @@ footer {
 
 /* The title and, where a reading says so, where it is from (STG-26). */
 
-.titles {
+#workbench .titles {
   display: flex;
   gap: var(--space-3);
 }
 
-.titles .field:not(.grow) {
+#workbench .titles .field:not(.grow) {
   width: 11rem;
 }
 
 /* The library has two halves: the items, and the services built from them. */
 
-.tab {
+#workbench .tab {
   font: inherit;
   font-size: 0.8125rem;
   color: var(--quiet);
@@ -795,25 +744,25 @@ footer {
   padding: var(--space-1) var(--space-3);
 }
 
-.tab[data-on="true"] {
+#workbench .tab[data-on="true"] {
   color: var(--text);
   background: var(--raised);
   border-color: var(--line);
 }
 
-.services {
+#workbench .services {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.services li {
+#workbench .services li {
   display: flex;
   align-items: center;
   gap: var(--space-2);
 }
 
-.service-row {
+#workbench .service-row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -828,28 +777,28 @@ footer {
   padding: var(--space-3);
 }
 
-.service-row:hover {
+#workbench .service-row:hover {
   border-color: var(--stone-700);
 }
 
-.service-row-title {
+#workbench .service-row-title {
   font-weight: 600;
 }
 
-.service-row-facts {
+#workbench .service-row-facts {
   color: var(--quiet);
   font-size: 0.8125rem;
 }
 
 /* One running order. Each line is one thing that happens. */
 
-.entries {
+#workbench .entries {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.entry {
+#workbench .entry {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -859,22 +808,22 @@ footer {
   padding: var(--space-2) var(--space-3);
 }
 
-.entry[data-marker="true"] {
+#workbench .entry[data-marker="true"] {
   background: var(--sunk);
 }
 
-.entry-number {
+#workbench .entry-number {
   min-width: 1.25rem;
   color: var(--quiet);
   font-size: 0.8125rem;
   font-variant-numeric: tabular-nums;
 }
 
-.entry-title-text {
+#workbench .entry-title-text {
   flex: 1;
 }
 
-.entry-title {
+#workbench .entry-title {
   flex: 1;
   font: inherit;
   color: var(--text);
@@ -884,7 +833,7 @@ footer {
   padding: 2px 0;
 }
 
-.entry .card-buttons {
+#workbench .entry .card-buttons {
   display: flex;
   gap: 2px;
   margin-left: auto;
@@ -892,11 +841,11 @@ footer {
 
 /* Choosing something out of the library to add. */
 
-.pick {
+#workbench .pick {
   width: min(32rem, calc(100vw - 2 * var(--space-4)));
 }
 
-.pick-list {
+#workbench .pick-list {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -905,7 +854,7 @@ footer {
   margin-top: var(--space-3);
 }
 
-.pick-row {
+#workbench .pick-row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -920,7 +869,7 @@ footer {
   padding: var(--space-2) var(--space-3);
 }
 
-.pick-row:hover {
+#workbench .pick-row:hover {
   background: var(--sunk);
 }
 
@@ -930,7 +879,7 @@ footer {
  * The choice is the whole page, so it sits in the middle of it. Three tiles
  * big enough to hit from a seat at the back of a sound desk.
  */
-.kinds {
+#workbench .kinds {
   flex: 1;
   min-height: 18rem;
   display: flex;
@@ -942,7 +891,7 @@ footer {
   padding: var(--space-4);
 }
 
-.kind {
+#workbench .kind {
   font: inherit;
   font-size: 1.0625rem;
   font-weight: 600;
@@ -959,24 +908,24 @@ footer {
   transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
 }
 
-.kind:hover {
+#workbench .kind:hover {
   border-color: var(--ember-500);
   background: var(--sunk);
   transform: translateY(-2px);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .kind {
+  #workbench .kind {
     transition: none;
   }
 
-  .kind:hover {
+  #workbench .kind:hover {
     transform: none;
   }
 }
 
 /* Nothing here yet, and the one thing to do about it, in the middle of it. */
-.nothing {
+#workbench .nothing {
   flex: 1;
   min-height: 14rem;
   display: flex;
@@ -987,12 +936,12 @@ footer {
 }
 
 /* The shelf, narrowed to one kind before a name is typed (STG-50). */
-.pick-kinds {
+#workbench .pick-kinds {
   display: flex;
   gap: var(--space-2);
 }
 
-.pick-kind {
+#workbench .pick-kind {
   font: inherit;
   font-size: 0.875rem;
   font-weight: 500;
@@ -1004,7 +953,7 @@ footer {
   padding: var(--space-2) var(--space-3);
 }
 
-.pick-kind[aria-pressed="true"] {
+#workbench .pick-kind[aria-pressed="true"] {
   color: var(--text);
   background: var(--raised);
   border-color: var(--ember-500);

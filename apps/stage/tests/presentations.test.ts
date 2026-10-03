@@ -1064,3 +1064,33 @@ describe("the shelf", () => {
     expect(deck.cues.some((cue) => cue.lines?.[0] === "Church lunch")).toBe(true);
   });
 });
+
+/**
+ * STG-50, STG-51. The plan is open behind the slide being typed, so the window
+ * is holding a copy of it from before the slide existed.
+ */
+describe("the plan behind the slide", () => {
+  it("hands the window a new copy once the slide is in it", () => {
+    presentations.apply({ type: "newSetList" });
+    presentations.apply({
+      type: "saveSetList",
+      setListId: null,
+      title: "Morning Service",
+      date: "2026-10-04",
+      entries: [],
+    });
+    const before = presentations.state().editingSet?.serial ?? -1;
+
+    presentations.apply({ type: "newPlanSlide" });
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: null,
+      title: "Notices",
+      slides: [{ label: null, body: "Church lunch", note: null }],
+    });
+
+    const after = presentations.state().editingSet;
+    expect(after?.serial).toBeGreaterThan(before);
+    expect(after?.entries.map((entry) => entry.title)).toEqual(["Notices"]);
+  });
+});

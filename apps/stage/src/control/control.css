@@ -720,3 +720,16 @@ footer button:hover {
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
+
+/*
+ * The workbench covers the service it is running (STG-51).
+ *
+ * Set on the body by the editor half, read here, so the two halves of this
+ * window paint from their own state without either waiting on the other.
+ */
+body[data-workbench="open"] #start,
+body[data-workbench="open"] #running,
+body[data-workbench="open"] > footer,
+body[data-workbench="open"] > .problems {
+  display: none !important;
+}

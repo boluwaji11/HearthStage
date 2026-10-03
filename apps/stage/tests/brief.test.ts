@@ -12,6 +12,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { en } from "@hearth/stage-i18n";
+import { liveMarkup } from "./markup";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const source = readFileSync(join(root, "src/control/control.ts"), "utf8");
@@ -69,8 +70,11 @@ describe("the card", () => {
   });
 
   it("is one of two cards, both opened from the same corner", () => {
-    expect([...markup.matchAll(/<dialog/g)]).toHaveLength(2);
-    const footer = markup.slice(markup.indexOf("<footer>"), markup.indexOf("</footer>"));
+    // The live surface's own cards. The workbench holds its own, and since
+    // STG-51 they share a document, so this counts the ones outside it.
+    const live = liveMarkup();
+    expect([...live.matchAll(/<dialog/g)]).toHaveLength(2);
+    const footer = live.slice(live.indexOf("<footer>"), live.indexOf("</footer>"));
     expect(footer).toContain('id="brief-open"');
     expect(footer).toContain('id="countdown-open"');
   });

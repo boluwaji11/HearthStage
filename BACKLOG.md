@@ -1909,3 +1909,29 @@ step.
 | Story | What | Requirement | State |
 |---|---|---|---|
 | STG-50 | Where a slide lives, and the shelf it reaches on purpose | ST2.8 | Resolved |
+
+## STG-51, one window
+
+The service plans, the library and the slide editor opened in a second window.
+On a laptop with one screen that window covered the service a church was
+running, and the way back to it was the dock.
+
+They are a page of the window that presents now. `#workbench` sits between the
+header and the footer, `editor.css` is scoped under it so the two stylesheets
+can share a document, and `body[data-workbench="open"]` puts the live surface
+away underneath. Main holds the page, including `"none"` for the workbench
+closed, so the back mark on every page walks out to the service.
+
+**What keeps the library out of an operator's reach** used to be the window
+boundary. It is now that rule in control.css, so the rule has a test of its own
+and `live-surface.test.ts` reads the markup with the workbench cut out of it.
+
+**A walk through the built application** is `pnpm --filter @hearth/stage walk`.
+It drives the real window over the DevTools protocol and reads what is on
+screen. It found two defects the unit tests and the smoke run both missed: four
+intents that fell through to the session and did nothing, and a plan that kept
+a copy of itself from before the slide typed inside it existed.
+
+| Story | What | Requirement | State |
+|---|---|---|---|
+| STG-51 | One window: the plans and the library as pages of it | ST1.2, ST12.3 | Resolved |

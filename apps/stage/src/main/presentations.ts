@@ -112,7 +112,7 @@ export class Presentations {
   private setDrafting = false;
   private setSerial = 0;
   /** Which page the window shows, and which kind the library is on (STG-46). */
-  private page: "plans" | "library" | "settings" = "plans";
+  private page: "none" | "plans" | "library" | "settings" = "none";
   private libraryKind: "song" | "media" | "slides" | null = null;
 
   constructor(library: PresentationLibrary, options: PresentationsOptions = {}) {
@@ -229,6 +229,14 @@ export class Presentations {
         return true;
       }
 
+      // Out of the workbench, back to the service this window is running.
+      case "showControl":
+        this.closeOpen();
+        this.closeSet();
+        this.page = "none";
+        this.revision += 1;
+        return true;
+
       case "showPlans":
         this.closeOpen();
         this.page = "plans";
@@ -316,6 +324,13 @@ export class Presentations {
       default:
         return false;
     }
+  }
+
+  /** Closes the running order open in the window, where one is. */
+  private closeSet(): void {
+    this.setEditingId = null;
+    this.setDrafting = false;
+    this.setSerial += 1;
   }
 
   /** Closes whatever item is open, so one thing is open at a time. */
@@ -454,10 +469,17 @@ export class Presentations {
     return true;
   }
 
-  /** Appends a freshly written slide to the plan it was typed inside. */
+  /**
+   * Appends a freshly written slide to the plan it was typed inside.
+   *
+   * The serial moves, because the plan is open behind this and the window is
+   * holding a copy of it from before the slide existed. Without the bump the
+   * window keeps the older copy and writes it back over this one.
+   */
   private intoSet(setListId: string, presentation: Presentation): void {
     const list = this.library.getSetList(setListId);
     if (list === null) return;
+    this.setSerial += 1;
     this.library.saveSetList({
       ...list,
       entries: [

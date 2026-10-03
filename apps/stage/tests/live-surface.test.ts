@@ -4,7 +4,9 @@
  * The design case is 10:28 on a Sunday with a sixteen year old operating and a
  * room filling up. Everything they can reach has to be safe to press by
  * accident, so the library, the editing, the importing and the theme picking
- * live in the other window and nothing on this one can delete anything.
+ * live in the workbench, which is a page that covers the live surface rather
+ * than anything reachable beside it (STG-51), and nothing on the live surface
+ * can delete anything.
  *
  * Enforced by a test rather than by discipline, because the person who puts a
  * library list on this surface will have a good reason and will be in a hurry.
@@ -13,14 +15,12 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { liveMarkup, windowMarkup } from "./markup";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 
 function controlSource(): string {
-  return (
-    readFileSync(join(root, "src/control/control.ts"), "utf8") +
-    readFileSync(join(root, "src/control/index.html"), "utf8")
-  );
+  return readFileSync(join(root, "src/control/control.ts"), "utf8") + liveMarkup();
 }
 
 /**
@@ -85,10 +85,29 @@ describe("the live surface", () => {
   });
 
   it("holds no library, no importer and no theme picker", () => {
-    const markup = readFileSync(join(root, "src/control/index.html"), "utf8");
+    const markup = liveMarkup();
     for (const pattern of [/<select/i, /type=["']file["']/i, /id=["']tiles["']/i]) {
       expect(markup, String(pattern)).not.toMatch(pattern);
     }
+  });
+
+  /**
+   * STG-51. The workbench is one window with the live surface, so what keeps
+   * the library out of an operator's reach is that the two are never on screen
+   * together. That is one rule in one stylesheet, and this is it.
+   */
+  it("is put away whole while the workbench is open", () => {
+    const css = readFileSync(join(root, "src/control/control.css"), "utf8");
+    const rule = css.slice(css.indexOf('body[data-workbench="open"]'));
+    expect(rule, "the rule is in control.css").not.toEqual("");
+    for (const part of ["#start", "#running", "footer"]) {
+      expect(rule.slice(0, rule.indexOf("}")), part).toContain(part);
+    }
+    expect(rule.slice(0, rule.indexOf("}") + 1)).toContain("display: none !important");
+
+    // And the editor half is what sets it, on every paint.
+    const source = readFileSync(join(root, "src/editor/editor.ts"), "utf8");
+    expect(source).toMatch(/dataset\["workbench"\]/);
   });
 
   it("keeps the run changes out of the set list, which is what makes them safe", () => {
@@ -129,7 +148,7 @@ describe("putting something else on the screen", () => {
     expect([...source.matchAll(/\.showModal\(\)/g)]).toHaveLength(1);
     expect(source).toContain("function showOnly(");
 
-    const markup = readFileSync(join(root, "src/editor/index.html"), "utf8");
+    const markup = windowMarkup();
     // Native dialog elements, which close on Escape and trap focus without a
     // line of script.
     expect(markup).toMatch(/<dialog id="ask"/);

@@ -24,7 +24,6 @@ export default defineConfig({
       rollupOptions: {
         input: {
           control: resolve("src/control/index.html"),
-          editor: resolve("src/editor/index.html"),
           output: resolve("src/output/index.html"),
           // Not a screen a church sees. It is the output renderer at a size a
           // test names, so the geometry can be asserted (STG-28, ST6.4).

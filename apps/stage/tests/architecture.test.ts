@@ -69,7 +69,7 @@ describe("the render path", () => {
   });
 
   it("declares a content security policy with no remote origins", () => {
-    for (const page of ["src/output/index.html", "src/control/index.html", "src/editor/index.html"]) {
+    for (const page of ["src/output/index.html", "src/control/index.html"]) {
       const source = readFileSync(join(root, page), "utf8");
       expect(source, page).toContain("Content-Security-Policy");
       expect(source, page).toContain("default-src 'none'");

@@ -398,13 +398,16 @@ export interface EditorState {
    */
   samples: number;
   /**
-   * Which page the window is on (STG-46).
+   * Which page the window is on (STG-46, STG-51).
+   *
+   * "none" is the workbench closed, which is the window showing the service it
+   * is running. The rest are the pages inside it.
    *
    * Main's, rather than the window's, because both pages are reached from the
    * window that presents as well as from in here, and a page the renderer
    * remembered for itself would arrive in the wrong state.
    */
-  page: "plans" | "library" | "settings";
+  page: "none" | "plans" | "library" | "settings";
   /**
    * Which kind of thing the library is showing, or null for the choice.
    *
