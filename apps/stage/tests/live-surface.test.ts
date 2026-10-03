@@ -52,6 +52,10 @@ const ALLOWED = new Set([
   "showPlans",
   "showLibrary",
   "showSettings",
+  // Starting the planned service from the landing page (STG-48, ST12.5). The
+  // landing page is only on screen when nothing is running, so this cannot
+  // take a service off the wall.
+  "presentSetList",
   "newPlanSlide",
   "saveToLibrary",
 ]);
@@ -166,5 +170,35 @@ describe("where the dialog opens", () => {
     const styles = readFileSync(join(root, "src/editor/editor.css"), "utf8");
     const rule = /\.ask\s*\{[^}]*\}/.exec(styles)?.[0] ?? "";
     expect(rule).toMatch(/margin:\s*auto/);
+  });
+});
+
+/**
+ * STG-48, ST12.5. The one keypress.
+ *
+ * The plan on the landing page starts a service, which is the one thing on that
+ * page that changes what a room looks at. It is safe because the page is gone
+ * the moment something is running, and this holds that in place.
+ */
+describe("the plan on the landing page", () => {
+  it("is on the landing page and nowhere else", () => {
+    const markup = liveMarkup();
+    const start = markup.slice(markup.indexOf('id="start"'), markup.indexOf("</section>"));
+    expect(start).toContain('id="start-next"');
+    expect([...markup.matchAll(/id="start-next"/g)]).toHaveLength(1);
+  });
+
+  it("takes the focus once per plan rather than on every paint", () => {
+    const source = readFileSync(join(root, "src/control/control.ts"), "utf8");
+    // The state goes down behind every keypress, so a focus call that ran on
+    // each one would make the rest of the window unreachable.
+    expect([...source.matchAll(/startNext\.focus\(\)/g)]).toHaveLength(1);
+    expect(source).toContain("focusedOn === plan.id");
+    // And only while the landing page is the thing on screen, so somebody
+    // typing a hymn in the workbench keeps their cursor.
+    expect(source).toContain("el.startNext.offsetParent !== null");
+    // Asked on the next frame, because the workbench is the other half of this
+    // window and the layout before it paints is the one from the page before.
+    expect(source).toMatch(/requestAnimationFrame\(\(\) => \{[\s\S]*?startNext\.focus/);
   });
 });

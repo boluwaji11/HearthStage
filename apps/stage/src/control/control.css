@@ -733,3 +733,35 @@ body[data-workbench="open"] > footer,
 body[data-workbench="open"] > .problems {
   display: none !important;
 }
+
+/*
+ * The plan this church is most likely here for (STG-48, ST12.5).
+ *
+ * The one thing on the landing page that starts a service, so it is the one
+ * thing that looks like it does.
+ */
+.next-up {
+  font: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 18rem;
+  padding: var(--space-4) var(--space-6);
+  border: 1px solid var(--ember-500);
+  border-radius: calc(var(--radius) * 1.5);
+  background: var(--ember-500);
+  /* Ink on ember, which clears 4.5:1 (docs/design-system.md section 4). */
+  color: oklch(0.142 0.008 75);
+  cursor: pointer;
+}
+
+.next-up span:first-child {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.next-up .quiet {
+  color: oklch(0.142 0.008 75 / 0.75);
+  font-size: 0.875rem;
+}

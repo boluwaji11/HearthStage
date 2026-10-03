@@ -39,6 +39,8 @@ export const en = {
   "start.plans": "Service Plans",
   "start.library": "Library",
   "start.settings": "Settings",
+  "start.today": "Today",
+  "start.tomorrow": "Tomorrow",
   "nav.back": "Back",
 
   // What the output is doing

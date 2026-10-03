@@ -52,6 +52,9 @@ const el = {
   running: document.getElementById("running") as HTMLElement,
   wayLibrary: document.getElementById("way-library") as HTMLButtonElement,
   waySettings: document.getElementById("way-settings") as HTMLButtonElement,
+  startNext: document.getElementById("start-next") as HTMLButtonElement,
+  startNextTitle: document.getElementById("start-next-title") as HTMLSpanElement,
+  startNextDate: document.getElementById("start-next-date") as HTMLSpanElement,
 };
 
 /**
@@ -163,6 +166,58 @@ const KEYS: KeyRow[] = [
     run: () => showBrief(true),
   },
 ];
+
+/**
+ * The plan to open on (STG-48, ST12.5).
+ *
+ * It takes the focus the first time it appears, so a volunteer who opened Stage
+ * and reached for the keyboard starts the service without finding the mouse.
+ * Taken once per plan rather than on every paint, because the state goes down
+ * behind every keypress and stealing focus repeatedly would make the rest of
+ * the screen unreachable.
+ */
+let focusedOn: string | null = null;
+
+function paintNextUp(plan: ControlState["nextUp"]): void {
+  el.startNext.hidden = plan === null;
+  if (plan === null) {
+    focusedOn = null;
+    return;
+  }
+
+  el.startNextTitle.textContent = plan.title;
+  el.startNextDate.textContent = whenItIs(plan.date);
+
+  // On the next frame, because the workbench is the other half of this window
+  // and paints from its own state. Asked now, the layout would still be the one
+  // from before the page it covers was put away.
+  requestAnimationFrame(() => {
+    // Only when the landing page is the thing on screen, so somebody typing a
+    // hymn in the workbench keeps their cursor.
+    const onScreen = el.startNext.offsetParent !== null;
+    if (!onScreen) {
+      focusedOn = null;
+      return;
+    }
+    if (focusedOn === plan.id) return;
+    focusedOn = plan.id;
+    el.startNext.focus();
+  });
+}
+
+/** A date a person reads, with today and tomorrow named rather than dated. */
+function whenItIs(date: string): string {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const day = 24 * 60 * 60 * 1000;
+  const parts = date.split("-").map(Number);
+  const when = new Date(parts[0] ?? 0, (parts[1] ?? 1) - 1, parts[2] ?? 1);
+  const away = Math.round((when.getTime() - midnight.getTime()) / day);
+
+  if (away === 0) return t("start.today");
+  if (away === 1) return t("start.tomorrow");
+  return when.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+}
 
 function send(intent: Intent): void {
   bridge?.send(intent);
@@ -291,6 +346,9 @@ function paint(state: ControlState): void {
   // The way back. Without it a church that opened the sample to look at it is
   // left in it, and the three ways in are the only place the sample lives.
   el.home.hidden = !open;
+  // After the landing page's own visibility, because taking the focus depends
+  // on whether the page is actually on screen.
+  paintNextUp(state.nextUp);
 
   el.service.textContent = state.service?.title ?? "";
   el.serviceDetail.textContent =
@@ -625,6 +683,10 @@ el.briefClose.addEventListener("click", () => showBrief(false));
 el.wayPlans.addEventListener("click", () => send({ type: "showPlans" }));
 el.wayLibrary.addEventListener("click", () => send({ type: "showLibrary" }));
 el.waySettings.addEventListener("click", () => send({ type: "showSettings" }));
+el.startNext.addEventListener("click", () => {
+  const plan = latest?.nextUp;
+  if (plan !== null && plan !== undefined) send({ type: "presentSetList", setListId: plan.id });
+});
 el.home.addEventListener("click", () => send({ type: "closeService" }));
 el.resetRun.addEventListener("click", () => send({ type: "resetRun" }));
 window.addEventListener("keydown", onKey);

@@ -328,7 +328,11 @@ export class Session {
     };
   }
 
-  controlState(outputs: OutputView[]): ControlState {
+  /**
+   * `nextUp` is handed in rather than read here, because the session owns the
+   * deck on the screen and the plans live in the library (STG-48).
+   */
+  controlState(outputs: OutputView[], nextUp: ControlState["nextUp"] = null): ControlState {
     return {
       revision: this.revision,
       live: this.liveView(),
@@ -383,6 +387,7 @@ export class Session {
       outputs,
       asPlanned: asPlanned(this.order, this.deck),
       countdownEndsAt: this.countdownEndsAt,
+      nextUp,
       problems: this.deck.problems.map((problem) => ({
         code: problem.code,
         // What the item is called, which is the only part of a compile problem

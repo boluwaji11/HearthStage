@@ -25,6 +25,7 @@ import {
 import {
   compileDeck,
   lookupFrom,
+  nextUp,
   presentationPlan,
   setListPlan,
   songPlan,
@@ -249,6 +250,24 @@ function outputViews(): OutputView[] {
  * repaint can be reasoned about and no window can be left showing something
  * stale.
  */
+/**
+ * The plan to open on (STG-48, ST12.5).
+ *
+ * Read fresh on every broadcast, so typing a plan for next week puts it on the
+ * landing page without a restart.
+ */
+function comingUp(): ControlState["nextUp"] {
+  const found = nextUp(presentations.state().setLists, today());
+  return found === null ? null : { id: found.id, title: found.title, date: found.date };
+}
+
+/** Today where this church is, which is the only clock a service runs on. */
+function today(): string {
+  const now = new Date();
+  const pad = (value: number): string => String(value).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
 function broadcast(): void {
   for (const [outputId, entry] of outputs) {
     if (entry.window.isDestroyed()) continue;
@@ -256,7 +275,7 @@ function broadcast(): void {
     entry.window.webContents.send(CHANNELS.outputState, state);
   }
   if (control !== null && !control.isDestroyed()) {
-    const state: ControlState = session.controlState(outputViews());
+    const state: ControlState = session.controlState(outputViews(), comingUp());
     control.webContents.send(CHANNELS.controlState, state);
   }
   if (control !== null && !control.isDestroyed()) {
@@ -455,7 +474,7 @@ app.whenReady().then(() => {
     // One window, so it is handed both halves of what it paints (STG-170).
     return {
       output: null,
-      control: session.controlState(outputViews()),
+      control: session.controlState(outputViews(), comingUp()),
       editor: presentations.state(presenting, session.controlState([]).service?.title ?? null),
     };
   });

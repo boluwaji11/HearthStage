@@ -13,6 +13,7 @@ import {
   aWeekAfter,
   duplicateSetList,
   newSetList,
+  nextUp,
   orderedEntries,
   setListHasErrors,
   setListPlan,
@@ -199,5 +200,42 @@ describe("using last week's again", () => {
 
   it("is a service the store will take", () => {
     expect(setListHasErrors(validateSetList(duplicateSetList(MORNING, "set-2")))).toBe(false);
+  });
+});
+
+/**
+ * STG-48, ST12.5. Which plan a church is offered when Stage opens.
+ *
+ * A volunteer opens this at 09:40 on the morning of the service, so the one
+ * they want is almost always the soonest one that has not happened.
+ */
+describe("the plan to open on", () => {
+  const plans = [
+    { id: "a", title: "Morning Service", date: "2026-10-04" },
+    { id: "b", title: "Evening Service", date: "2026-10-04" },
+    { id: "c", title: "Last week", date: "2026-09-27" },
+    { id: "d", title: "Harvest", date: "2026-10-11" },
+  ];
+
+  it("offers the soonest one still ahead", () => {
+    expect(nextUp(plans, "2026-09-29")?.id).toBe("b");
+  });
+
+  it("counts today as ahead, because that is the morning of the service", () => {
+    expect(nextUp(plans, "2026-10-04")?.id).toBe("b");
+  });
+
+  it("breaks a tie on the title, so the order does not wander", () => {
+    const one = nextUp(plans, "2026-10-01");
+    const other = nextUp([...plans].reverse(), "2026-10-01");
+    expect(one?.id).toBe(other?.id);
+  });
+
+  it("falls back to the most recent one behind", () => {
+    expect(nextUp(plans, "2026-11-01")?.id).toBe("d");
+  });
+
+  it("offers nothing when there is nothing", () => {
+    expect(nextUp([], "2026-10-04")).toBeNull();
   });
 });

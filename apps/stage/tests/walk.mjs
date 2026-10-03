@@ -124,6 +124,21 @@ await new Promise(s=>setTimeout(s,700));
 await check("back on the plan", "#service-view", visible);
 console.log("   entries:", await evalIn(`[...document.querySelectorAll("#entries li")].map(e=>e.textContent.trim().slice(0,30))`));
 
+console.log("-- the plan on the landing page (STG-48)");
+await evalIn(`document.getElementById("service-back").click()`);
+await new Promise(s=>setTimeout(s,600));
+await evalIn(`document.getElementById("to-service").click()`);
+await new Promise(s=>setTimeout(s,800));
+await check("next up offered", "#start-next", visible);
+console.log("   next up:", await evalIn(`document.getElementById("start-next").textContent.trim().replace(/\\s+/g," ")`));
+const focused = await evalIn(`document.activeElement === document.getElementById("start-next")`);
+console.log((focused?"ok  ":"FAIL")+"  next up has the focus"); if(!focused) fail.push("focus");
+await evalIn(`document.getElementById("start-next").click()`);
+await new Promise(s=>setTimeout(s,900));
+await check("service running", "#running", visible);
+await check("landing away", "#start", hidden);
+console.log("   on screen:", await evalIn(`document.querySelector("#live")?.textContent?.trim().slice(0,40)`));
+
 const errs = noise.split("\n").filter(l=>/Uncaught|Refused|SecurityError/i.test(l));
 if (errs.length) { console.log("CONSOLE:", errs.slice(0,8).join("\n")); fail.push("console"); }
 console.log(fail.length ? `\nFAILED: ${fail.join(", ")}` : "\nAll good.");

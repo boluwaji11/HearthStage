@@ -190,3 +190,34 @@ export function newSetList(id: string, options: { title?: string; date?: string 
     updatedAt: null,
   };
 }
+
+/** Enough of a service plan to choose between them (STG-48). */
+export interface Dated {
+  id: string;
+  title: string;
+  date: string;
+}
+
+/**
+ * The plan a church most likely wants at launch (STG-48, ST12.5).
+ *
+ * The soonest one that has not happened yet, counting today, because a church
+ * opens Stage on the morning of the service far more often than on any other
+ * day. With nothing ahead it is the most recent one behind, which is the case
+ * on a Monday when somebody opens last week's to look at it.
+ *
+ * Dates are `YYYY-MM-DD`, so comparing them as strings compares them as dates.
+ * A tie goes to the title, which keeps two services on one day in a stable
+ * order rather than whichever the store happened to return first.
+ */
+export function nextUp<T extends Dated>(lists: readonly T[], today: string): T | null {
+  const ahead = lists
+    .filter((list) => list.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title));
+  if (ahead[0] !== undefined) return ahead[0];
+
+  const behind = [...lists].sort(
+    (a, b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title),
+  );
+  return behind[0] ?? null;
+}

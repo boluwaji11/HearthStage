@@ -27,6 +27,14 @@
     <section id="start" class="start" data-t-label="control.start" hidden>
       <div class="start-inner">
         <h2 data-t="start.name"></h2>
+        <!--
+          The plan this church is most likely here for (STG-48, ST12.5). It
+          takes the focus, so starting the service is one keypress.
+        -->
+        <button id="start-next" type="button" class="next-up" hidden>
+          <span id="start-next-title"></span>
+          <span id="start-next-date" class="quiet"></span>
+        </button>
         <div class="start-ways">
           <button id="way-plans" type="button" class="way" data-t="start.plans"></button>
           <button id="way-library" type="button" class="way" data-t="start.library"></button>

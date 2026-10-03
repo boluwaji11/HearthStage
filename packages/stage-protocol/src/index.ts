@@ -216,6 +216,14 @@ export interface ControlState {
   asPlanned: boolean;
   /** When the countdown reaches zero, where one is running (STG-26). */
   countdownEndsAt: number | null;
+  /**
+   * The plan to open on, offered before anything is running (STG-48, ST12.5).
+   *
+   * The soonest one that has not happened yet, so a volunteer arriving on the
+   * morning of the service starts it with one keypress. Null in a church that
+   * has typed no plans.
+   */
+  nextUp: { id: string; title: string; date: string } | null;
 }
 
 /**
