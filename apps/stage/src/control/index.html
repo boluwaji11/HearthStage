@@ -282,7 +282,24 @@
       <button id="brief-open" type="button" data-t="brief.open"></button>
       <button id="countdown-open" type="button" data-t="countdown.label"></button>
       <button id="call-open" type="button" hidden data-t="call.open"></button>
+      <button id="jump-open" type="button" hidden data-t="jump.open"></button>
     </footer>
+
+    <!--
+      "Back to the chorus" (STG-50, ST5.9). Type the label, see what it will
+      put on the wall, press Enter.
+    -->
+    <dialog id="jump" class="card" data-t-label="jump.open">
+      <div class="card-head">
+        <h2 data-t="jump.open"></h2>
+        <button id="jump-close" type="button" class="icon" data-t-label="card.close"></button>
+      </div>
+      <div class="field">
+        <label for="jump-label" data-t="jump.label"></label>
+        <input id="jump-label" type="text" autocomplete="off" spellcheck="false" />
+      </div>
+      <p id="jump-found" class="jump-found quiet" aria-live="polite"></p>
+    </dialog>
 
     <!--
       The leader calls a song that is not in the set (STG-49, ST5.8). Type a few

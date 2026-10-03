@@ -69,15 +69,20 @@ describe("the card", () => {
     expect(markup).toMatch(/<dialog id="brief"/);
   });
 
-  it("is one of three cards, all opened from the same corner", () => {
+  it("is one of the cards, and every one of them opens from the same corner", () => {
     // The live surface's own cards. The workbench holds its own, and since
-    // STG-170 they share a document, so this counts the ones outside it.
+    // STG-170 they share a document, so this reads the ones outside it.
+    //
+    // The count is not the rule. The rule is that a card on this surface is
+    // reached from the footer, so an operator who has lost one knows the one
+    // place to look, and nothing opens from somewhere a person has to hunt for.
     const live = liveMarkup();
-    expect([...live.matchAll(/<dialog/g)]).toHaveLength(3);
     const footer = live.slice(live.indexOf("<footer>"), live.indexOf("</footer>"));
-    for (const id of ["brief-open", "countdown-open", "call-open"]) {
-      expect(footer, id).toContain(`id="${id}"`);
-    }
+    const cards = [...live.matchAll(/<dialog id="([^"]+)"/g)].map((match) => match[1] ?? "");
+
+    expect(cards).toContain("brief");
+    expect(cards.length).toBeGreaterThan(1);
+    for (const id of cards) expect(footer, id).toContain(`id="${id}-open"`);
   });
 
   it("closes on an x in its corner, the same as the other card", () => {

@@ -172,7 +172,8 @@ await state(
 await state("the shortcuts card", `document.getElementById("brief-open").click()`);
 await state("the countdown card", `document.getElementById("brief-close").click(); document.getElementById("countdown-open").click()`);
 await state("adding a song called from the floor", `document.getElementById("countdown-close").click(); document.getElementById("call-open").click()`);
-await state("a slide being typed", `document.getElementById("call-close").click(); document.getElementById("home").click(); document.getElementById("way-library").click(); document.getElementById("kind-song").click(); document.querySelector("#tiles button")?.click()`, 1200);
+await state("going to a cue by label", `document.getElementById("call-close").click(); document.getElementById("jump-open").click()`);
+await state("a slide being typed", `document.getElementById("jump-close").click(); document.getElementById("home").click(); document.getElementById("way-library").click(); document.getElementById("kind-song").click(); document.querySelector("#tiles button")?.click()`, 1200);
 
 /**
  * ST20.2, which no automated rule covers: the focus ring is never removed.

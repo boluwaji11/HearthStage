@@ -22,6 +22,7 @@ import { FitCache } from "../output/fit";
 import { applyTheme, coverInto, createRuler, renderSlide, sizeFor, tickClocks } from "../output/slide";
 import { fillText, plural, t, type MessageKey } from "../shared/text";
 import { icon } from "../shared/icons";
+import { findCue } from "../shared/cues";
 
 const bridge = window.hearth;
 
@@ -61,6 +62,11 @@ const el = {
   callSearch: document.getElementById("call-search") as HTMLInputElement,
   callList: document.getElementById("call-list") as HTMLOListElement,
   callEmpty: document.getElementById("call-empty") as HTMLParagraphElement,
+  jumpOpen: document.getElementById("jump-open") as HTMLButtonElement,
+  jump: document.getElementById("jump") as HTMLDialogElement,
+  jumpClose: document.getElementById("jump-close") as HTMLButtonElement,
+  jumpLabel: document.getElementById("jump-label") as HTMLInputElement,
+  jumpFound: document.getElementById("jump-found") as HTMLParagraphElement,
 };
 
 /**
@@ -164,6 +170,12 @@ const KEYS: KeyRow[] = [
     label: "keys.escape",
     meaning: "keys.escape.meaning",
     run: () => send({ type: "setBlank", blank: "none" }),
+  },
+  {
+    keys: ["g", "G"],
+    label: "keys.jump",
+    meaning: "keys.jump.meaning",
+    run: () => showJump(true),
   },
   {
     keys: ["a", "A"],
@@ -367,7 +379,13 @@ function paint(state: ControlState): void {
   el.home.hidden = !open;
   // Nothing to add to until something is running (STG-49).
   el.callOpen.hidden = !open;
-  if (!open) showCall(false);
+  el.jumpOpen.hidden = !open;
+  if (!open) {
+    showCall(false);
+    showJump(false);
+  }
+  // The deck moved under an open card, so what it says it will do is restated.
+  if (el.jump.open) renderJump();
   // After the landing page's own visibility, because taking the focus depends
   // on whether the page is actually on screen.
   paintNextUp(state.nextUp);
@@ -682,6 +700,39 @@ function addCalled(row: { id: string; title: string }): void {
   showCall(false);
 }
 
+/**
+ * "Back to the chorus" (STG-50, ST5.9).
+ *
+ * G, type the label, press Enter. What it will put on the wall is shown while
+ * the label is being typed, because a jump on a live surface should be read
+ * before it is made rather than after.
+ */
+function showJump(open: boolean): void {
+  if (open === el.jump.open) return;
+  if (!open) {
+    el.jump.close();
+    return;
+  }
+  if (latest?.service == null) return;
+  el.jumpLabel.value = "";
+  renderJump();
+  el.jump.showModal();
+  el.jumpLabel.focus();
+}
+
+function jumpTarget(): CueView | null {
+  const found = findCue(latest?.cues ?? [], el.jumpLabel.value);
+  if (found === null) return null;
+  return (latest?.cues ?? []).find((cue) => cue.entryId === found.entryId) ?? null;
+}
+
+function renderJump(): void {
+  const typed = el.jumpLabel.value.trim();
+  const found = jumpTarget();
+  el.jumpFound.textContent =
+    typed === "" ? "" : found === null ? t("jump.nothing") : (found.preview ?? found.label ?? "");
+}
+
 /** The card a volunteer reads at 10:28 (STG-27, ST12.10). */
 function showBrief(open: boolean): void {
   if (open === el.brief.open) return;
@@ -750,6 +801,23 @@ function onKey(event: KeyboardEvent): void {
 
   // Escape belongs to whatever card is open, because a person pressing it is
   // closing what is in front of them rather than uncovering a screen.
+  if (el.jump.open) {
+    if (event.key === "Escape") {
+      showJump(false);
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const found = jumpTarget();
+      if (found === null) return;
+      send({ type: "goToCue", cueId: found.entryId });
+      showJump(false);
+      return;
+    }
+    // Everything else belongs to the box, including the letters that are keys
+    // out here.
+    return;
+  }
   if (el.call.open) {
     if (event.key === "Escape") {
       showCall(false);
@@ -787,13 +855,17 @@ new MutationObserver(() => focusNextUp()).observe(document.body, {
 
 // The words, before anything paints over them (STG-13).
 fillText();
-for (const button of [el.briefClose, el.countdownClose, el.callClose]) button.append(icon("close"));
+for (const button of [el.briefClose, el.countdownClose, el.callClose, el.jumpClose])
+  button.append(icon("close"));
 brief();
 
 el.briefOpen.addEventListener("click", () => showBrief(true));
 el.callOpen.addEventListener("click", () => showCall(true));
 el.callClose.addEventListener("click", () => showCall(false));
 el.callSearch.addEventListener("input", renderCall);
+el.jumpOpen.addEventListener("click", () => showJump(true));
+el.jumpClose.addEventListener("click", () => showJump(false));
+el.jumpLabel.addEventListener("input", renderJump);
 el.countdownOpen.addEventListener("click", () => showCountdown(true));
 el.countdownClose.addEventListener("click", () => showCountdown(false));
 renderCountdown(null);

@@ -648,11 +648,11 @@ describe("a song called from the floor", () => {
   it("leaves the room looking at the same slide", () => {
     session.apply({ type: "advance" });
     session.apply({ type: "advance" });
-    const before = session.controlState([]).live?.lines;
+    const before = session.controlState([]).live?.content;
 
     const { deck: bigger, plan, groupId } = called();
     expect(session.insert(bigger, plan, groupId, session.showingItemId())).toBe(true);
-    expect(session.controlState([]).live?.lines).toEqual(before);
+    expect(session.controlState([]).live?.content).toEqual(before);
   });
 
   it("puts it next, so the following press walks into it", () => {

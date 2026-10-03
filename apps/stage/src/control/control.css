@@ -801,3 +801,9 @@ body[data-workbench="open"] > .problems {
 .call-row[data-first="true"] {
   border-color: var(--ember-500);
 }
+
+/* What a jump will put on the wall, read before it is made (STG-50, ST5.9). */
+.jump-found {
+  min-height: 1.25rem;
+  margin-top: var(--space-2);
+}

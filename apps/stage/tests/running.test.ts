@@ -171,14 +171,17 @@ describe("a song called from the floor", () => {
     const { bigger, groupId, firstGroup } = withOneMore();
     const after = withGroup(order, bigger, groupId, firstGroup);
 
-    const lastOfFirst = after.findLastIndex((entry) => entry.groupId === firstGroup);
+    const lastOfFirst = after.reduce(
+      (found, entry, index) => (entry.groupId === firstGroup ? index : found),
+      -1,
+    );
     expect(after[lastOfFirst + 1]?.groupId).toBe(groupId);
   });
 
   it("keeps a verse the operator skipped", () => {
     const { bigger, groupId, firstGroup } = withOneMore();
     const skipped = order[1] as RunEntry;
-    const changed = applyChange(order, skipped.id, "skip");
+    const changed = applyChange(order, skipped.id, "skip") as RunEntry[];
     const after = withGroup(changed, bigger, groupId, firstGroup);
 
     expect(after.find((entry) => entry.id === skipped.id)?.skipped).toBe(true);
@@ -187,7 +190,7 @@ describe("a song called from the floor", () => {
 
   it("keeps a chorus the operator added", () => {
     const { bigger, groupId, firstGroup } = withOneMore();
-    const repeated = applyChange(order, (order[1] as RunEntry).id, "repeat");
+    const repeated = applyChange(order, (order[1] as RunEntry).id, "repeat") as RunEntry[];
     const after = withGroup(repeated, bigger, groupId, firstGroup);
 
     expect(after.filter((entry) => entry.repeat)).toHaveLength(1);

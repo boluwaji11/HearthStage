@@ -168,6 +168,34 @@ console.log(`   deck went from ${before} to ${after} in ${Date.now()-started}ms`
 if (after <= before) fail.push("nothing added to the deck");
 else console.log("ok    the deck grew");
 
+console.log("-- back to the chorus (STG-50)");
+await check("go to offered", "#jump-open", visible);
+const labels = await evalIn(`[...document.querySelectorAll("#deck li")].map(e=>e.textContent.trim().slice(0,6))`);
+console.log("   deck:", labels.slice(0, 8));
+const wanted = await evalIn(`(()=>{const c=[...document.querySelectorAll("#deck li")]; return c.length;})()`);
+await evalIn(`document.getElementById("jump-open").click()`);
+await new Promise(s=>setTimeout(s,400));
+await check("the card", "#jump", visible);
+console.log("   focus:", await evalIn(`document.activeElement.id`));
+await evalIn(`(()=>{const i=document.getElementById("jump-label"); i.value="zz"; i.dispatchEvent(new Event("input"));})()`);
+await new Promise(s=>setTimeout(s,250));
+console.log("   on a label that is not there:", await evalIn(`document.getElementById("jump-found").textContent`));
+// A label the deck actually has, read off the deck rather than assumed.
+const label = await evalIn(`(()=>{const m=[...document.querySelectorAll("#deck .cue-tag")].map(e=>e.textContent.trim()).filter(Boolean); return m[m.length-1] ?? "";})()`);
+console.log("   typing:", JSON.stringify(label));
+await evalIn(`(()=>{const i=document.getElementById("jump-label"); i.value=${JSON.stringify(label)}; i.dispatchEvent(new Event("input"));})()`);
+await new Promise(s=>setTimeout(s,250));
+const says = await evalIn(`document.getElementById("jump-found").textContent`);
+console.log("   it says:", JSON.stringify(says));
+const liveBefore = await evalIn(`document.querySelector("#live")?.textContent?.trim().slice(0,40)`);
+await evalIn(`document.getElementById("jump-label").dispatchEvent(new KeyboardEvent("keydown",{key:"Enter",bubbles:true}))`);
+await new Promise(s=>setTimeout(s,700));
+await check("card closed", "#jump", hidden);
+const liveAfter = await evalIn(`document.querySelector("#live")?.textContent?.trim().slice(0,40)`);
+console.log("   live:", JSON.stringify(liveBefore), "->", JSON.stringify(liveAfter));
+if (says !== "" && liveAfter === liveBefore) fail.push("the jump did not move the deck");
+else console.log("ok    the jump moved the deck");
+
 const errs = noise.split("\n").filter(l=>/Uncaught|Refused|SecurityError/i.test(l));
 if (errs.length) { console.log("CONSOLE:", errs.slice(0,8).join("\n")); fail.push("console"); }
 console.log(fail.length ? `\nFAILED: ${fail.join(", ")}` : "\nAll good.");
