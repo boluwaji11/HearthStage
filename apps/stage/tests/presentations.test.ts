@@ -1260,3 +1260,60 @@ describe("collections", () => {
     expect(presentations.state().library).toHaveLength(2);
   });
 });
+
+/** STG-151, ST9.10. The media shelf, as the window reads it. */
+describe("the media shelf", () => {
+  beforeEach(() => {
+    opened.library.saveMedia({
+      id: "m1",
+      kind: "image",
+      name: "Autumn field",
+      file: "m1.jpg",
+      mime: "image/jpeg",
+      bytes: 2048,
+    });
+  });
+
+  it("goes down with a source the window can draw from", () => {
+    const [row] = presentations.state().media;
+    expect(row).toMatchObject({ id: "m1", kind: "image", name: "Autumn field", bytes: 2048 });
+    expect(row?.src).toBe("stage-media://file/m1.jpg");
+  });
+
+  it("escapes a name, because the source is a URL", () => {
+    opened.library.saveMedia({
+      id: "m2",
+      kind: "image",
+      name: "Odd",
+      file: "a b&c.jpg",
+      mime: "image/jpeg",
+      bytes: 1,
+    });
+    const row = presentations.state().media.find((one) => one.id === "m2");
+    expect(row?.src).toBe("stage-media://file/a%20b%26c.jpg");
+  });
+
+  it("renames it", () => {
+    expect(presentations.apply({ type: "renameMedia", mediaId: "m1", name: "Harvest" })).toBe(true);
+    expect(presentations.state().media[0]?.name).toBe("Harvest");
+  });
+
+  it("refuses a blank name and a row that is not there", () => {
+    expect(presentations.apply({ type: "renameMedia", mediaId: "m1", name: "  " })).toBe(false);
+    expect(presentations.apply({ type: "renameMedia", mediaId: "gone", name: "X" })).toBe(false);
+  });
+
+  it("takes it off the shelf once", () => {
+    expect(presentations.apply({ type: "archiveMedia", mediaId: "m1" })).toBe(true);
+    expect(presentations.apply({ type: "archiveMedia", mediaId: "m1" })).toBe(false);
+    expect(presentations.state().media).toEqual([]);
+  });
+
+  it("says why the last file was refused, and forgets on the next one", () => {
+    expect(presentations.state().mediaRefused).toBeNull();
+    presentations.mediaAdded("type");
+    expect(presentations.state().mediaRefused).toBe("type");
+    presentations.mediaAdded(null);
+    expect(presentations.state().mediaRefused).toBeNull();
+  });
+});

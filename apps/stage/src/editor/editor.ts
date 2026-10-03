@@ -45,6 +45,7 @@ import {
   type EditorState,
   type Intent,
   type LibraryItem,
+  type MediaRow,
   type LibraryKind,
   type OrderDraft,
   type SetEntryDraft,
@@ -62,6 +63,9 @@ const el = {
   editView: document.getElementById("edit-view") as HTMLElement,
   tiles: document.getElementById("tiles") as HTMLOListElement,
   libraryEmpty: document.getElementById("library-empty") as HTMLParagraphElement,
+  mediaShelf: document.getElementById("media-shelf") as HTMLOListElement,
+  mediaRefused: document.getElementById("media-refused") as HTMLParagraphElement,
+  mediaAdd: document.getElementById("media-add") as HTMLButtonElement,
   addSamples: document.getElementById("add-samples") as HTMLButtonElement,
   search: document.getElementById("search") as HTMLInputElement,
   back: document.getElementById("back") as HTMLButtonElement,
@@ -921,7 +925,9 @@ function paintPages(): void {
 
   // The choice, or a list of one kind.
   el.kinds.hidden = kind !== null;
-  el.tiles.hidden = kind === null;
+  el.tiles.hidden = kind === null || kind === "media";
+  el.mediaShelf.hidden = kind !== "media";
+  el.mediaAdd.hidden = kind !== "media";
   el.searchField.hidden = kind === null;
   el.libraryEmpty.hidden = true;
   el.libraryTitle.textContent = t(kind === null ? "library.kind.choose" : KIND_TITLE[kind] ?? "library.title");
@@ -1256,12 +1262,16 @@ function renderLibrary(): void {
     return;
   }
 
+  if (kind === "media") {
+    renderMedia();
+    el.tiles.replaceChildren();
+    return;
+  }
+  el.mediaShelf.replaceChildren();
+  el.mediaRefused.hidden = true;
+
   const ofKind = rows.filter((row) =>
-    kind === "song"
-      ? row.kind === "song"
-      : kind === "media"
-        ? row.kind === "media"
-        : row.kind === "plain" || row.kind === "reading",
+    kind === "song" ? row.kind === "song" : row.kind === "plain" || row.kind === "reading",
   );
 
   const query = el.search.value.trim().toLowerCase();
@@ -1279,6 +1289,155 @@ function renderLibrary(): void {
   el.libraryEmpty.textContent = t(
     ofKind.length === 0 ? (KIND_EMPTY[kind] ?? "library.empty") : "library.noMatch",
   );
+}
+
+/**
+ * The media shelf (STG-151, ST9.10).
+ *
+ * A grid of what a church has rather than a list of filenames, because the
+ * thing somebody is looking for is a picture and they recognise it faster than
+ * they read it. The preview is the file itself, drawn from main's own scheme:
+ * an image draws, a video draws its first frame, and audio has nothing to show
+ * so it carries its mark.
+ */
+function renderMedia(): void {
+  const rows = latest?.media ?? [];
+  const query = el.search.value.trim().toLowerCase();
+  const shown =
+    query === "" ? rows : rows.filter((row) => row.name.toLowerCase().includes(query));
+
+  const refused = latest?.mediaRefused ?? null;
+  el.mediaRefused.hidden = refused === null;
+  if (refused !== null) {
+    el.mediaRefused.textContent = t(MEDIA_REFUSALS[refused] ?? "media.refused.unreadable");
+  }
+
+  // A name being typed outlives any state that arrives while it is open.
+  if (el.mediaShelf.querySelector(".media-name") === null) {
+    el.mediaShelf.replaceChildren();
+    for (const row of shown) el.mediaShelf.append(mediaTile(row));
+  }
+
+  el.libraryEmpty.hidden = shown.length > 0;
+  el.libraryEmpty.textContent = t(rows.length === 0 ? "media.empty" : "library.noMatch");
+}
+
+const MEDIA_REFUSALS: Record<string, MessageKey> = {
+  type: "media.refused.type",
+  size: "media.refused.size",
+  unreadable: "media.refused.unreadable",
+};
+
+const MEDIA_WORDS: Record<string, MessageKey> = {
+  image: "media.image",
+  video: "media.video",
+  audio: "media.audio",
+};
+
+/** Bytes as a church reads them, which is two digits and a unit. */
+function sizeOf(bytes: number): string {
+  const units = ["B", "KB", "MB", "GB"];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value < 10 && unit > 0 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`;
+}
+
+function mediaTile(row: MediaRow): HTMLLIElement {
+  const item = document.createElement("li");
+  item.className = "media-item";
+
+  const preview = document.createElement("div");
+  preview.className = "media-preview";
+  preview.dataset["kind"] = row.kind;
+  if (row.kind === "image") {
+    const picture = document.createElement("img");
+    picture.src = row.src;
+    picture.alt = "";
+    picture.loading = "lazy";
+    preview.append(picture);
+  } else if (row.kind === "video") {
+    // Metadata only, so a shelf of loops does not pull a gigabyte off the disk
+    // to show twelve first frames.
+    const film = document.createElement("video");
+    film.src = row.src;
+    film.preload = "metadata";
+    film.muted = true;
+    preview.append(film);
+  } else {
+    preview.append(icon("note"));
+  }
+
+  const name = document.createElement("p");
+  name.className = "media-title";
+  name.textContent = row.name;
+
+  const facts = document.createElement("p");
+  facts.className = "media-facts";
+  const word: MessageKey = MEDIA_WORDS[row.kind] ?? "media.image";
+  const what = document.createElement("span");
+  what.textContent = t(word);
+  const size = document.createElement("span");
+  size.textContent = sizeOf(row.bytes);
+  facts.append(what, size);
+
+  const acts = document.createElement("div");
+  acts.className = "media-acts";
+
+  const rename = document.createElement("button");
+  rename.type = "button";
+  rename.className = "chip-act";
+  rename.title = t("media.rename");
+  rename.setAttribute("aria-label", t("media.rename"));
+  rename.append(icon("pencil"));
+  rename.addEventListener("click", () => renameMedia(name, row.id, row.name));
+
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "chip-act";
+  remove.title = t("media.remove");
+  remove.setAttribute("aria-label", t("media.remove"));
+  remove.append(icon("trash"));
+  remove.addEventListener("click", () => send({ type: "archiveMedia", mediaId: row.id }));
+
+  acts.append(rename, remove);
+  item.append(preview, name, facts, acts);
+  return item;
+}
+
+/** The same gesture the collection chips use: the name becomes a box. */
+function renameMedia(label: HTMLElement, mediaId: string, was: string): void {
+  const box = document.createElement("input");
+  box.type = "text";
+  box.className = "media-name";
+  box.value = was;
+  box.setAttribute("aria-label", t("media.rename"));
+
+  let done = false;
+  const finish = (save: boolean): void => {
+    if (done) return;
+    done = true;
+    const name = box.value.trim();
+    box.replaceWith(label);
+    if (save && name !== "" && name !== was) {
+      send({ type: "renameMedia", mediaId, name });
+    } else {
+      renderMedia();
+    }
+  };
+
+  box.addEventListener("blur", () => finish(true));
+  box.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") finish(true);
+    if (event.key === "Escape") finish(false);
+  });
+
+  label.replaceWith(box);
+  box.focus();
+  box.select();
 }
 
 function tileFor(row: LibraryItem, themes: ThemeChoice[]): HTMLLIElement {
@@ -1833,6 +1992,7 @@ el.exportOpenLyrics.addEventListener("click", () =>
   send({ type: "exportLibrary", format: "openlyrics" }),
 );
 el.exportBundle.addEventListener("click", () => send({ type: "exportLibrary", format: "bundle" }));
+el.mediaAdd.addEventListener("click", () => send({ type: "addMedia" }));
 el.collectionAll.addEventListener("click", () => send({ type: "showCollection", collectionId: null }));
 el.collectionNew.addEventListener("click", () => send({ type: "newCollection" }));
 // From the song itself, which is where somebody realises they want one. Main

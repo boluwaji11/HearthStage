@@ -346,6 +346,22 @@ export interface CollectionRow {
   items: number;
 }
 
+/**
+ * One file on the media shelf (STG-151, ST9.10).
+ *
+ * `src` is the URL a window draws it from. The windows are sandboxed and the
+ * file lives in the profile, so main serves the media folder over its own
+ * scheme rather than handing a path across.
+ */
+export interface MediaRow {
+  id: string;
+  kind: "image" | "video" | "audio";
+  name: string;
+  src: string;
+  mime: string;
+  bytes: number;
+}
+
 export interface SetListRow {
   id: string;
   title: string;
@@ -458,6 +474,10 @@ export interface EditorState {
   /** The church's own groupings, and which one the library is narrowed to. */
   collections: CollectionRow[];
   libraryCollection: string | null;
+  /** The media shelf, newest first (STG-151, ST9.10). */
+  media: MediaRow[];
+  /** What the last add refused, by reason, cleared on the next one. */
+  mediaRefused: "type" | "size" | "unreadable" | null;
   /** The one open in the window, where one is. */
   editingSet: {
     /** Null until the first save, which is when the list gets a row. */
@@ -577,6 +597,16 @@ export type Intent =
   /** The open slide, onto the library shelf (STG-169). */
   | { type: "saveToLibrary" }
   | { type: "showLibraryKind"; kind: "song" | "media" | "slides" }
+  /**
+   * The media shelf (STG-151, ST9.10).
+   *
+   * `addMedia` opens the church's own file dialog in main, because a sandboxed
+   * window has no business reading a disk. Main copies what is chosen into the
+   * profile, so the church can tidy the folder it came from.
+   */
+  | { type: "addMedia" }
+  | { type: "renameMedia"; mediaId: string; name: string }
+  | { type: "archiveMedia"; mediaId: string }
   | { type: "newSetList" }
   | { type: "openSetList"; setListId: string }
   /**
@@ -685,6 +715,7 @@ export function isIntent(value: unknown): value is Intent {
     to?: unknown;
     format?: unknown;
     collectionId?: unknown;
+    mediaId?: unknown;
     withItemId?: unknown;
     inIt?: unknown;
     position?: unknown;
@@ -800,6 +831,16 @@ export function isIntent(value: unknown): value is Intent {
         candidate.cueId.length > 0 &&
         Array.isArray(candidate.lines) &&
         candidate.lines.every((line: unknown) => typeof line === "string")
+      );
+    case "addMedia":
+      return true;
+    case "archiveMedia":
+      return typeof candidate.mediaId === "string" && candidate.mediaId.length > 0;
+    case "renameMedia":
+      return (
+        typeof candidate.mediaId === "string" &&
+        candidate.mediaId.length > 0 &&
+        typeof candidate.name === "string"
       );
     case "showLibraryKind":
       return (

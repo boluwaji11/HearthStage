@@ -101,6 +101,7 @@ describe("migrate", () => {
       "arrangements",
       "collection_items",
       "collections",
+      "media",
       "presentation_slides",
       "presentations",
       "set_entries",

@@ -259,6 +259,20 @@ export const en = {
 
   // This machine
   "settings.title": "This machine",
+  "media.files": "Images, video and audio",
+  "media.add": "Add media",
+  "media.empty": "No media yet",
+  "media.rename": "Rename",
+  "media.remove": "Remove from the library",
+  "media.image": "Image",
+  "media.video": "Video",
+  "media.audio": "Audio",
+  "media.refused.type": "Stage cannot read that kind of file.",
+  "media.refused.size": "That file is too large to add.",
+  "media.refused.unreadable": "That file could not be read.",
+  "media.count.one": "{count} file",
+  "media.count.other": "{count} files",
+
   "collection.untitled": "Collection {count}",
   "collection.all": "All",
   "collection.new": "Create new collection",

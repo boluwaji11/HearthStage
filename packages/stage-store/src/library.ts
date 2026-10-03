@@ -126,6 +126,30 @@ export interface Collection {
   items: number;
 }
 
+/**
+ * One file a church added once and can use anywhere (STG-151, ST9.10).
+ *
+ * `file` is the name inside the profile's media folder rather than where the
+ * church found it, because the file is copied in. `hash` is written now and
+ * used by STG-152.
+ */
+export interface MediaItem {
+  id: string;
+  kind: MediaFileKind;
+  name: string;
+  file: string;
+  mime: string;
+  bytes: number;
+  hash: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const MEDIA_FILE_KINDS = ["image", "video", "audio"] as const;
+
+/** Named apart from a song's ArrangementMedia, which is a different thing. */
+export type MediaFileKind = (typeof MEDIA_FILE_KINDS)[number];
+
 export interface SongUse {
   songId: string;
   title: string;
@@ -1172,10 +1196,128 @@ export class Library {
     return result.changes > 0;
   }
 
+  /**
+   * Writes a media row, keeping where it came from.
+   *
+   * The file is copied into the profile by the caller, because this package
+   * owns the database and not the disk around it.
+   */
+  saveMedia(media: {
+    id: string;
+    kind: MediaFileKind;
+    name: string;
+    file: string;
+    mime: string;
+    bytes: number;
+    hash?: string | null;
+  }): void {
+    const timestamp = this.now();
+    this.db
+      .prepare(
+        `INSERT INTO media (id, kind, name, file, mime, bytes, content_hash, archived_at, created_at, updated_at)
+         VALUES (
+           @id, @kind, @name, @file, @mime, @bytes, @hash,
+           COALESCE((SELECT archived_at FROM media WHERE id = @id), NULL),
+           COALESCE((SELECT created_at FROM media WHERE id = @id), @now),
+           @now
+         )
+         ON CONFLICT(id) DO UPDATE SET
+           kind = excluded.kind,
+           name = excluded.name,
+           file = excluded.file,
+           mime = excluded.mime,
+           bytes = excluded.bytes,
+           content_hash = excluded.content_hash,
+           updated_at = excluded.updated_at`,
+      )
+      .run({
+        id: media.id,
+        kind: media.kind,
+        name: media.name.trim(),
+        file: media.file,
+        mime: media.mime,
+        bytes: media.bytes,
+        hash: media.hash ?? null,
+        now: timestamp,
+      });
+    this.afterWrite?.();
+  }
+
+  /** The media shelf, newest first, because the last thing added is wanted. */
+  media(options: ListOptions & { kind?: MediaFileKind } = {}): MediaItem[] {
+    const terms: string[] = [];
+    if (options.includeArchived !== true) terms.push("archived_at IS NULL");
+    if (options.kind !== undefined) terms.push("kind = @kind");
+    const where = terms.length === 0 ? "" : `WHERE ${terms.join(" AND ")}`;
+    const rows = this.db
+      .prepare(`SELECT * FROM media ${where} ORDER BY created_at DESC, name COLLATE NOCASE`)
+      .all({ kind: options.kind ?? null }) as MediaRecord[];
+    return rows.map(asMedia);
+  }
+
+  getMedia(mediaId: string): MediaItem | null {
+    const row = this.db.prepare("SELECT * FROM media WHERE id = ?").get(mediaId) as
+      | MediaRecord
+      | undefined;
+    return row === undefined ? null : asMedia(row);
+  }
+
+  /** What a church calls it. The file on disk keeps the name it was given. */
+  renameMedia(mediaId: string, name: string): boolean {
+    const trimmed = name.trim();
+    if (trimmed === "") return false;
+    const timestamp = this.now();
+    const result = this.db
+      .prepare("UPDATE media SET name = ?, updated_at = ? WHERE id = ?")
+      .run(trimmed, timestamp, mediaId);
+    if (result.changes > 0) this.afterWrite?.();
+    return result.changes > 0;
+  }
+
+  /** Takes it off the shelf. The copied file is the caller's to remove. */
+  archiveMedia(mediaId: string): boolean {
+    const timestamp = this.now();
+    const result = this.db
+      .prepare("UPDATE media SET archived_at = ?, updated_at = ? WHERE id = ? AND archived_at IS NULL")
+      .run(timestamp, timestamp, mediaId);
+    if (result.changes > 0) this.afterWrite?.();
+    return result.changes > 0;
+  }
+
+  countMedia(options: ListOptions & { kind?: MediaFileKind } = {}): number {
+    return this.media(options).length;
+  }
+
   kindOf(itemId: string): ItemKind | undefined {
     const song = this.db.prepare("SELECT 1 FROM songs WHERE id = ?").get(itemId);
     if (song !== undefined) return "song";
     const presentation = this.db.prepare("SELECT 1 FROM presentations WHERE id = ?").get(itemId);
     return presentation === undefined ? undefined : "presentation";
   }
+}
+
+interface MediaRecord {
+  id: string;
+  kind: MediaFileKind;
+  name: string;
+  file: string;
+  mime: string;
+  bytes: number;
+  content_hash: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function asMedia(row: MediaRecord): MediaItem {
+  return {
+    id: row.id,
+    kind: row.kind,
+    name: row.name,
+    file: row.file,
+    mime: row.mime,
+    bytes: row.bytes,
+    hash: row.content_hash,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }

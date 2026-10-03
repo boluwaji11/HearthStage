@@ -30,6 +30,9 @@ export {
   type LibraryItem,
   type SongUse,
   type Collection,
+  type MediaItem,
+  MEDIA_FILE_KINDS,
+  type MediaFileKind,
 } from "./library";
 export { backup, backups, isUsable, restore, type BackupInfo, type BackupOptions } from "./backup";
 export { openLibrary, type OpenLibrary } from "./open-library";

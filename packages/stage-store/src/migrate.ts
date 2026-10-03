@@ -261,6 +261,37 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX collections_archived ON collections(archived_at);
     `,
   },
+  {
+    version: 8,
+    name: "the media shelf",
+    up: `
+      -- Images, video loops and audio, added once (STG-151, ST9.10).
+      --
+      -- The file itself is copied into the profile and \`file\` is its name in
+      -- there, for the reason the logo is copied in: a church that picks a
+      -- photograph off a desktop and tidies the desktop in March should not
+      -- find a black screen in April.
+      --
+      -- \`content_hash\` is written now and used in STG-152, where a reference
+      -- becomes the hash rather than the row, so two copies of the same
+      -- photograph stop being two rows.
+      CREATE TABLE media (
+        id           TEXT PRIMARY KEY,
+        kind         TEXT NOT NULL CHECK (kind IN ('image', 'video', 'audio')),
+        name         TEXT NOT NULL,
+        file         TEXT NOT NULL,
+        mime         TEXT NOT NULL,
+        bytes        INTEGER NOT NULL,
+        content_hash TEXT,
+        archived_at  TEXT,
+        created_at   TEXT NOT NULL,
+        updated_at   TEXT NOT NULL
+      );
+
+      CREATE INDEX media_kind ON media(kind, archived_at);
+      CREATE INDEX media_hash ON media(content_hash);
+    `,
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.reduce(

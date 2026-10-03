@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'"
+      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: stage-media:; media-src stage-media:; font-src 'self'"
     />
     <title>Hearth Stage</title>
     <link rel="stylesheet" href="./control.css" />
@@ -104,6 +104,7 @@
             </div>
             <button id="add-samples" type="button" hidden></button>
             <button id="new" type="button" class="primary" hidden data-t="library.newSong"></button>
+            <button id="media-add" type="button" class="primary" hidden data-t="media.add"></button>
           </div>
         </header>
         <div class="tiles-wrap">
@@ -119,6 +120,9 @@
             <button id="collection-new" type="button" class="chip" data-t="collection.new"></button>
           </div>
           <ol id="tiles" class="tiles" hidden></ol>
+          <!-- The media shelf (STG-151, ST9.10). -->
+          <ol id="media-shelf" class="media-shelf" hidden></ol>
+          <p id="media-refused" class="refusal" role="status" hidden></p>
           <p id="library-empty" class="quiet empty" hidden></p>
         </div>
       </section>

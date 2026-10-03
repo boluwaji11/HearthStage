@@ -1071,3 +1071,95 @@ body[data-themed="true"] #workbench .card-body {
   font-weight: 600;
   color: var(--quiet);
 }
+
+/* The media shelf (STG-151, ST9.10). */
+#workbench .media-shelf {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: var(--space-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#workbench .media-item {
+  position: relative;
+  display: grid;
+  gap: var(--space-1);
+}
+
+/* 16:9, because that is the shape of the screen it is going on. */
+#workbench .media-preview {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: var(--quiet);
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+#workbench .media-preview img,
+#workbench .media-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#workbench .media-preview svg {
+  width: 2rem;
+  height: 2rem;
+}
+
+#workbench .media-title {
+  margin: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+#workbench .media-facts {
+  display: flex;
+  gap: var(--space-3);
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--quiet);
+}
+
+#workbench .media-name {
+  font: inherit;
+  font-weight: 500;
+  width: 100%;
+  padding: 0;
+  color: var(--text);
+  background: var(--sunk);
+  border: 1px solid var(--ember-500);
+  border-radius: var(--radius);
+}
+
+#workbench .media-acts {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  display: flex;
+  gap: var(--space-1);
+}
+
+#workbench .media-acts .chip-act {
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--text);
+  background: var(--raised);
+  border: 1px solid var(--line);
+}
+
+#workbench .media-item:hover .chip-act,
+#workbench .media-acts .chip-act:focus-visible {
+  opacity: 1;
+}
+
+#workbench .refusal {
+  margin: var(--space-3) 0 0;
+  color: var(--danger);
+}

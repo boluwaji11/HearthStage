@@ -44,6 +44,7 @@ import type {
   LibraryItem,
   OrderDraft,
   SetEntryDraft,
+  MediaRow,
   SetListRow,
   SlideDraft,
   SongFields,
@@ -74,8 +75,35 @@ export interface PresentationLibrary {
   setInCollection(collectionId: string, itemId: string, inIt: boolean): void;
   collectionsOf(itemId: string): string[];
   itemsInCollection(collectionId: string): string[];
+  /** The media shelf (STG-151). The files themselves are main's. */
+  media(): MediaFile[];
+  renameMedia(mediaId: string, name: string): boolean;
+  archiveMedia(mediaId: string): boolean;
   /** The usage log, for the CCLI report (STG-53). */
   usage(period?: { from?: string; to?: string }): UsageRow[];
+}
+
+/** What this half needs of a media row. The store's MediaItem satisfies it. */
+export interface MediaFile {
+  id: string;
+  kind: "image" | "video" | "audio";
+  name: string;
+  file: string;
+  mime: string;
+  bytes: number;
+}
+
+/**
+ * How a window asks for a file in the profile (STG-151).
+ *
+ * A scheme of our own rather than `file:`, because the windows are sandboxed
+ * with a policy that allows nothing off the disk, and main serving one folder
+ * is a smaller hole than a renderer holding a path.
+ */
+export const MEDIA_SCHEME = "stage-media";
+
+export function mediaSrc(file: string): string {
+  return `${MEDIA_SCHEME}://file/${encodeURIComponent(file)}`;
 }
 
 export interface PresentationsOptions {
@@ -146,6 +174,9 @@ export class Presentations {
   /** Which page the window shows, and which kind the library is on (STG-46). */
   private page: "none" | "plans" | "library" | "settings" = "none";
   private libraryKind: "song" | "media" | "slides" | null = null;
+
+  /** Why the last add was refused, which the shelf says out loud (STG-151). */
+  private mediaRefused: "type" | "size" | "unreadable" | null = null;
   /** Which collection the library is narrowed to. Null is the whole kind. */
   private libraryCollection: string | null = null;
   private collectionSerial = 0;
@@ -166,6 +197,17 @@ export class Presentations {
   /** What the window shows as the name of this laptop. */
   device(machine: EditorState["device"]): void {
     this.machine = machine;
+    this.revision += 1;
+  }
+
+  /**
+   * What happened to the last file somebody chose (STG-151).
+   *
+   * Main owns the dialog and the disk, so it tells this half the outcome and
+   * the window reads it off the state like everything else.
+   */
+  mediaAdded(refused: "type" | "size" | "unreadable" | null): void {
+    this.mediaRefused = refused;
     this.revision += 1;
   }
 
@@ -361,6 +403,20 @@ export class Presentations {
       case "archiveCollection": {
         if (!this.library.archiveCollection(intent.collectionId)) return false;
         if (this.libraryCollection === intent.collectionId) this.libraryCollection = null;
+        this.revision += 1;
+        return true;
+      }
+
+      case "renameMedia": {
+        const name = intent.name.trim();
+        if (name === "") return false;
+        if (!this.library.renameMedia(intent.mediaId, name)) return false;
+        this.revision += 1;
+        return true;
+      }
+
+      case "archiveMedia": {
+        if (!this.library.archiveMedia(intent.mediaId)) return false;
         this.revision += 1;
         return true;
       }
@@ -696,6 +752,17 @@ export class Presentations {
         .collections()
         .map((one) => ({ id: one.id, name: one.name, items: one.items })),
       libraryCollection: this.libraryCollection,
+      media: this.library.media().map(
+        (one): MediaRow => ({
+          id: one.id,
+          kind: one.kind,
+          name: one.name,
+          src: mediaSrc(one.file),
+          mime: one.mime,
+          bytes: one.bytes,
+        }),
+      ),
+      mediaRefused: this.mediaRefused,
       samples: this.samplesLeft(),
       problems: this.problems,
       presentingId,

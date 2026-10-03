@@ -75,6 +75,23 @@ await new Promise(s=>setTimeout(s,600));
 console.log("-- library");
 await check("kinds centred", "#kinds", visible);
 console.log("   kinds box:", await evalIn(shown("#kinds")));
+// STG-151. The media shelf, which is its own kind of list.
+await evalIn(`document.getElementById("kind-media").click()`);
+await new Promise(s=>setTimeout(s,700));
+await check("the media shelf", "#media-shelf", g => g !== "hidden" && g !== "missing");
+await check("add media", "#media-add", visible);
+await check("song tiles away on media", "#tiles", hidden);
+console.log("   with nothing on it:", JSON.stringify(await evalIn(`document.getElementById("library-empty").textContent`)));
+// The window may draw from the media folder. It may not read it: the policy
+// allows the scheme to img-src and media-src and nothing else, so a path out
+// of the folder cannot even be asked for.
+const reached = await evalIn(`fetch("stage-media://file/..%2Flibrary.db").then(r=>r.status).catch(e=>String(e))`);
+console.log("   reading the media folder from the window:", reached);
+if (reached === 200) fail.push("the window could read a file outside the media folder");
+else console.log("ok    the window may draw from the media folder and not read it");
+await evalIn(`document.getElementById("library-back").click()`);
+await new Promise(s=>setTimeout(s,500));
+
 await evalIn(`document.getElementById("kind-song").click()`);
 await new Promise(s=>setTimeout(s,600));
 await check("tiles", "#tiles", visible);

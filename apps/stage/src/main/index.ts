@@ -13,7 +13,17 @@
 
 import { existsSync, mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { app, BrowserWindow, dialog, ipcMain, shell, type OpenDialogOptions } from "electron";
+import { pathToFileURL } from "node:url";
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  net,
+  protocol,
+  shell,
+  type OpenDialogOptions,
+} from "electron";
 import {
   CHANNELS,
   isIntent,
@@ -43,7 +53,8 @@ import {
 import { sampleLibrary, sampleService } from "@hearth/songs/fixtures";
 import { openLibrary } from "@hearth/stage-store";
 import { t } from "@hearth/stage-i18n";
-import { Presentations } from "./presentations";
+import { MEDIA_SCHEME, Presentations } from "./presentations";
+import { addMedia, MEDIA_EXTENSIONS, nameFrom, removeMedia, within } from "./media";
 import { restoredOrders } from "./repair";
 import { APP_NAME, OLD_FOLDER, relocation } from "./userdata";
 import { Session, type SongShown } from "./session";
@@ -546,7 +557,70 @@ function openOutput(choice: DisplayChoice): void {
   });
 }
 
+/**
+ * The media folder, over a scheme of main's own (STG-151, ST9.10).
+ *
+ * Registered before the application is ready, which is the only moment Chromium
+ * will take it. Standard and secure so that a window under
+ * `default-src 'none'` can name it in its policy, and streamed so that a video
+ * loop seeks rather than arriving as one buffer.
+ */
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: MEDIA_SCHEME,
+    privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true },
+  },
+]);
+
+/**
+ * A church's own file, chosen once (STG-151, ST9.10).
+ *
+ * Copied into the profile, because a church that tidies the folder it came from
+ * should not find a black screen in April.
+ */
+async function chooseMedia(): Promise<void> {
+  const parent = control;
+  const options: OpenDialogOptions = {
+    properties: ["openFile", "multiSelections"],
+    filters: [{ name: t("media.files"), extensions: MEDIA_EXTENSIONS }],
+  };
+  const chosen =
+    parent === null || parent.isDestroyed()
+      ? await dialog.showOpenDialog(options)
+      : await dialog.showOpenDialog(parent, options);
+  if (chosen.canceled || chosen.filePaths.length === 0) return;
+
+  let refused: "type" | "size" | "unreadable" | null = null;
+  for (const from of chosen.filePaths) {
+    const id = `media_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+    const added = addMedia(app.getPath("userData"), id, from);
+    if (typeof added === "string") {
+      refused = added;
+      continue;
+    }
+    store.library.saveMedia({
+      id,
+      kind: added.kind,
+      name: nameFrom(from),
+      file: added.file,
+      mime: added.mime,
+      bytes: added.bytes,
+      hash: added.hash,
+    });
+  }
+  presentations.mediaAdded(refused);
+  broadcast();
+}
+
 app.whenReady().then(() => {
+  // One folder, read only, with every name checked for a way out of it.
+  protocol.handle(MEDIA_SCHEME, (request) => {
+    const name = decodeURIComponent(new URL(request.url).pathname.replace(/^\//, ""));
+    const path = within(app.getPath("userData"), name);
+    if (path === null) return new Response(null, { status: 403 });
+    return net.fetch(pathToFileURL(path).toString());
+  });
+
   ipcMain.on(CHANNELS.intent, (unused, payload: unknown) => {
     // Validated on arrival rather than trusted. The boundary is where a
     // sandbox is worth anything.
@@ -719,7 +793,26 @@ app.whenReady().then(() => {
         void exportLibrary(payload.format);
         return;
 
+      case "addMedia":
+        void chooseMedia();
+        return;
+
+      /**
+       * Off the shelf, and off the disk.
+       *
+       * The row is read before it is archived, because the file it names is
+       * the only way back to the copy in the profile.
+       */
+      case "archiveMedia": {
+        const row = store.library.getMedia(payload.mediaId);
+        if (!presentations.apply(payload)) return;
+        if (row !== null) removeMedia(app.getPath("userData"), row.file);
+        broadcast();
+        return;
+      }
+
       case "setUsagePeriod":
+      case "renameMedia":
       case "newCollection":
       case "renameCollection":
       case "archiveCollection":
