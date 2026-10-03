@@ -260,6 +260,10 @@ export const en = {
   // This machine
   "settings.title": "This machine",
   "media.files": "Images, video and audio",
+  "media.images": "Images",
+  "media.videos": "Video",
+  "media.audios": "Audio",
+  "media.wontPlay": "Will not play here",
   "media.add": "Add media",
   "media.empty": "No media yet",
   "media.rename": "Rename",
@@ -270,6 +274,7 @@ export const en = {
   "media.refused.type": "Stage cannot read that kind of file.",
   "media.refused.size": "That file is too large to add.",
   "media.refused.unreadable": "That file could not be read.",
+  "media.refused.already": "Already in the library.",
   "media.count.one": "{count} file",
   "media.count.other": "{count} files",
 

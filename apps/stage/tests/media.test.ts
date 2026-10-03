@@ -8,8 +8,10 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, sep } from "node:path";
+import { createHash } from "node:crypto";
 import {
   addMedia,
+  dialogFilters,
   hashOf,
   MEDIA_EXTENSIONS,
   mediaDirectory,
@@ -40,14 +42,29 @@ function picture(name: string, contents = "a picture"): string {
 
 describe("what Stage takes", () => {
   it("knows an image, a video and a sound apart", () => {
-    expect(typeOf("/x/autumn.JPG")).toEqual({ kind: "image", mime: "image/jpeg" });
-    expect(typeOf("/x/loop.mp4")).toEqual({ kind: "video", mime: "video/mp4" });
-    expect(typeOf("/x/bed.mp3")).toEqual({ kind: "audio", mime: "audio/mpeg" });
+    expect(typeOf("/x/autumn.JPG")).toMatchObject({ kind: "image", mime: "image/jpeg" });
+    expect(typeOf("/x/loop.mp4")).toMatchObject({ kind: "video", mime: "video/mp4" });
+    expect(typeOf("/x/bed.mp3")).toMatchObject({ kind: "audio", mime: "audio/mpeg" });
   });
 
-  it("refuses what the window at the back of the hall could not play", () => {
+  it("takes the formats a church actually has, not the four we would prefer", () => {
+    for (const name of ["photo.heic", "scan.tiff", "clip.mov", "old.avi", "clip.wmv", "track.wma"]) {
+      expect(typeOf(`/x/${name}`)).not.toBeNull();
+    }
+  });
+
+  it("says which ones Chromium decodes everywhere, and which are checked on screen", () => {
+    expect(typeOf("/x/loop.mp4")?.plays).toBe("sure");
+    expect(typeOf("/x/autumn.avif")?.plays).toBe("sure");
+    // A QuickTime file of H.264 plays and one of ProRes does not, and the
+    // extension cannot tell them apart. The tile answers it (ST9.9).
+    expect(typeOf("/x/loop.mov")?.plays).toBe("maybe");
+    expect(typeOf("/x/photo.heic")?.plays).toBe("maybe");
+  });
+
+  it("refuses what is not media at all", () => {
     expect(typeOf("/x/slides.key")).toBeNull();
-    expect(typeOf("/x/loop.mov")).toBeNull();
+    expect(typeOf("/x/budget.xlsx")).toBeNull();
     expect(addMedia(profile, "m1", picture("notes.txt"))).toBe("type");
   });
 
@@ -55,6 +72,34 @@ describe("what Stage takes", () => {
     expect(MEDIA_EXTENSIONS).toContain("png");
     expect(MEDIA_EXTENSIONS).toContain("mp4");
     expect(MEDIA_EXTENSIONS.every((one) => !one.startsWith("."))).toBe(true);
+  });
+
+  it("groups the dialog by kind, so somebody after a photograph sees photographs", () => {
+    const filters = dialogFilters({ all: "All", image: "Images", video: "Video", audio: "Audio" });
+    expect(filters.map((one) => one.name)).toEqual(["All", "Images", "Video", "Audio"]);
+    expect(filters[1]?.extensions).toContain("jpg");
+    expect(filters[1]?.extensions).not.toContain("mp4");
+    expect(filters[2]?.extensions).toContain("mov");
+    expect(filters[3]?.extensions).toContain("wav");
+  });
+});
+
+/** STG-152, ST9.11. The hash is what a file is. */
+describe("the content hash", () => {
+  it("is the same for the same bytes, whatever the folder called them", () => {
+    const one = hashOf(picture("march/autumn.jpg".replace("march/", ""), "same bytes"));
+    const two = hashOf(picture("desktop-copy.jpg", "same bytes"));
+    expect(one).toBe(two);
+  });
+
+  it("differs for different bytes", () => {
+    expect(hashOf(picture("a.jpg", "one"))).not.toBe(hashOf(picture("b.jpg", "two")));
+  });
+
+  it("hashes a file larger than one chunk without holding it in memory", () => {
+    const big = "x".repeat(3 * 1024 * 1024);
+    const path = picture("loop.mp4", big);
+    expect(hashOf(path)).toBe(createHash("sha256").update(big).digest("hex"));
   });
 });
 

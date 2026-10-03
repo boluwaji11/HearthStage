@@ -116,3 +116,42 @@ describe("the media shelf", () => {
     expect(again?.name).toBe("Second");
   });
 });
+
+/** STG-152, ST9.11. The hash is what a file is. */
+describe("one row per file", () => {
+  it("finds a file by its contents, which is how a reference resolves", () => {
+    add("m1", { hash: "deadbeef" });
+    expect(opened.library.mediaByHash("deadbeef")?.id).toBe("m1");
+    expect(opened.library.mediaByHash("nothing")).toBeNull();
+  });
+
+  it("answers for one taken off the shelf, so adding it again puts it back", () => {
+    add("m1", { hash: "deadbeef" });
+    opened.library.archiveMedia("m1");
+    expect(opened.library.mediaByHash("deadbeef")?.id).toBe("m1");
+    expect(opened.library.restoreMedia("m1")).toBe(true);
+    expect(opened.library.restoreMedia("m1")).toBe(false);
+    expect(opened.library.media()).toHaveLength(1);
+  });
+
+  it("refuses a second row for the same bytes", () => {
+    add("m1", { hash: "deadbeef" });
+    expect(() => add("m2", { hash: "deadbeef" })).toThrow();
+  });
+
+  it("lets rows written before the hash was the identity sit without one", () => {
+    add("m1");
+    add("m2");
+    expect(opened.library.mediaWithoutHash().map((one) => one.id).sort()).toEqual(["m1", "m2"]);
+    opened.library.saveMedia({
+      id: "m1",
+      kind: "image",
+      name: "m1",
+      file: "m1.jpg",
+      mime: "image/jpeg",
+      bytes: 1024,
+      hash: "filled in",
+    });
+    expect(opened.library.mediaWithoutHash().map((one) => one.id)).toEqual(["m2"]);
+  });
+});

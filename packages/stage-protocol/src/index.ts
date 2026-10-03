@@ -476,8 +476,13 @@ export interface EditorState {
   libraryCollection: string | null;
   /** The media shelf, newest first (STG-151, ST9.10). */
   media: MediaRow[];
-  /** What the last add refused, by reason, cleared on the next one. */
-  mediaRefused: "type" | "size" | "unreadable" | null;
+  /**
+   * What the last add did other than add, by reason, cleared on the next one.
+   *
+   * "already" is a file the church has (STG-152): the hash matched a row, so
+   * nothing was copied and that row is back on the shelf.
+   */
+  mediaRefused: "type" | "size" | "unreadable" | "already" | null;
   /** The one open in the window, where one is. */
   editingSet: {
     /** Null until the first save, which is when the list gets a row. */

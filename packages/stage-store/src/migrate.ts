@@ -292,6 +292,23 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX media_hash ON media(content_hash);
     `,
   },
+  {
+    version: 9,
+    name: "one row per file",
+    up: `
+      -- The hash is what a file is (STG-152, ST9.11).
+      --
+      -- A church adds the same photograph twice, from a download folder in
+      -- March and from a desktop in June, and before this it had two of them.
+      -- Unique on the hash, so the second add finds the first row.
+      --
+      -- SQLite allows any number of NULLs through a unique index, which is
+      -- what a row written before this migration has until main hashes its
+      -- copy on the next launch.
+      DROP INDEX media_hash;
+      CREATE UNIQUE INDEX media_hash ON media(content_hash);
+    `,
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.reduce(

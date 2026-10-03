@@ -1308,6 +1308,8 @@ function renderMedia(): void {
 
   const refused = latest?.mediaRefused ?? null;
   el.mediaRefused.hidden = refused === null;
+  // "Already" is an outcome rather than a problem, so it is not in red.
+  el.mediaRefused.dataset["tone"] = refused === "already" ? "quiet" : "bad";
   if (refused !== null) {
     el.mediaRefused.textContent = t(MEDIA_REFUSALS[refused] ?? "media.refused.unreadable");
   }
@@ -1323,6 +1325,7 @@ function renderMedia(): void {
 }
 
 const MEDIA_REFUSALS: Record<string, MessageKey> = {
+  already: "media.refused.already",
   type: "media.refused.type",
   size: "media.refused.size",
   unreadable: "media.refused.unreadable",
@@ -1353,11 +1356,29 @@ function mediaTile(row: MediaRow): HTMLLIElement {
   const preview = document.createElement("div");
   preview.className = "media-preview";
   preview.dataset["kind"] = row.kind;
+  /**
+   * What cannot be drawn says so, here, on the tile (ST9.9).
+   *
+   * Stage takes the file whatever it is, because refusing a church's own
+   * photograph at the door tells them it does not exist. Whether Chromium
+   * decodes it is answered by trying, which is truthful for the file in front
+   * of somebody rather than for its extension: a QuickTime file of H.264 plays
+   * and one of ProRes does not, and they share a name.
+   */
+  const wontPlay = (): void => {
+    preview.dataset["broken"] = "true";
+    preview.replaceChildren(icon("skip"));
+    const says = document.createElement("span");
+    says.textContent = t("media.wontPlay");
+    preview.append(says);
+  };
+
   if (row.kind === "image") {
     const picture = document.createElement("img");
     picture.src = row.src;
     picture.alt = "";
     picture.loading = "lazy";
+    picture.addEventListener("error", wontPlay);
     preview.append(picture);
   } else if (row.kind === "video") {
     // Metadata only, so a shelf of loops does not pull a gigabyte off the disk
@@ -1366,9 +1387,14 @@ function mediaTile(row: MediaRow): HTMLLIElement {
     film.src = row.src;
     film.preload = "metadata";
     film.muted = true;
+    film.addEventListener("error", wontPlay);
     preview.append(film);
   } else {
-    preview.append(icon("note"));
+    const sound = document.createElement("audio");
+    sound.src = row.src;
+    sound.preload = "metadata";
+    sound.addEventListener("error", wontPlay);
+    preview.append(icon("note"), sound);
   }
 
   const name = document.createElement("p");

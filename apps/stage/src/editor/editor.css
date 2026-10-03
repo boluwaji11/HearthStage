@@ -1163,3 +1163,23 @@ body[data-themed="true"] #workbench .card-body {
   margin: var(--space-3) 0 0;
   color: var(--danger);
 }
+
+/* A file Chromium will not decode says so, where it would have been (ST9.9). */
+#workbench .media-preview[data-broken="true"] {
+  flex-direction: column;
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+  color: var(--danger);
+  text-align: center;
+  padding: var(--space-2);
+}
+
+#workbench .media-preview audio {
+  display: none;
+}
+
+#workbench .refusal[data-tone="quiet"] {
+  color: var(--quiet);
+}

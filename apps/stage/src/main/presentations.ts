@@ -77,6 +77,7 @@ export interface PresentationLibrary {
   itemsInCollection(collectionId: string): string[];
   /** The media shelf (STG-151). The files themselves are main's. */
   media(): MediaFile[];
+  getMedia(mediaId: string): MediaFile | null;
   renameMedia(mediaId: string, name: string): boolean;
   archiveMedia(mediaId: string): boolean;
   /** The usage log, for the CCLI report (STG-53). */
@@ -176,7 +177,7 @@ export class Presentations {
   private libraryKind: "song" | "media" | "slides" | null = null;
 
   /** Why the last add was refused, which the shelf says out loud (STG-151). */
-  private mediaRefused: "type" | "size" | "unreadable" | null = null;
+  private mediaRefused: "type" | "size" | "unreadable" | "already" | null = null;
   /** Which collection the library is narrowed to. Null is the whole kind. */
   private libraryCollection: string | null = null;
   private collectionSerial = 0;
@@ -206,7 +207,7 @@ export class Presentations {
    * Main owns the dialog and the disk, so it tells this half the outcome and
    * the window reads it off the state like everything else.
    */
-  mediaAdded(refused: "type" | "size" | "unreadable" | null): void {
+  mediaAdded(refused: "type" | "size" | "unreadable" | "already" | null): void {
     this.mediaRefused = refused;
     this.revision += 1;
   }

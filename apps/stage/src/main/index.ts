@@ -54,7 +54,7 @@ import { sampleLibrary, sampleService } from "@hearth/songs/fixtures";
 import { openLibrary } from "@hearth/stage-store";
 import { t } from "@hearth/stage-i18n";
 import { MEDIA_SCHEME, Presentations } from "./presentations";
-import { addMedia, MEDIA_EXTENSIONS, nameFrom, removeMedia, within } from "./media";
+import { addMedia, dialogFilters, hashOf, nameFrom, removeMedia, within } from "./media";
 import { restoredOrders } from "./repair";
 import { APP_NAME, OLD_FOLDER, relocation } from "./userdata";
 import { Session, type SongShown } from "./session";
@@ -582,7 +582,12 @@ async function chooseMedia(): Promise<void> {
   const parent = control;
   const options: OpenDialogOptions = {
     properties: ["openFile", "multiSelections"],
-    filters: [{ name: t("media.files"), extensions: MEDIA_EXTENSIONS }],
+    filters: dialogFilters({
+      all: t("media.files"),
+      image: t("media.images"),
+      video: t("media.videos"),
+      audio: t("media.audios"),
+    }),
   };
   const chosen =
     parent === null || parent.isDestroyed()
@@ -590,8 +595,29 @@ async function chooseMedia(): Promise<void> {
       : await dialog.showOpenDialog(parent, options);
   if (chosen.canceled || chosen.filePaths.length === 0) return;
 
-  let refused: "type" | "size" | "unreadable" | null = null;
+  let refused: "type" | "size" | "unreadable" | "already" | null = null;
   for (const from of chosen.filePaths) {
+    /**
+     * Hashed before it is copied (STG-152, ST9.11).
+     *
+     * A church adds the same photograph twice, out of a download folder in
+     * March and off a desktop in June. The hash is what the file is, so the
+     * second add finds the first row rather than making another one, and two
+     * gigabytes are not copied to discover it.
+     */
+    let already = null;
+    try {
+      already = store.library.mediaByHash(hashOf(from));
+    } catch {
+      // A file that will not read is reported by addMedia, in one place.
+    }
+    if (already !== null) {
+      // Adding a file somebody took off the shelf is how they put it back.
+      store.library.restoreMedia(already.id);
+      refused = "already";
+      continue;
+    }
+
     const id = `media_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
     const added = addMedia(app.getPath("userData"), id, from);
     if (typeof added === "string") {
@@ -611,6 +637,27 @@ async function chooseMedia(): Promise<void> {
   presentations.mediaAdded(refused);
   broadcast();
 }
+
+/**
+ * The hash on rows written before it was the identity (STG-152, ST9.11).
+ *
+ * Only rows that have none, so a shelf of loops is not read end to end on
+ * every launch. A copy that has gone is left alone: what to do about a missing
+ * file is ST9.9, and guessing here would hide it.
+ */
+function hashWhatIsNotHashed(): void {
+  for (const row of store.library.mediaWithoutHash()) {
+    const path = within(app.getPath("userData"), row.file);
+    if (path === null || !existsSync(path)) continue;
+    try {
+      store.library.saveMedia({ ...row, hash: hashOf(path) });
+    } catch {
+      continue;
+    }
+  }
+}
+
+hashWhatIsNotHashed();
 
 app.whenReady().then(() => {
   // One folder, read only, with every name checked for a way out of it.

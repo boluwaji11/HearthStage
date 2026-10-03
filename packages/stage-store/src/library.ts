@@ -1255,6 +1255,41 @@ export class Library {
     return rows.map(asMedia);
   }
 
+  /**
+   * The row for a file's contents (STG-152, ST9.11).
+   *
+   * The hash is what the file is, so this is how a reference resolves and how
+   * a second add of the same photograph finds the first one. Archived rows
+   * answer too: adding a file somebody took off the shelf is a way of putting
+   * it back, and a second copy of the same bytes is not what they meant.
+   */
+  mediaByHash(hash: string): MediaItem | null {
+    const row = this.db.prepare("SELECT * FROM media WHERE content_hash = ?").get(hash) as
+      | MediaRecord
+      | undefined;
+    return row === undefined ? null : asMedia(row);
+  }
+
+  /** Back onto the shelf, with everything it had. */
+  restoreMedia(mediaId: string): boolean {
+    const timestamp = this.now();
+    const result = this.db
+      .prepare(
+        "UPDATE media SET archived_at = NULL, updated_at = ? WHERE id = ? AND archived_at IS NOT NULL",
+      )
+      .run(timestamp, mediaId);
+    if (result.changes > 0) this.afterWrite?.();
+    return result.changes > 0;
+  }
+
+  /** Rows written before the hash was the identity, for main to fill in. */
+  mediaWithoutHash(): MediaItem[] {
+    const rows = this.db
+      .prepare("SELECT * FROM media WHERE content_hash IS NULL")
+      .all() as MediaRecord[];
+    return rows.map(asMedia);
+  }
+
   getMedia(mediaId: string): MediaItem | null {
     const row = this.db.prepare("SELECT * FROM media WHERE id = ?").get(mediaId) as
       | MediaRecord
