@@ -8,6 +8,13 @@
  */
 import { describe, it, expect } from "vitest";
 import { FitCache, largestFitting, safeBox, sectionSize, type Measure } from "../src/output/fit";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { capRatio } from "../src/output/slide";
+import { DEFAULT_THEME } from "../src/main/themes";
+
+const root = fileURLToPath(new URL("..", import.meta.url));
 
 /** Monospace: every glyph half an em wide, every line `lineHeight` ems tall. */
 function monospace(lineHeight = 1.3): Measure {
@@ -155,5 +162,25 @@ describe("safeBox", () => {
     const tiny = safeBox({ width: 100, height: 100 }, 0.9);
     expect(tiny.width).toBeGreaterThan(0);
     expect(tiny.height).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * STG-28, ST20.4. The legibility floor is on cap height, not on font size.
+ *
+ * The harness found this: thirty two slides at 720p sat under the floor while
+ * passing a check that compared the floor against the font size. A serif at
+ * 28px draws a capital around 20px tall, so the two are not the same number and
+ * the one the requirement names is the smaller one.
+ */
+describe("the legibility floor", () => {
+  it("is divided by how much of a font size a capital is", () => {
+    const source = readFileSync(join(root, "src/output/slide.ts"), "utf8");
+    expect(source).toMatch(/minPx:\s*\(0\.04 \* viewport\.height\) \/ capRatio\(theme\)/);
+  });
+
+  it("falls back to a ratio where there is no canvas to measure one", () => {
+    // In a test there is no document. The fallback is a ratio, never a screen.
+    expect(capRatio(DEFAULT_THEME)).toBeCloseTo(0.7, 5);
   });
 });

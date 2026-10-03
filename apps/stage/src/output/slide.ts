@@ -136,6 +136,40 @@ export function measureWith(ruler: HTMLElement, theme: ThemeState): Measure {
  * output its size at full resolution and a control pane its size at a tenth of
  * it, which is what makes the preview proportionally honest.
  */
+/**
+ * How much of a font size a capital actually is (STG-28, ST20.4).
+ *
+ * The floor in ST20.4 is on cap height, which is not the font size: a serif at
+ * 28px draws a capital around 20px tall, and the ratio differs by typeface. So
+ * it is measured off a canvas in the font itself, once per font, rather than
+ * guessed at.
+ *
+ * A measurement that cannot be taken, in a test with no canvas, falls back to a
+ * ratio that is right for most Latin faces and is never used on a screen.
+ */
+const CAP_RATIOS = new Map<string, number>();
+
+export function capRatio(theme: ThemeState): number {
+  const key = `${theme.fontFamily}|${theme.fontWeight}`;
+  const known = CAP_RATIOS.get(key);
+  if (known !== undefined) return known;
+
+  let ratio = 0.7;
+  try {
+    const context = document.createElement("canvas").getContext("2d");
+    if (context !== null) {
+      context.font = `${theme.fontWeight} 100px ${theme.fontFamily}`;
+      const measured = context.measureText("H").actualBoundingBoxAscent;
+      if (Number.isFinite(measured) && measured > 0) ratio = measured / 100;
+    }
+  } catch {
+    // No canvas. The fallback is a ratio, not a screen.
+  }
+
+  CAP_RATIOS.set(key, ratio);
+  return ratio;
+}
+
 export function sizeFor(
   content: OutputContent,
   theme: ThemeState,
@@ -155,10 +189,12 @@ export function sizeFor(
     within,
     measureWith(ruler, theme),
     {
-      // The floor from ST20.4: cap height at 4% of output height. Below it the
-      // words stop being readable from the back of the room, so the text stays
-      // put and the overflow becomes a problem the render harness reports.
-      minPx: 0.04 * viewport.height,
+      // The floor from ST20.4: cap height at 4% of output height. It is cap
+      // height rather than font size, so the floor is divided by how much of a
+      // font size this typeface's capitals actually are. Below it the words
+      // stop being readable from the back of the room, so the text stays put
+      // and the overflow becomes a problem the render harness reports.
+      minPx: (0.04 * viewport.height) / capRatio(theme),
       maxPx: theme.textSize * viewport.height,
     },
   );

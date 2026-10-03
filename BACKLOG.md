@@ -139,7 +139,7 @@ thing a person does with Stage and until now there was no way to do it. See
 
 | ID | Story | Req | State |
 |---|---|---|---|
-| STG-28 | Build the render harness: rasterise every slide in the fixture library at three resolutions, assert safe area and 7:1 contrast | ST6.4, ST20.4 | New |
+| STG-28 | Build the render harness: lay out every slide in the bundled library at three resolutions, assert the safe area and the cap height floor | ST6.4, ST20.4 | Resolved |
 | STG-29 | Measure advance latency by frame capture and record it per release, on reference hardware | ST21.1, ST21.5 | New |
 | STG-30 | Audit the control surface to WCAG 2.2 AA in CI, the same bar as the platform | ST20.1, ST20.2 | New |
 | STG-31 | Add the architecture test that fails the build if the render path can reach the network | ST21.8 | Resolved |
@@ -472,8 +472,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do, **STG-26** the clock and the reading, **STG-27** the operator brief. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-28**, the render harness: every slide rasterised at three resolutions, safe area and contrast asserted. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do, **STG-26** the clock and the reading, **STG-27** the operator brief, **STG-28** the render harness. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-29**, measuring advance latency by frame capture and recording it per release. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1706,3 +1706,36 @@ second place is a place to drift from.
 **Eight tests** hold that shape: one keydown listener and no second switch on a key anywhere in the
 window, no key with two meanings, every meaning in the catalogue, two cards and both opened from the
 same corner.
+
+## STG-28, how to test it
+
+```
+pnpm --filter @hearth/stage build
+pnpm --filter @hearth/stage render
+```
+
+It lays out every slide of the bundled library in all four looks at 720p, 1080p and 4K, and prints one
+line. **15,756 slides, under three seconds.** `render 40` does the first forty, for when something is
+being fixed.
+
+It is a real engine doing real layout with real fonts, loading the same stylesheet and the same
+renderer module the output window loads. A harness with a page of its own would measure a page no
+church ever sees.
+
+Three things fail the build:
+
+1. **A glyph crossing the safe area** (ST6.4). A descender over that line is clipped on a projector
+   with overscan, and nobody finds out until a Sunday.
+2. **A slide taller than the screen it is on.** A line nobody in the room can read.
+3. **A capital under 4% of the output height** (ST20.4).
+
+**It found a defect in its first full run.** Thirty two slides at 720p sat under the legibility floor.
+The floor was being compared against the font size, and ST20.4 names the **cap height**, which is not
+the same number: a serif at 28px draws a capital about 20px tall, so the real floor was 28% too low.
+The fit now measures how much of a font size a capital is, in the theme's own typeface off a canvas,
+and divides the floor by it. All 15,756 pass, and nothing started overflowing, so those slides had the
+headroom all along and were simply being allowed to shrink too far.
+
+**What it does not do yet.** ST20.4's contrast half is already covered by `theme.test.ts`, which checks
+every theme against every stop of its own gradient through `packages/colour`. Sampling contrast off
+rasterised pixels, which is what catches an image background, waits for the media library in STG-151.
