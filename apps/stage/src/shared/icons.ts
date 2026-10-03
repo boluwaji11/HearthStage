@@ -53,6 +53,11 @@ const SHAPES: Record<string, Shape[]> = {
   /** Back, which is the way you came (STG-47). */
   "arrow-left": [{ d: "M19 12H5" }, { d: "M12 19L5 12L12 5" }],
   close: [{ d: "M18 6L6 18" }, { d: "M6 6L18 18" }],
+  /** Rename, on a chip that already carries its name (STG-150). */
+  pencil: [
+    { d: "M12 20H21" },
+    { d: "M16.5 3.5A2.1 2.1 0 0 1 19.5 6.5L7 19L3 20L4 16Z" },
+  ],
   grip: [
     { cx: 9, cy: 5 },
     { cx: 9, cy: 12 },

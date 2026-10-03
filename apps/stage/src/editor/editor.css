@@ -1031,12 +1031,12 @@ body[data-themed="true"] #workbench .card-body {
 }
 
 /* Only beside the chip it belongs to, so a row of them stays readable. */
-#workbench .chip-remove {
+#workbench .chip-act {
   display: grid;
   place-items: center;
   width: 1.25rem;
   height: 1.25rem;
-  margin-left: calc(var(--space-1) * -1);
+  margin-left: calc(var(--space-1) * -0.5);
   padding: 0;
   color: var(--quiet);
   background: none;
@@ -1045,12 +1045,17 @@ body[data-themed="true"] #workbench .card-body {
   opacity: 0;
 }
 
-#workbench .chips li:hover .chip-remove,
-#workbench .chip-remove:focus-visible {
+#workbench .chips li:hover .chip-act,
+#workbench .chip-act:focus-visible {
   opacity: 1;
 }
 
-#workbench .chip-remove svg {
+#workbench .chip-act:hover {
+  color: var(--text);
+  background: var(--raised);
+}
+
+#workbench .chip-act svg {
   width: 0.75rem;
   height: 0.75rem;
 }

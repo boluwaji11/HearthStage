@@ -108,6 +108,20 @@ const narrowed = await evalIn(`document.querySelectorAll("#tiles li").length`);
 console.log(`   library went from ${allSongs} to ${narrowed}`);
 if (!(narrowed === 1 && allSongs > 1)) fail.push("the collection did not narrow the library");
 else console.log("ok    the collection narrows the library");
+// Renaming, which a double press used to swallow (the two clicks under it
+// re-rendered the row out from beneath the box).
+await evalIn(`document.querySelector("#collection-list li .chip-act")?.click()`);
+await new Promise(s=>setTimeout(s,400));
+const box = await evalIn(`document.querySelector("#collection-list .chip-name") !== null`);
+if (!box) fail.push("the rename icon did not open a name box");
+else console.log("ok    the rename icon opens a name box");
+await evalIn(`const b=document.querySelector("#collection-list .chip-name"); b.value="Advent"; b.dispatchEvent(new KeyboardEvent("keydown",{key:"Enter",bubbles:true})); 0`);
+await new Promise(s=>setTimeout(s,900));
+const named = await evalIn(`document.querySelector("#collection-list .chip")?.textContent ?? ""`);
+console.log("   renamed to:", JSON.stringify(named));
+if (named !== "Advent") fail.push("the rename did not stick");
+else console.log("ok    the new name stuck");
+
 await evalIn(`document.getElementById("collection-all").click()`);
 await new Promise(s=>setTimeout(s,700));
 const back = await evalIn(`document.querySelectorAll("#tiles li").length`);

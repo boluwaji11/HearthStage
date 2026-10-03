@@ -946,8 +946,9 @@ function paintPages(): void {
  * A church's own grouping, as a row of chips (STG-150, ST2.18).
  *
  * Shown once a kind is chosen, because a collection is a way of narrowing a
- * list and there is no list before that. Renaming is a double press, which is
- * the one gesture that needs no second button on a row of them.
+ * list and there is no list before that. Renaming and removing are icons beside
+ * the name, which is how a repeated action is written (docs/design-system.md
+ * section 12).
  */
 function renderCollections(): void {
   const kind = latest?.libraryKind ?? null;
@@ -955,6 +956,8 @@ function renderCollections(): void {
   const only = latest?.libraryCollection ?? null;
 
   el.collections.hidden = kind === null;
+  // A name being typed outlives any state that arrives while it is open.
+  if (el.collectionList.querySelector(".chip-name") !== null) return;
   el.collectionAll.setAttribute("aria-pressed", String(only === null));
 
   el.collectionList.replaceChildren();
@@ -969,18 +972,26 @@ function renderCollections(): void {
     button.addEventListener("click", () =>
       send({ type: "showCollection", collectionId: only === row.id ? null : row.id }),
     );
-    button.addEventListener("dblclick", () => renameCollection(button, row.id, row.name));
+
+    const rename = document.createElement("button");
+    rename.type = "button";
+    rename.className = "chip-act";
+    rename.title = t("collection.rename");
+    rename.setAttribute("aria-label", t("collection.rename"));
+    rename.append(icon("pencil"));
+    rename.addEventListener("click", () => renameCollection(button, row.id, row.name));
 
     const remove = document.createElement("button");
     remove.type = "button";
-    remove.className = "chip-remove";
+    remove.className = "chip-act";
+    remove.title = t("collection.remove");
     remove.setAttribute("aria-label", t("collection.remove"));
     remove.append(icon("close"));
     remove.addEventListener("click", () =>
       send({ type: "archiveCollection", collectionId: row.id }),
     );
 
-    item.append(button, remove);
+    item.append(button, rename, remove);
     el.collectionList.append(item);
   }
 }
@@ -988,9 +999,8 @@ function renderCollections(): void {
 /**
  * Renaming, in the chip itself.
  *
- * A dialog for one short word is a dialog too many, and a second button on
- * every chip is a row nobody can read. The chip becomes a box, and leaving it
- * is the save, which is how the rest of this window already works.
+ * A dialog for one short word is a dialog too many. The chip becomes a box, and
+ * leaving it is the save, which is how the rest of this window already works.
  */
 function renameCollection(chip: HTMLButtonElement, collectionId: string, was: string): void {
   const box = document.createElement("input");
@@ -999,11 +1009,17 @@ function renameCollection(chip: HTMLButtonElement, collectionId: string, was: st
   box.value = was;
   box.setAttribute("aria-label", t("collection.rename"));
 
+  const acts = [...(chip.parentElement?.querySelectorAll<HTMLElement>(".chip-act") ?? [])];
+  for (const act of acts) act.hidden = true;
+
   let done = false;
   const finish = (save: boolean): void => {
     if (done) return;
     done = true;
     const name = box.value.trim();
+    // Out of the row first, so the guard in renderCollections lets it through.
+    box.replaceWith(chip);
+    for (const act of acts) act.hidden = false;
     if (save && name !== "" && name !== was) {
       send({ type: "renameCollection", collectionId, name });
     } else {
