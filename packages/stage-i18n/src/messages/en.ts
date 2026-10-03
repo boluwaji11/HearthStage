@@ -259,6 +259,13 @@ export const en = {
 
   // This machine
   "settings.title": "This machine",
+  "ground.label": "Background",
+  "ground.choose": "Choose a background",
+  "ground.none": "None",
+  "ground.clear": "Clear the background",
+  "ground.missing": "That file is gone",
+  "ground.planLabel": "Background for the service",
+
   "media.files": "Images, video and audio",
   "media.images": "Images",
   "media.videos": "Video",

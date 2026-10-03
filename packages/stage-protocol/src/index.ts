@@ -353,8 +353,26 @@ export interface CollectionRow {
  * file lives in the profile, so main serves the media folder over its own
  * scheme rather than handing a path across.
  */
+/**
+ * The ground an item or a plan is set to (STG-153, ST9.10).
+ *
+ * Carries the hash it is stored by and the source a window draws it from, so
+ * the renderer never resolves a reference and main never draws anything.
+ * `missing` is a hash with no file behind it any more, which the window says
+ * out loud rather than showing an empty frame (ST9.9).
+ */
+export interface ChosenGround {
+  hash: string;
+  name: string;
+  kind: "image" | "video" | "audio";
+  src: string | null;
+  missing: boolean;
+}
+
 export interface MediaRow {
   id: string;
+  /** What the file is, and how a reference names it (STG-152, ST9.11). */
+  hash: string | null;
   kind: "image" | "video" | "audio";
   name: string;
   src: string;
@@ -410,6 +428,8 @@ export interface EditorState {
     themeId: string | null;
     /** Where a reading is from (STG-26). Null on everything else. */
     reference: string | null;
+    /** The ground chosen from the media shelf (STG-153). Null takes the theme's. */
+    background: ChosenGround | null;
     /** Present on a song, absent on a presentation (STG-7). */
     song: SongFields | null;
     /** The ways it can be sung (STG-9). Empty on a presentation. */
@@ -491,6 +511,8 @@ export interface EditorState {
     title: string;
     date: string;
     entries: SetEntryDraft[];
+    /** One ground behind the whole service (STG-153). */
+    background: ChosenGround | null;
   } | null;
   /** What is wrong with the last save attempt, by code (STG-145). */
   problems: { code: string; detail: string }[];
@@ -610,6 +632,14 @@ export type Intent =
    * profile, so the church can tidy the folder it came from.
    */
   | { type: "addMedia" }
+  /**
+   * The ground behind the words (STG-153, ST9.10).
+   *
+   * Applies to whatever is open: the item, or the plan where no item is. Null
+   * clears it back to the theme's own ground. By content hash, which is what
+   * the reference is (ST9.11).
+   */
+  | { type: "setBackground"; hash: string | null }
   | { type: "renameMedia"; mediaId: string; name: string }
   | { type: "archiveMedia"; mediaId: string }
   | { type: "newSetList" }
@@ -721,6 +751,7 @@ export function isIntent(value: unknown): value is Intent {
     format?: unknown;
     collectionId?: unknown;
     mediaId?: unknown;
+    hash?: unknown;
     withItemId?: unknown;
     inIt?: unknown;
     position?: unknown;
@@ -839,6 +870,8 @@ export function isIntent(value: unknown): value is Intent {
       );
     case "addMedia":
       return true;
+    case "setBackground":
+      return candidate.hash === null || typeof candidate.hash === "string";
     case "archiveMedia":
       return typeof candidate.mediaId === "string" && candidate.mediaId.length > 0;
     case "renameMedia":

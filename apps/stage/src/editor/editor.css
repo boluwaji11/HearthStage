@@ -1183,3 +1183,71 @@ body[data-themed="true"] #workbench .card-body {
 #workbench .refusal[data-tone="quiet"] {
   color: var(--quiet);
 }
+
+/* Choosing a ground off the media shelf (STG-153, ST9.10). */
+#workbench .ground-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+#workbench .ground-field h2 {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--quiet);
+  margin: 0;
+}
+
+#workbench .ground-pick {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-1);
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--text);
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+#workbench .ground-pick > span {
+  padding-left: var(--space-2);
+}
+
+#workbench .ground-pick img,
+#workbench .ground-pick video {
+  width: 2.75rem;
+  height: 1.55rem;
+  object-fit: cover;
+  border-radius: 999px;
+}
+
+#workbench .ground-pick[data-missing="true"] {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+#workbench .ground {
+  width: min(44rem, 92vw);
+}
+
+#workbench .ground .media-shelf {
+  max-height: 24rem;
+  overflow-y: auto;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+}
+
+/* In the picker the whole tile is the choice, so the tile is the button. */
+#workbench .media-choose {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+}
+
+#workbench .media-choose:hover {
+  background: oklch(1 0 0 / 0.06);
+}

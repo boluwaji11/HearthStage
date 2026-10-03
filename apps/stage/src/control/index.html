@@ -193,6 +193,7 @@
             <label for="plan-date" data-t="plan.date"></label>
             <input id="plan-date" type="date" />
           </div>
+          <button id="plan-ground" type="button" class="ground-pick" data-t-label="ground.planLabel"></button>
           <button id="plan-present" type="button" data-t="editor.present"></button>
         </header>
 
@@ -237,6 +238,13 @@
             <h2 data-t="collection.in"></h2>
             <ol id="item-collection-list" class="chips"></ol>
             <button id="item-collection-new" type="button" class="chip" data-t="collection.new"></button>
+          </section>
+
+          <!-- A church's own photograph or loop behind the words (STG-153, ST9.10). -->
+          <section id="ground-field" class="ground-field" data-t-label="ground.label" hidden>
+            <h2 data-t="ground.label"></h2>
+            <button id="ground-pick" type="button" class="ground-pick" data-t-label="ground.choose"></button>
+            <button id="ground-clear" type="button" class="chip-act" data-t-label="ground.clear" hidden></button>
           </section>
 
           <div id="credits" class="credits" hidden>
@@ -320,6 +328,20 @@
         </div>
         <ol id="pick-list" class="pick-list"></ol>
         <p id="pick-empty" class="quiet" hidden></p>
+      </dialog>
+
+      <!-- Choosing a ground off the media shelf (STG-153, ST9.10). -->
+      <dialog id="ground" class="ask ground">
+        <div class="card-head">
+          <h2 data-t="ground.choose"></h2>
+          <button id="ground-close" type="button" class="icon" data-t-label="card.close"></button>
+        </div>
+        <div class="field">
+          <label for="ground-search" data-t="library.search"></label>
+          <input id="ground-search" type="search" autocomplete="off" />
+        </div>
+        <ol id="ground-list" class="media-shelf"></ol>
+        <p id="ground-empty" class="quiet" data-t="media.empty" hidden></p>
       </dialog>
     </div>
 

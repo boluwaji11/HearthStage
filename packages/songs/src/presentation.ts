@@ -68,6 +68,14 @@ export interface Presentation {
    * translations arrive with ST7.1.
    */
   reference: string | null;
+  /**
+   * A church's own photograph or loop behind the words (STG-153, ST9.10).
+   *
+   * The content hash rather than a row id or a path, so a church that
+   * reorganises its folders, or adds the same photograph twice, is naming one
+   * file both times (ST9.11). Null takes the theme's own ground.
+   */
+  background: string | null;
   /** RFC 3339. Maintained from usage rather than typed. */
   lastUsedAt: string | null;
   /**
@@ -93,6 +101,7 @@ export function newPresentation(
     slides: [],
     themeId: null,
     reference: null,
+    background: null,
     lastUsedAt: null,
     inLibrary: options.inLibrary ?? true,
   };

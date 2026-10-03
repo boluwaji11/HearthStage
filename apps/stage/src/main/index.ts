@@ -860,6 +860,7 @@ app.whenReady().then(() => {
 
       case "setUsagePeriod":
       case "renameMedia":
+      case "setBackground":
       case "newCollection":
       case "renameCollection":
       case "archiveCollection":

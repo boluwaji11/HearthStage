@@ -200,6 +200,21 @@ await new Promise(s=>setTimeout(s,400));
 await evalIn(`(()=>{const t=document.querySelector("#slides textarea"); if(!t) return "no box"; t.value="Church lunch"; t.dispatchEvent(new Event("input")); t.dispatchEvent(new Event("blur")); return "typed";})()`);
 await new Promise(s=>setTimeout(s,1200));
 await check("save to library now offered", "#to-library", visible);
+
+// STG-153. The ground comes off the media shelf rather than off a disk.
+await check("background on the slide", "#ground-field", visible);
+console.log("   with none chosen:", JSON.stringify(await evalIn(`document.getElementById("ground-pick").textContent`)));
+await check("clear hidden with none chosen", "#ground-clear", hidden);
+await evalIn(`document.getElementById("ground-pick").click()`);
+await new Promise(s=>setTimeout(s,500));
+await check("the ground picker", "#ground", visible);
+console.log("   the shelf is empty, so it says so:", await evalIn(`!document.getElementById("ground-empty").hidden`));
+if (await evalIn(`!document.getElementById("ground-empty").hidden`) !== true) fail.push("the ground picker did not say the shelf is empty");
+else console.log("ok    the ground picker says the shelf is empty");
+await evalIn(`document.getElementById("ground-close").click()`);
+await new Promise(s=>setTimeout(s,400));
+await check("ground picker closed", "#ground", hidden);
+
 await evalIn(`document.getElementById("back").click()`);
 await new Promise(s=>setTimeout(s,700));
 await check("back on the plan", "#plan-view", visible);

@@ -38,6 +38,7 @@ const MORNING: SetList = {
   id: "set-1",
   title: "Morning Service",
   date: "2026-10-04",
+  background: null,
   updatedAt: null,
   entries: [
     entry({ sortOrder: 0, title: "Welcome", kind: "marker" }),

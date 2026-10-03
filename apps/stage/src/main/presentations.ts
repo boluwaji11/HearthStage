@@ -44,6 +44,7 @@ import type {
   LibraryItem,
   OrderDraft,
   SetEntryDraft,
+  ChosenGround,
   MediaRow,
   SetListRow,
   SlideDraft,
@@ -78,6 +79,7 @@ export interface PresentationLibrary {
   /** The media shelf (STG-151). The files themselves are main's. */
   media(): MediaFile[];
   getMedia(mediaId: string): MediaFile | null;
+  mediaByHash(hash: string): MediaFile | null;
   renameMedia(mediaId: string, name: string): boolean;
   archiveMedia(mediaId: string): boolean;
   /** The usage log, for the CCLI report (STG-53). */
@@ -87,6 +89,7 @@ export interface PresentationLibrary {
 /** What this half needs of a media row. The store's MediaItem satisfies it. */
 export interface MediaFile {
   id: string;
+  hash: string | null;
   kind: "image" | "video" | "audio";
   name: string;
   file: string;
@@ -178,6 +181,15 @@ export class Presentations {
 
   /** Why the last add was refused, which the shelf says out loud (STG-151). */
   private mediaRefused: "type" | "size" | "unreadable" | "already" | null = null;
+
+  /**
+   * A ground chosen before the item it belongs to has been saved (STG-153).
+   *
+   * Held here rather than refused, because somebody building a slide chooses
+   * the photograph while they are building it, and a button that does nothing
+   * until a save is a button nobody presses twice.
+   */
+  private pendingBackground: string | null = null;
   /** Which collection the library is narrowed to. Null is the whole kind. */
   private libraryCollection: string | null = null;
   private collectionSerial = 0;
@@ -408,6 +420,43 @@ export class Presentations {
         return true;
       }
 
+      /**
+       * The ground behind the words (STG-153, ST9.10).
+       *
+       * Whatever is open takes it: the item, or the plan where no item is. A
+       * hash with nothing behind it is refused here, so a window cannot store
+       * a reference to a file this church does not have.
+       */
+      case "setBackground": {
+        if (intent.hash !== null && this.library.mediaByHash(intent.hash) === null) return false;
+
+        if (this.editingId !== null) {
+          const presentation = this.library.getPresentation(this.editingId);
+          if (presentation === null) return false;
+          this.library.savePresentation({ ...presentation, background: intent.hash });
+          this.serial += 1;
+          this.revision += 1;
+          return true;
+        }
+
+        if (this.drafting) {
+          this.pendingBackground = intent.hash;
+          this.revision += 1;
+          return true;
+        }
+
+        if (this.setEditingId !== null) {
+          const list = this.library.getSetList(this.setEditingId);
+          if (list === null) return false;
+          this.library.saveSetList({ ...list, background: intent.hash });
+          this.setSerial += 1;
+          this.revision += 1;
+          return true;
+        }
+
+        return false;
+      }
+
       case "renameMedia": {
         const name = intent.name.trim();
         if (name === "") return false;
@@ -611,6 +660,8 @@ export class Presentations {
           : reference === null || reference.trim() === ""
             ? null
             : reference.trim(),
+      // Chosen while the slide was still a draft, and now it has a row.
+      background: existing?.background ?? this.pendingBackground,
     };
 
     const found = validatePresentation(presentation);
@@ -627,6 +678,7 @@ export class Presentations {
     }
 
     this.library.savePresentation(presentation);
+    this.pendingBackground = null;
     if (existing === null && this.draftIntoSet !== null) this.intoSet(this.draftIntoSet, presentation);
     this.draftIntoSet = null;
     this.editingId = id;
@@ -756,6 +808,7 @@ export class Presentations {
       media: this.library.media().map(
         (one): MediaRow => ({
           id: one.id,
+          hash: one.hash,
           kind: one.kind,
           name: one.name,
           src: mediaSrc(one.file),
@@ -817,6 +870,7 @@ export class Presentations {
             title: entry.title,
             notes: entry.notes,
           })),
+          background: this.ground(list.background),
         };
       }
     }
@@ -828,10 +882,33 @@ export class Presentations {
         title: "",
         date: new Date().toISOString().slice(0, 10),
         entries: [],
+        background: null,
       };
     }
 
     return null;
+  }
+
+  /**
+   * A stored reference, as a window can draw it (STG-153, ST9.11).
+   *
+   * The hash is what was stored. Whether a file still answers to it is a
+   * separate question, and one the window says out loud rather than showing an
+   * empty frame (ST9.9).
+   */
+  private ground(hash: string | null): ChosenGround | null {
+    if (hash === null) return null;
+    const found = this.library.mediaByHash(hash);
+    if (found === null) {
+      return { hash, name: t("ground.missing"), kind: "image", src: null, missing: true };
+    }
+    return {
+      hash,
+      name: found.name,
+      kind: found.kind,
+      src: mediaSrc(found.file),
+      missing: false,
+    };
   }
 
   /** How many of the bundled hymns the library does not have (STG-10). */
@@ -860,6 +937,7 @@ export class Presentations {
           slides: slideInputs(presentation),
           themeId: presentation.themeId,
           reference: presentation.reference,
+          background: this.ground(presentation.background),
           song: null,
           orders: [],
           // A synced presentation belongs to the platform, so the laptop shows
@@ -880,6 +958,7 @@ export class Presentations {
           slides: sectionDrafts(song),
           themeId: null,
           reference: null,
+          background: null,
           song: fieldsOf(song.song),
           orders: orderDrafts(song),
           // A synced song belongs to the platform, so the laptop shows it and
@@ -900,6 +979,7 @@ export class Presentations {
         slides: [],
         themeId: null,
         reference: null,
+        background: this.ground(this.pendingBackground),
         song: null,
         orders: [],
         readOnly: false,

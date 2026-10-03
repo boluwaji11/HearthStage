@@ -40,6 +40,14 @@ export interface SetList {
   /** The service date in the church's timezone, YYYY-MM-DD. */
   date: string;
   entries: SetEntry[];
+  /**
+   * One ground behind the whole service (STG-153, ST9.10).
+   *
+   * By content hash (ST9.11). An item with its own takes its own, so a church
+   * sets the service's look once and overrides the one slide that wants a
+   * photograph.
+   */
+  background: string | null;
   updatedAt: string | null;
 }
 
@@ -162,6 +170,9 @@ export function duplicateSetList(list: SetList, id: string): SetList {
     id,
     title: list.title,
     date: aWeekAfter(list.date),
+    // The look comes across with the order, because a church that chose a
+    // ground for last week chose it for this week too.
+    background: list.background,
     updatedAt: null,
     entries: orderedEntries(list).map((entry, index) => ({
       ...entry,
@@ -187,6 +198,7 @@ export function newSetList(id: string, options: { title?: string; date?: string 
     title: options.title ?? "",
     date: options.date ?? new Date().toISOString().slice(0, 10),
     entries: [],
+    background: null,
     updatedAt: null,
   };
 }

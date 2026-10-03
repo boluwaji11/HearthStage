@@ -62,6 +62,7 @@ describe("the first ten minutes", () => {
       kind: "plain",
       orders: [],
       reference: null,
+      background: null,
       serial: state.editing?.serial,
       title: "",
       slides: [],
@@ -1315,5 +1316,141 @@ describe("the media shelf", () => {
     expect(presentations.state().mediaRefused).toBe("type");
     presentations.mediaAdded(null);
     expect(presentations.state().mediaRefused).toBeNull();
+  });
+});
+
+/** STG-153, ST9.10, ST9.11. A church's own ground, picked off the shelf. */
+describe("the ground behind the words", () => {
+  beforeEach(() => {
+    opened.library.saveMedia({
+      id: "m1",
+      kind: "image",
+      name: "Autumn field",
+      file: "m1.jpg",
+      mime: "image/jpeg",
+      bytes: 2048,
+      hash: "hash-one",
+    });
+  });
+
+  it("sets it on the open item, by the hash rather than the row", () => {
+    presentations.apply({ type: "newPresentation" });
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: null,
+      title: "Notices",
+      slides: [{ label: null, body: "Church lunch" }],
+    });
+    const id = presentations.state().editing?.id ?? "";
+
+    expect(presentations.apply({ type: "setBackground", hash: "hash-one" })).toBe(true);
+    expect(opened.library.getPresentation(id)?.background).toBe("hash-one");
+    expect(presentations.state().editing?.background).toMatchObject({
+      hash: "hash-one",
+      name: "Autumn field",
+      kind: "image",
+      src: "stage-media://file/m1.jpg",
+      missing: false,
+    });
+  });
+
+  it("keeps the ground across a save of the words", () => {
+    presentations.apply({ type: "newPresentation" });
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: null,
+      title: "Notices",
+      slides: [{ label: null, body: "One" }],
+    });
+    const id = presentations.state().editing?.id ?? "";
+    presentations.apply({ type: "setBackground", hash: "hash-one" });
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: id,
+      title: "Notices",
+      slides: [{ label: null, body: "One" }, { label: null, body: "Two" }],
+    });
+    expect(opened.library.getPresentation(id)?.background).toBe("hash-one");
+  });
+
+  it("holds one chosen before the first save, and writes it when there is a row", () => {
+    presentations.apply({ type: "newPresentation" });
+    expect(presentations.apply({ type: "setBackground", hash: "hash-one" })).toBe(true);
+    expect(presentations.state().editing?.background?.hash).toBe("hash-one");
+
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: null,
+      title: "Notices",
+      slides: [{ label: null, body: "Church lunch" }],
+    });
+    const id = presentations.state().editing?.id ?? "";
+    expect(opened.library.getPresentation(id)?.background).toBe("hash-one");
+  });
+
+  it("sets it on the plan when no item is open", () => {
+    presentations.apply({ type: "newSetList" });
+    presentations.apply({
+      type: "saveSetList",
+      setListId: null,
+      title: "Morning Service",
+      date: "2026-10-04",
+      entries: [{ kind: "marker", itemId: null, title: "Welcome" }],
+    });
+    const id = presentations.state().editingSet?.id ?? "";
+    expect(presentations.apply({ type: "setBackground", hash: "hash-one" })).toBe(true);
+    expect(opened.library.getSetList(id)?.background).toBe("hash-one");
+    expect(presentations.state().editingSet?.background?.name).toBe("Autumn field");
+  });
+
+  it("clears back to the theme's own ground", () => {
+    presentations.apply({ type: "newPresentation" });
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: null,
+      title: "Notices",
+      slides: [{ label: null, body: "One" }],
+    });
+    presentations.apply({ type: "setBackground", hash: "hash-one" });
+    expect(presentations.apply({ type: "setBackground", hash: null })).toBe(true);
+    expect(presentations.state().editing?.background).toBeNull();
+  });
+
+  it("refuses a hash this church has no file for", () => {
+    presentations.apply({ type: "newPresentation" });
+    expect(presentations.apply({ type: "setBackground", hash: "not-here" })).toBe(false);
+  });
+
+  it("says so where the file behind a stored hash has gone", () => {
+    presentations.apply({ type: "newPresentation" });
+    presentations.apply({
+      type: "savePresentation",
+      presentationId: null,
+      title: "Notices",
+      slides: [{ label: null, body: "One" }],
+    });
+    const id = presentations.state().editing?.id ?? "";
+    presentations.apply({ type: "setBackground", hash: "hash-one" });
+
+    const held = opened.library.getPresentation(id);
+    opened.library.archiveMedia("m1");
+    opened.library.saveMedia({
+      id: "m1",
+      kind: "image",
+      name: "Autumn field",
+      file: "m1.jpg",
+      mime: "image/jpeg",
+      bytes: 2048,
+      hash: "hash-two",
+    });
+    expect(held?.background).toBe("hash-one");
+
+    presentations.apply({ type: "closeItem" });
+    presentations.apply({ type: "openItem", itemId: id });
+    expect(presentations.state().editing?.background).toMatchObject({
+      hash: "hash-one",
+      src: null,
+      missing: true,
+    });
   });
 });

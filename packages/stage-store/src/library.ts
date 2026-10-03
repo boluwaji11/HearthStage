@@ -175,6 +175,7 @@ interface PresentationRow {
   reference: string | null;
   last_used_at: string | null;
   in_library: number;
+  background_hash: string | null;
   archived_at: string | null;
 }
 
@@ -207,6 +208,7 @@ function toPresentation(row: PresentationRow, slides: PresentationSlide[]): Pres
     slides,
     themeId: row.theme_id,
     reference: row.reference,
+    background: row.background_hash,
     lastUsedAt: row.last_used_at,
     inLibrary: row.in_library !== 0,
   };
@@ -653,9 +655,9 @@ export class Library {
       this.db
         .prepare(
           `INSERT INTO presentations
-             (id, origin, kind, title, theme_id, reference, last_used_at, in_library, archived_at, created_at, updated_at)
+             (id, origin, kind, title, theme_id, reference, background_hash, last_used_at, in_library, archived_at, created_at, updated_at)
            VALUES (
-             @id, @origin, @kind, @title, @theme_id, @reference, @last_used_at, @in_library,
+             @id, @origin, @kind, @title, @theme_id, @reference, @background_hash, @last_used_at, @in_library,
              COALESCE((SELECT archived_at FROM presentations WHERE id = @id), NULL),
              @created_at, @updated_at
            )
@@ -664,6 +666,7 @@ export class Library {
              title = excluded.title,
              theme_id = excluded.theme_id,
              reference = excluded.reference,
+             background_hash = excluded.background_hash,
              last_used_at = excluded.last_used_at,
              in_library = excluded.in_library,
              updated_at = excluded.updated_at`,
@@ -675,6 +678,7 @@ export class Library {
           title: presentation.title,
           theme_id: presentation.themeId,
           reference: presentation.reference,
+          background_hash: presentation.background,
           last_used_at: presentation.lastUsedAt,
           in_library: presentation.inLibrary ? 1 : 0,
           created_at: existing?.created_at ?? timestamp,
@@ -892,17 +896,19 @@ export class Library {
 
       this.db
         .prepare(
-          `INSERT INTO set_lists (id, title, date, archived_at, created_at, updated_at)
-           VALUES (@id, @title, @date, NULL, @created_at, @updated_at)
+          `INSERT INTO set_lists (id, title, date, background_hash, archived_at, created_at, updated_at)
+           VALUES (@id, @title, @date, @background_hash, NULL, @created_at, @updated_at)
            ON CONFLICT(id) DO UPDATE SET
              title = excluded.title,
              date = excluded.date,
+             background_hash = excluded.background_hash,
              updated_at = excluded.updated_at`,
         )
         .run({
           id: list.id,
           title: list.title.trim(),
           date: list.date,
+          background_hash: list.background,
           created_at: existing?.created_at ?? timestamp,
           updated_at: timestamp,
         });
@@ -936,7 +942,7 @@ export class Library {
 
   getSetList(setListId: string): SetList | null {
     const row = this.db.prepare("SELECT * FROM set_lists WHERE id = ?").get(setListId) as
-      | { id: string; title: string; date: string; updated_at: string }
+      | { id: string; title: string; date: string; background_hash: string | null; updated_at: string }
       | undefined;
     if (row === undefined) return null;
 
@@ -964,7 +970,14 @@ export class Library {
       }),
     );
 
-    return { id: row.id, title: row.title, date: row.date, entries, updatedAt: row.updated_at };
+    return {
+      id: row.id,
+      title: row.title,
+      date: row.date,
+      entries,
+      background: row.background_hash,
+      updatedAt: row.updated_at,
+    };
   }
 
   /** Every set list, newest service first, which is how a church looks. */

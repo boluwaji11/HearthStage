@@ -45,6 +45,7 @@ import {
   type EditorState,
   type Intent,
   type LibraryItem,
+  type ChosenGround,
   type MediaRow,
   type LibraryKind,
   type OrderDraft,
@@ -135,6 +136,15 @@ const el = {
   planProblems: document.getElementById("plan-problems") as HTMLUListElement,
   pick: document.getElementById("pick") as HTMLDialogElement,
   pickClose: document.getElementById("pick-close") as HTMLButtonElement,
+  groundField: document.getElementById("ground-field") as HTMLElement,
+  groundPick: document.getElementById("ground-pick") as HTMLButtonElement,
+  groundClear: document.getElementById("ground-clear") as HTMLButtonElement,
+  planGround: document.getElementById("plan-ground") as HTMLButtonElement,
+  ground: document.getElementById("ground") as HTMLDialogElement,
+  groundClose: document.getElementById("ground-close") as HTMLButtonElement,
+  groundSearch: document.getElementById("ground-search") as HTMLInputElement,
+  groundList: document.getElementById("ground-list") as HTMLOListElement,
+  groundEmpty: document.getElementById("ground-empty") as HTMLParagraphElement,
   pickSearch: document.getElementById("pick-search") as HTMLInputElement,
   pickList: document.getElementById("pick-list") as HTMLOListElement,
   pickEmpty: document.getElementById("pick-empty") as HTMLParagraphElement,
@@ -164,6 +174,8 @@ interface Draft {
   collections: string[];
   /** Whether this is on the library shelf (STG-169). */
   inLibrary: boolean;
+  /** The ground chosen off the media shelf (STG-153). */
+  background: ChosenGround | null;
 }
 
 let draft: Draft | null = null;
@@ -195,8 +207,14 @@ let logo: string | null = null;
  * replaces what is in its boxes only when the serial changes, which happens
  * when a different order is opened.
  */
-let service: { id: string | null; serial: number; title: string; date: string; entries: SetEntryDraft[] } | null =
-  null;
+let service: {
+  id: string | null;
+  serial: number;
+  title: string;
+  date: string;
+  entries: SetEntryDraft[];
+  background: ChosenGround | null;
+} | null = null;
 let planTimer: number | undefined;
 /** This machine is a page main owns, because the landing page reaches it too. */
 function settingsOpen(): boolean {
@@ -1349,7 +1367,7 @@ function sizeOf(bytes: number): string {
   return `${value < 10 && unit > 0 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`;
 }
 
-function mediaTile(row: MediaRow): HTMLLIElement {
+function mediaTile(row: MediaRow, options: { choose?: boolean } = {}): HTMLLIElement {
   const item = document.createElement("li");
   item.className = "media-item";
 
@@ -1429,6 +1447,21 @@ function mediaTile(row: MediaRow): HTMLLIElement {
   remove.append(icon("trash"));
   remove.addEventListener("click", () => send({ type: "archiveMedia", mediaId: row.id }));
 
+  if (options.choose === true) {
+    // In the picker the whole tile is the choice, so the tile is the button.
+    const choose = document.createElement("button");
+    choose.type = "button";
+    choose.className = "media-choose";
+    choose.setAttribute("aria-label", row.name);
+    choose.addEventListener("click", () => {
+      if (row.hash === null) return;
+      send({ type: "setBackground", hash: row.hash });
+      el.ground.close();
+    });
+    item.append(preview, name, facts, choose);
+    return item;
+  }
+
   acts.append(rename, remove);
   item.append(preview, name, facts, acts);
   return item;
@@ -1464,6 +1497,70 @@ function renameMedia(label: HTMLElement, mediaId: string, was: string): void {
   label.replaceWith(box);
   box.focus();
   box.select();
+}
+
+/**
+ * The ground an item or a plan is set to (STG-153, ST9.10).
+ *
+ * The button is the thing it chose rather than the word "Choose", because a
+ * picture is what somebody is deciding about and a label that reads
+ * "Background: autumn-field.jpg" tells them less than the photograph does.
+ */
+function renderGround(): void {
+  const chosen = draft?.background ?? null;
+  // Offered on anything that can hold one. A song's slides come from the
+  // library and a church sets their look with a theme (ST8.1).
+  el.groundField.hidden = draft === null || draft.kind === "song" || draft.readOnly;
+  paintGround(el.groundPick, chosen);
+  el.groundClear.hidden = chosen === null;
+
+  paintGround(el.planGround, service?.background ?? null);
+}
+
+function paintGround(button: HTMLButtonElement, chosen: ChosenGround | null): void {
+  button.replaceChildren();
+  button.dataset["missing"] = String(chosen?.missing ?? false);
+
+  if (chosen === null) {
+    const none = document.createElement("span");
+    none.textContent = t("ground.none");
+    button.append(none);
+    button.setAttribute("aria-label", t("ground.choose"));
+    return;
+  }
+
+  button.setAttribute("aria-label", chosen.name);
+  if (chosen.src !== null && chosen.kind === "image") {
+    const picture = document.createElement("img");
+    picture.src = chosen.src;
+    picture.alt = "";
+    button.append(picture);
+  } else if (chosen.src !== null && chosen.kind === "video") {
+    const film = document.createElement("video");
+    film.src = chosen.src;
+    film.preload = "metadata";
+    film.muted = true;
+    button.append(film);
+  }
+
+  const says = document.createElement("span");
+  says.textContent = chosen.name;
+  button.append(says);
+}
+
+/** The shelf, as a choice. Audio is not a ground, so it is not offered. */
+function renderGroundChoices(): void {
+  const query = el.groundSearch.value.trim().toLowerCase();
+  const rows = (latest?.media ?? [])
+    .filter((row) => row.kind !== "audio")
+    .filter((row) => query === "" || row.name.toLowerCase().includes(query));
+
+  el.groundList.replaceChildren();
+  for (const row of rows) {
+    const tile = mediaTile(row, { choose: true });
+    el.groundList.append(tile);
+  }
+  el.groundEmpty.hidden = rows.length > 0;
 }
 
 function tileFor(row: LibraryItem, themes: ThemeChoice[]): HTMLLIElement {
@@ -1554,6 +1651,7 @@ function paint(next: EditorState): void {
       readOnly: next.editing.readOnly,
       collections: [...next.editing.collections],
       inLibrary: next.editing.inLibrary,
+      background: next.editing.background,
     };
     removed = null;
     noteOpen.clear();
@@ -1570,6 +1668,7 @@ function paint(next: EditorState): void {
     draft.readOnly = next.editing.readOnly;
     draft.collections = [...next.editing.collections];
     draft.inLibrary = next.editing.inLibrary;
+    draft.background = next.editing.background;
   }
 
   // A running order, built the same way: replaced only when the serial says a
@@ -1583,12 +1682,14 @@ function paint(next: EditorState): void {
       title: next.editingSet.title,
       date: next.editingSet.date,
       entries: next.editingSet.entries.map((entry) => ({ ...entry })),
+      background: next.editingSet.background,
     };
     el.planName.value = service.title;
     el.planDate.value = service.date;
     renderPlan();
   } else {
     service.id = next.editingSet.id;
+    service.background = next.editingSet.background;
     renderPlan();
   }
 
@@ -1599,6 +1700,7 @@ function paint(next: EditorState): void {
   renderDevice();
   renderUsage();
   renderItemCollections();
+  renderGround();
   renderPlans();
   paintPages();
 
@@ -2019,6 +2121,19 @@ el.exportOpenLyrics.addEventListener("click", () =>
 );
 el.exportBundle.addEventListener("click", () => send({ type: "exportLibrary", format: "bundle" }));
 el.mediaAdd.addEventListener("click", () => send({ type: "addMedia" }));
+el.groundClose.append(icon("close"));
+el.groundClear.append(icon("close"));
+for (const button of [el.groundPick, el.planGround]) {
+  button.addEventListener("click", () => {
+    el.groundSearch.value = "";
+    renderGroundChoices();
+    showOnly(el.ground);
+    el.groundSearch.focus();
+  });
+}
+el.groundClose.addEventListener("click", () => el.ground.close());
+el.groundSearch.addEventListener("input", renderGroundChoices);
+el.groundClear.addEventListener("click", () => send({ type: "setBackground", hash: null }));
 el.collectionAll.addEventListener("click", () => send({ type: "showCollection", collectionId: null }));
 el.collectionNew.addEventListener("click", () => send({ type: "newCollection" }));
 // From the song itself, which is where somebody realises they want one. Main

@@ -309,6 +309,20 @@ export const MIGRATIONS: Migration[] = [
       CREATE UNIQUE INDEX media_hash ON media(content_hash);
     `,
   },
+  {
+    version: 10,
+    name: "a ground of a church's own",
+    up: `
+      -- A photograph or a loop behind the words (STG-153, ST9.10).
+      --
+      -- The content hash rather than the media row's id, which is the whole
+      -- point of ST9.11: the reference names the file's contents, so a church
+      -- that adds the same photograph again later is still talking about the
+      -- ground it chose in March.
+      ALTER TABLE presentations ADD COLUMN background_hash TEXT;
+      ALTER TABLE set_lists ADD COLUMN background_hash TEXT;
+    `,
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.reduce(
