@@ -498,6 +498,14 @@ export type Intent =
   | { type: "showPlans" }
   | { type: "showLibrary" }
   | { type: "showSettings" }
+  /**
+   * One more item on a service that is running (STG-49, ST5.8).
+   *
+   * The leader calls a song that is not in the set. It goes on the deck after
+   * the item on the screen, and the set list on disk is untouched, so what a
+   * church planned is still what they planned.
+   */
+  | { type: "addToDeck"; itemId: string }
   /** A slide typed inside the open service plan (STG-169). */
   | { type: "newPlanSlide" }
   /** The open slide, onto the library shelf (STG-169). */
@@ -680,6 +688,7 @@ export function isIntent(value: unknown): value is Intent {
     case "presentNow":
       return typeof candidate.presentationId === "string" && candidate.presentationId.length > 0;
     case "openItem":
+    case "addToDeck":
       return typeof candidate.itemId === "string" && candidate.itemId.length > 0;
     case "showLibraryKind":
       return (

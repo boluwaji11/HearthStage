@@ -69,14 +69,15 @@ describe("the card", () => {
     expect(markup).toMatch(/<dialog id="brief"/);
   });
 
-  it("is one of two cards, both opened from the same corner", () => {
+  it("is one of three cards, all opened from the same corner", () => {
     // The live surface's own cards. The workbench holds its own, and since
     // STG-170 they share a document, so this counts the ones outside it.
     const live = liveMarkup();
-    expect([...live.matchAll(/<dialog/g)]).toHaveLength(2);
+    expect([...live.matchAll(/<dialog/g)]).toHaveLength(3);
     const footer = live.slice(live.indexOf("<footer>"), live.indexOf("</footer>"));
-    expect(footer).toContain('id="brief-open"');
-    expect(footer).toContain('id="countdown-open"');
+    for (const id of ["brief-open", "countdown-open", "call-open"]) {
+      expect(footer, id).toContain(`id="${id}"`);
+    }
   });
 
   it("closes on an x in its corner, the same as the other card", () => {

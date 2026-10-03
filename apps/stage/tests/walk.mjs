@@ -34,6 +34,14 @@ await c.send("Runtime.enable");
 const evalIn = async (expr) => { const r = await c.send("Runtime.evaluate", { expression: expr, returnByValue: true, awaitPromise: true }); if (r.result?.exceptionDetails) throw new Error(JSON.stringify(r.result.exceptionDetails)); return r.result?.result?.value; };
 const shown = (sel) => `(()=>{const e=document.querySelector(${JSON.stringify(sel)}); if(!e) return "missing"; const r=e.getBoundingClientRect(); return getComputedStyle(e).display==="none"?"hidden":`+"`${Math.round(r.width)}x${Math.round(r.height)}@${Math.round(r.left)},${Math.round(r.top)}`"+`;})()`;
 const fail = [];
+/** Polls, because a paint and the frame after it are not the same moment. */
+const waitFor = async (expr, tries = 20) => {
+  for (let at = 0; at < tries; at += 1) {
+    if (await evalIn(expr) === true) return true;
+    await new Promise(s => setTimeout(s, 100));
+  }
+  return false;
+};
 const check = async (label, sel, want) => { const got = await evalIn(shown(sel)); const ok = want(got); console.log(`${ok?"ok  ":"FAIL"}  ${label}: ${got}`); if(!ok) fail.push(label); };
 const visible = g => g !== "hidden" && g !== "missing" && !g.startsWith("0x");
 const hidden = g => g === "hidden";
@@ -70,6 +78,10 @@ await evalIn(`document.getElementById("kind-song").click()`);
 await new Promise(s=>setTimeout(s,600));
 await check("tiles", "#tiles", visible);
 await check("new song", "#new", visible);
+// A library with something in it, which the rest of the walk needs.
+await evalIn(`(()=>{const b=document.getElementById("add-samples"); if(b && !b.hidden){b.click(); return "offered";} return "already there";})()`).then(r=>console.log("   hymns:", r));
+await new Promise(s=>setTimeout(s,2500));
+console.log("   songs on the shelf:", await evalIn(`document.querySelectorAll("#tiles li").length`));
 console.log("   library title:", await evalIn(`document.getElementById("library-title").textContent`));
 
 await evalIn(`document.getElementById("way-settings") && 0; document.getElementById("library-back").click()`);
@@ -131,13 +143,30 @@ await evalIn(`document.getElementById("to-service").click()`);
 await new Promise(s=>setTimeout(s,800));
 await check("next up offered", "#start-next", visible);
 console.log("   next up:", await evalIn(`document.getElementById("start-next").textContent.trim().replace(/\\s+/g," ")`));
-const focused = await evalIn(`document.activeElement === document.getElementById("start-next")`);
+const focused = await waitFor(`document.activeElement === document.getElementById("start-next")`);
 console.log((focused?"ok  ":"FAIL")+"  next up has the focus"); if(!focused) fail.push("focus");
 await evalIn(`document.getElementById("start-next").click()`);
 await new Promise(s=>setTimeout(s,900));
 await check("service running", "#running", visible);
 await check("landing away", "#start", hidden);
 console.log("   on screen:", await evalIn(`document.querySelector("#live")?.textContent?.trim().slice(0,40)`));
+
+console.log("-- a song called from the floor (STG-49)");
+await check("add a song offered", "#call-open", visible);
+const before = await evalIn(`document.querySelectorAll("#deck li").length`);
+const started = Date.now();
+await evalIn(`document.getElementById("call-open").click()`);
+await new Promise(s=>setTimeout(s,400));
+await check("the card", "#call", visible);
+console.log("   focus:", await evalIn(`document.activeElement.id`));
+console.log("   says:", await evalIn(`document.getElementById("call-empty").hidden ? "a list" : document.getElementById("call-empty").textContent`));
+await evalIn(`(()=>{const b=document.querySelector("#call-list button"); if(b){b.click(); return "picked";} return "nothing to pick";})()`).then(r=>console.log("   pick:", r));
+await new Promise(s=>setTimeout(s,900));
+await check("card closed", "#call", hidden);
+const after = await evalIn(`document.querySelectorAll("#deck li").length`);
+console.log(`   deck went from ${before} to ${after} in ${Date.now()-started}ms`);
+if (after <= before) fail.push("nothing added to the deck");
+else console.log("ok    the deck grew");
 
 const errs = noise.split("\n").filter(l=>/Uncaught|Refused|SecurityError/i.test(l));
 if (errs.length) { console.log("CONSOLE:", errs.slice(0,8).join("\n")); fail.push("console"); }

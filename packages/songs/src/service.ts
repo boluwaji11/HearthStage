@@ -180,3 +180,29 @@ export function notesFor(item: ServiceItem, position: string | null): ItemNote[]
     (note) => note.position === null || (position !== null && note.position === position),
   );
 }
+
+/**
+ * A plan with one more item in it (STG-49, ST5.8).
+ *
+ * The leader calls a song that is not in the set, and the operator has the
+ * length of an introduction to get it on the deck. It goes straight after the
+ * item named, which is the one on the screen, so the next press walks into it.
+ *
+ * `sortOrder` is renumbered across the whole plan, because the compiler reads
+ * it and a duplicate would make the order depend on the sort being stable.
+ */
+export function withItem(
+  plan: ServicePlan,
+  item: ServiceItem,
+  afterItemId: string | null,
+): ServicePlan {
+  const items = [...plan.items].sort((a, b) => a.sortOrder - b.sortOrder);
+  const at = afterItemId === null ? -1 : items.findIndex((one) => one.id === afterItemId);
+  const put = at === -1 ? items.length : at + 1;
+
+  const placed = [...items.slice(0, put), item, ...items.slice(put)];
+  return {
+    ...plan,
+    items: placed.map((one, index) => ({ ...one, sortOrder: index })),
+  };
+}

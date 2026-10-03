@@ -21,6 +21,7 @@ import {
   type SetEntry,
   type SetList,
 } from "../src/setlist";
+import { songPlan, withItem, type ServicePlan } from "../src/service";
 
 function entry(partial: Partial<SetEntry> & { sortOrder: number; title: string }): SetEntry {
   return {
@@ -237,5 +238,54 @@ describe("the plan to open on", () => {
 
   it("offers nothing when there is nothing", () => {
     expect(nextUp([], "2026-10-04")).toBeNull();
+  });
+});
+
+/**
+ * STG-49, ST5.8. The leader calls a song that is not in the set.
+ */
+describe("one more item, mid service", () => {
+  const plan: ServicePlan = {
+    id: "plan",
+    source: "set_list",
+    title: "Morning Service",
+    date: "2026-10-04",
+    startsAt: null,
+    items: [
+      { ...songPlan(amazingGrace).items[0]!, id: "one", sortOrder: 0 },
+      { ...songPlan(holyHolyHoly).items[0]!, id: "two", sortOrder: 1 },
+    ],
+  };
+  const called = { ...songPlan(amazingGrace).items[0]!, id: "called", sortOrder: 0 };
+
+  it("puts it straight after the item named", () => {
+    const after = withItem(plan, called, "one");
+    expect(after.items.map((item) => item.id)).toEqual(["one", "called", "two"]);
+  });
+
+  it("renumbers, because the compiler reads the sort order", () => {
+    const after = withItem(plan, called, "one");
+    expect(after.items.map((item) => item.sortOrder)).toEqual([0, 1, 2]);
+  });
+
+  it("puts it at the end when nothing is named", () => {
+    expect(withItem(plan, called, null).items.map((item) => item.id)).toEqual([
+      "one",
+      "two",
+      "called",
+    ]);
+  });
+
+  it("puts it at the end when the item named is gone", () => {
+    expect(withItem(plan, called, "missing").items.map((item) => item.id)).toEqual([
+      "one",
+      "two",
+      "called",
+    ]);
+  });
+
+  it("leaves the plan it was given alone", () => {
+    withItem(plan, called, "one");
+    expect(plan.items.map((item) => item.id)).toEqual(["one", "two"]);
   });
 });

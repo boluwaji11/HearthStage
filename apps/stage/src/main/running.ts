@@ -136,3 +136,36 @@ export function applyChange(
       return null;
   }
 }
+
+/**
+ * The same run, with one more group spliced into it (STG-49, ST5.8).
+ *
+ * The run is rebuilt from the deck everywhere else, because a new deck is a new
+ * service. Here the service is the one still going: a verse the operator
+ * skipped two minutes ago stays skipped, a chorus they added stays added, and
+ * the called song arrives after the item it was called during.
+ */
+export function withGroup(
+  order: RunEntry[],
+  deck: Deck,
+  groupId: string,
+  afterGroupId: string | null,
+): RunEntry[] {
+  const fresh = deck.cues
+    .filter((cue) => cue.groupId === groupId)
+    .map((cue) => ({
+      id: `${cue.id}#1`,
+      cueId: cue.id,
+      groupId: cue.groupId,
+      skipped: false,
+      repeat: false,
+    }));
+  if (fresh.length === 0) return order;
+
+  const last =
+    afterGroupId === null
+      ? -1
+      : order.reduce((found, entry, index) => (entry.groupId === afterGroupId ? index : found), -1);
+  const at = last === -1 ? order.length : last + 1;
+  return [...order.slice(0, at), ...fresh, ...order.slice(at)];
+}

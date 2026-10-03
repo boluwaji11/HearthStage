@@ -55,6 +55,12 @@ const el = {
   startNext: document.getElementById("start-next") as HTMLButtonElement,
   startNextTitle: document.getElementById("start-next-title") as HTMLSpanElement,
   startNextDate: document.getElementById("start-next-date") as HTMLSpanElement,
+  callOpen: document.getElementById("call-open") as HTMLButtonElement,
+  call: document.getElementById("call") as HTMLDialogElement,
+  callClose: document.getElementById("call-close") as HTMLButtonElement,
+  callSearch: document.getElementById("call-search") as HTMLInputElement,
+  callList: document.getElementById("call-list") as HTMLOListElement,
+  callEmpty: document.getElementById("call-empty") as HTMLParagraphElement,
 };
 
 /**
@@ -160,6 +166,12 @@ const KEYS: KeyRow[] = [
     run: () => send({ type: "setBlank", blank: "none" }),
   },
   {
+    keys: ["a", "A"],
+    label: "keys.call",
+    meaning: "keys.call.meaning",
+    run: () => showCall(true),
+  },
+  {
     keys: ["?"],
     label: "keys.brief",
     meaning: "keys.brief.meaning",
@@ -187,22 +199,29 @@ function paintNextUp(plan: ControlState["nextUp"]): void {
 
   el.startNextTitle.textContent = plan.title;
   el.startNextDate.textContent = whenItIs(plan.date);
+  requestAnimationFrame(focusNextUp);
+}
 
-  // On the next frame, because the workbench is the other half of this window
-  // and paints from its own state. Asked now, the layout would still be the one
-  // from before the page it covers was put away.
-  requestAnimationFrame(() => {
-    // Only when the landing page is the thing on screen, so somebody typing a
-    // hymn in the workbench keeps their cursor.
-    const onScreen = el.startNext.offsetParent !== null;
-    if (!onScreen) {
-      focusedOn = null;
-      return;
-    }
-    if (focusedOn === plan.id) return;
-    focusedOn = plan.id;
-    el.startNext.focus();
-  });
+/**
+ * Gives the plan the focus, once, while the landing page is on screen.
+ *
+ * Only while it is on screen, so somebody typing a hymn in the workbench keeps
+ * their cursor. Once per plan, because the state goes down behind every
+ * keypress and a focus call on each one would make the window unreachable.
+ *
+ * Called from the paint and again whenever the workbench opens or closes, since
+ * that is the other half of this window and paints from its own state: either
+ * can be the one that happens second, and this has to be right both ways.
+ */
+function focusNextUp(): void {
+  const plan = latest?.nextUp ?? null;
+  if (plan === null || el.startNext.offsetParent === null) {
+    focusedOn = null;
+    return;
+  }
+  if (focusedOn === plan.id) return;
+  focusedOn = plan.id;
+  el.startNext.focus();
 }
 
 /** A date a person reads, with today and tomorrow named rather than dated. */
@@ -346,6 +365,9 @@ function paint(state: ControlState): void {
   // The way back. Without it a church that opened the sample to look at it is
   // left in it, and the three ways in are the only place the sample lives.
   el.home.hidden = !open;
+  // Nothing to add to until something is running (STG-49).
+  el.callOpen.hidden = !open;
+  if (!open) showCall(false);
   // After the landing page's own visibility, because taking the focus depends
   // on whether the page is actually on screen.
   paintNextUp(state.nextUp);
@@ -587,6 +609,79 @@ function brief(): void {
   }
 }
 
+/**
+ * The library, for the one thing the live surface may do with it (STG-49).
+ *
+ * Read off the editor state, which this window already receives since the two
+ * halves share a document. Held here rather than put on the control state
+ * because that goes down behind every keypress and this changes twice a year.
+ */
+let shelf: { id: string; title: string; subtitle: string | null }[] = [];
+
+/**
+ * The leader calls a song that is not in the set (STG-49, ST5.8).
+ *
+ * Opened on A, typed into, and the first match is on the deck on Enter. It
+ * appends to the service that is running and writes nothing, so the set list a
+ * church planned is still what they planned.
+ */
+function showCall(open: boolean): void {
+  if (open === el.call.open) return;
+  if (!open) {
+    el.call.close();
+    return;
+  }
+  // Nothing to add to. The deck is the service, and there is not one.
+  if (latest?.service == null) return;
+  el.callSearch.value = "";
+  renderCall();
+  el.call.showModal();
+  el.callSearch.focus();
+}
+
+function callMatches(): typeof shelf {
+  const query = el.callSearch.value.trim().toLowerCase();
+  if (query === "") return shelf.slice(0, 20);
+  return shelf
+    .filter((row) => `${row.title} ${row.subtitle ?? ""}`.toLowerCase().includes(query))
+    .slice(0, 20);
+}
+
+function renderCall(): void {
+  const rows = callMatches();
+  el.callEmpty.hidden = rows.length > 0;
+  el.callList.replaceChildren();
+
+  for (const [index, row] of rows.entries()) {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "call-row";
+    // The first match is what Enter takes, so it says so rather than leaving
+    // the operator to guess which one a blind press lands on.
+    if (index === 0) button.dataset["first"] = "true";
+
+    const title = document.createElement("span");
+    title.textContent = row.title;
+    button.append(title);
+    if (row.subtitle !== null && row.subtitle !== "") {
+      const who = document.createElement("span");
+      who.className = "quiet";
+      who.textContent = row.subtitle;
+      button.append(who);
+    }
+
+    button.addEventListener("click", () => addCalled(row));
+    item.append(button);
+    el.callList.append(item);
+  }
+}
+
+function addCalled(row: { id: string; title: string }): void {
+  send({ type: "addToDeck", itemId: row.id });
+  showCall(false);
+}
+
 /** The card a volunteer reads at 10:28 (STG-27, ST12.10). */
 function showBrief(open: boolean): void {
   if (open === el.brief.open) return;
@@ -655,6 +750,22 @@ function onKey(event: KeyboardEvent): void {
 
   // Escape belongs to whatever card is open, because a person pressing it is
   // closing what is in front of them rather than uncovering a screen.
+  if (el.call.open) {
+    if (event.key === "Escape") {
+      showCall(false);
+      return;
+    }
+    if (event.key === "Enter") {
+      // The first match, which is the one the card marks.
+      event.preventDefault();
+      const first = callMatches()[0];
+      if (first !== undefined) addCalled(first);
+      return;
+    }
+    // Everything else belongs to the search box, including the letters that
+    // are keys out here.
+    return;
+  }
   if (el.brief.open || el.countdown.open) {
     if (event.key !== "Escape") return;
     showBrief(false);
@@ -668,12 +779,21 @@ function onKey(event: KeyboardEvent): void {
   row.run();
 }
 
+// The workbench covering the landing page, or uncovering it (STG-48, STG-170).
+new MutationObserver(() => focusNextUp()).observe(document.body, {
+  attributes: true,
+  attributeFilter: ["data-workbench"],
+});
+
 // The words, before anything paints over them (STG-13).
 fillText();
-for (const button of [el.briefClose, el.countdownClose]) button.append(icon("close"));
+for (const button of [el.briefClose, el.countdownClose, el.callClose]) button.append(icon("close"));
 brief();
 
 el.briefOpen.addEventListener("click", () => showBrief(true));
+el.callOpen.addEventListener("click", () => showCall(true));
+el.callClose.addEventListener("click", () => showCall(false));
+el.callSearch.addEventListener("input", renderCall);
 el.countdownOpen.addEventListener("click", () => showCountdown(true));
 el.countdownClose.addEventListener("click", () => showCountdown(false));
 renderCountdown(null);
@@ -693,6 +813,13 @@ window.addEventListener("keydown", onKey);
 
 if (bridge !== undefined) {
   bridge.onControlState(paint);
+  // The library, for the one thing the live surface may do with it (STG-49).
+  bridge.onEditorState((state) => {
+    shelf = state.library
+      .filter((row) => row.kind === "song")
+      .map((row) => ({ id: row.id, title: row.title, subtitle: row.subtitle }));
+    if (el.call.open) renderCall();
+  });
   bridge.onLogo((mark) => {
     logo = mark;
     if (latest !== null) paint(latest);

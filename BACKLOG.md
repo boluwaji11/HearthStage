@@ -176,7 +176,7 @@ The release a church with a 300 song ProPresenter library can actually adopt. No
 | STG-46 | **Build a service**: named, dated, ordered items and headings, pointing at the library rather than copying it | ST2.8 | Resolved |
 | STG-47 | Duplicate a service from a previous week, carrying structure | ST2.9 | Resolved |
 | STG-48 | Choose a set list at launch, defaulting to the next one by date | ST12.5 | Resolved |
-| STG-49 | Add a song to the live deck from the library by typing, in under five seconds | ST5.8 | New |
+| STG-49 | Add a song to the live deck from the library by typing, in under five seconds | ST5.8 | Resolved |
 | STG-50 | Jump to a cue by typing its label, and skip or repeat | ST5.9 | New |
 | STG-51 | Correct a typo on a live slide, offering the fix to the library for a local song | ST6.8 | New |
 | STG-52 | **Log usage when a song is actually shown**, with date, set list, arrangement and key | ST2.10, ST18.7 | New |
@@ -473,7 +473,7 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 |---|---|
 | **Active** | Nothing |
 | **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do, **STG-26** the clock and the reading, **STG-27** the operator brief, **STG-28** the render harness, **STG-29** the latency measurement, **STG-46** building a service, **STG-47** using last week's again. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-49**, adding to a running deck from the library in under five seconds. Then **STG-30**, the WCAG audit in CI. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Next** | **STG-30**, the WCAG audit of the control surface in CI. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1959,3 +1959,32 @@ both were correct, and the focus landed nowhere.
 | Story | What | Requirement | State |
 |---|---|---|---|
 | STG-48 | The plan to open on, and the one keypress that starts it | ST12.5 | Resolved |
+
+## STG-49, a song called from the floor
+
+The leader calls a song that is not in the set and the operator has the length of
+an introduction to get it on the deck. **A** opens a card, a few letters find it,
+Enter puts it on (ST5.8).
+
+**It goes after the item on the screen**, so the next press walks into it. At the
+end would mean finding it again.
+
+**It writes nothing.** The service that is running gets the song; the set list on
+disk is what the church planned, and a change made in a hurry at 10:40 is not a
+plan. `withItem` in `packages/songs` and `withGroup` in `running.ts` are both
+pure, and `running.ts` still names no store.
+
+**The run survives it.** Everywhere else a new deck is a new service and the run
+starts as planned. This is the same service, so `Session.insert` carries the run
+across: a verse the operator skipped two minutes ago stays skipped, a chorus they
+added stays added.
+
+**The card holds the library**, which the live surface is otherwise refused.
+`live-surface.test.ts` allows searching and adding, and still refuses the
+browsing grid, the theme picker and the importer. The rows come off the editor
+state the window already receives, so nothing was added to the state that goes
+down behind every keypress.
+
+| Story | What | Requirement | State |
+|---|---|---|---|
+| STG-49 | A song called from the floor, onto the deck that is running | ST5.8 | Resolved |

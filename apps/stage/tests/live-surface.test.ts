@@ -56,6 +56,10 @@ const ALLOWED = new Set([
   // landing page is only on screen when nothing is running, so this cannot
   // take a service off the wall.
   "presentSetList",
+  // The song the leader called, onto the deck that is running (STG-49, ST5.8).
+  // It appends to the service on the screen and writes nothing, so the set list
+  // a church planned is still what they planned.
+  "addToDeck",
   "newPlanSlide",
   "saveToLibrary",
 ]);
@@ -196,9 +200,11 @@ describe("the plan on the landing page", () => {
     expect(source).toContain("focusedOn === plan.id");
     // And only while the landing page is the thing on screen, so somebody
     // typing a hymn in the workbench keeps their cursor.
-    expect(source).toContain("el.startNext.offsetParent !== null");
-    // Asked on the next frame, because the workbench is the other half of this
-    // window and the layout before it paints is the one from the page before.
-    expect(source).toMatch(/requestAnimationFrame\(\(\) => \{[\s\S]*?startNext\.focus/);
+    expect(source).toContain("el.startNext.offsetParent === null");
+    // One place decides it, and the workbench opening or closing asks again,
+    // because that half of the window paints from its own state and either
+    // half can be the one that happens second.
+    expect([...source.matchAll(/startNext\.focus\(\)/g)]).toHaveLength(1);
+    expect(source).toMatch(/MutationObserver[\s\S]*?attributeFilter: \["data-workbench"\]/);
   });
 });

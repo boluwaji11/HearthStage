@@ -281,7 +281,25 @@
     <footer>
       <button id="brief-open" type="button" data-t="brief.open"></button>
       <button id="countdown-open" type="button" data-t="countdown.label"></button>
+      <button id="call-open" type="button" hidden data-t="call.open"></button>
     </footer>
+
+    <!--
+      The leader calls a song that is not in the set (STG-49, ST5.8). Type a few
+      letters, press Enter, and it is on the deck after what is on the screen.
+    -->
+    <dialog id="call" class="card" data-t-label="call.open">
+      <div class="card-head">
+        <h2 data-t="call.open"></h2>
+        <button id="call-close" type="button" class="icon" data-t-label="card.close"></button>
+      </div>
+      <div class="field">
+        <label for="call-search" data-t="library.search"></label>
+        <input id="call-search" type="search" autocomplete="off" />
+      </div>
+      <ol id="call-list" class="call-list"></ol>
+      <p id="call-empty" class="quiet" hidden data-t="call.nothing"></p>
+    </dialog>
 
     <!-- A clock on the wall before a service starts (STG-26, ST5.10). -->
     <dialog id="countdown" class="card" data-t-label="countdown.label">

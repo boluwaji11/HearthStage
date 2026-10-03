@@ -25,7 +25,7 @@ import {
 } from "@hearth/stage-protocol";
 import type { Cue, CueGroup, Deck, ServicePlan } from "@hearth/songs";
 import { DEFAULT_THEME, themeFor } from "./themes";
-import { applyChange, asPlanned, runFrom, type RunEntry } from "./running";
+import { applyChange, asPlanned, runFrom, withGroup, type RunEntry } from "./running";
 
 export { DEFAULT_THEME };
 
@@ -129,6 +129,46 @@ export class Session {
       liveId === undefined ? -1 : this.order.findIndex((entry) => entry.cueId === liveId);
     this.position = found === -1 ? 0 : found;
     this.revision += 1;
+  }
+
+  /** The plan on the screen, where there is one. */
+  plannedNow(): ServicePlan | null {
+    return this.plan;
+  }
+
+  /** The item the group on the screen belongs to, for inserting beside it. */
+  showingItemId(): string | null {
+    const cue = this.cueAt(this.position);
+    if (cue === undefined) return null;
+    return this.deck.groups.find((group) => group.id === cue.groupId)?.itemId ?? null;
+  }
+
+  /**
+   * One more item, on a service that is still running (STG-49, ST5.8).
+   *
+   * Apart from `open`, because a new deck is a new service and starts as the
+   * church planned it. This is the same service with a song the leader called,
+   * so the run the operator has already changed is carried across and only the
+   * new group is added to it.
+   */
+  insert(deck: Deck, plan: ServicePlan, groupId: string, afterItemId: string | null): boolean {
+    const group = deck.groups.find((one) => one.id === groupId);
+    if (group === undefined) return false;
+
+    const liveId = this.cueAt(this.position)?.id;
+    const after =
+      afterItemId === null
+        ? null
+        : (this.deck.groups.find((one) => one.itemId === afterItemId)?.id ?? null);
+
+    this.deck = deck;
+    this.plan = plan;
+    this.order = withGroup(this.order, deck, groupId, after);
+    const found =
+      liveId === undefined ? -1 : this.order.findIndex((entry) => entry.cueId === liveId);
+    this.position = found === -1 ? this.position : found;
+    this.revision += 1;
+    return true;
   }
 
   /**

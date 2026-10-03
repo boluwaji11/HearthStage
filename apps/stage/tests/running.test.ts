@@ -6,9 +6,16 @@
  * does not do, and the last one is about putting it all back.
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import { compileDeck, lookupFrom, type Deck } from "@hearth/songs";
-import { sampleLibrary, sampleService } from "@hearth/songs/fixtures";
-import { applyChange, asPlanned, runFrom, showing, type RunEntry } from "../src/main/running";
+import { compileDeck, lookupFrom, songPlan, type Deck } from "@hearth/songs";
+import { holyHolyHoly, sampleLibrary, sampleService } from "@hearth/songs/fixtures";
+import {
+  applyChange,
+  asPlanned,
+  runFrom,
+  showing,
+  withGroup,
+  type RunEntry,
+} from "../src/main/running";
 
 let deck: Deck;
 let order: RunEntry[];
@@ -132,5 +139,75 @@ describe("what none of it touches", () => {
 
   it("does nothing on an entry that is not there", () => {
     expect(applyChange(order, "nothing", "skip")).toBeNull();
+  });
+});
+
+/**
+ * STG-49, ST5.8. The leader calls a song mid service.
+ *
+ * What is worth defending is that the run the operator has already changed
+ * survives it. A verse they skipped two minutes ago stays skipped.
+ */
+describe("a song called from the floor", () => {
+  /** The sample service compiled with one more song on the end of the plan. */
+  function withOneMore(): { bigger: Deck; groupId: string; firstGroup: string } {
+    const extra = {
+      ...sampleService,
+      items: [
+        ...sampleService.items,
+        { ...songPlan(holyHolyHoly).items[0]!, id: "called", sortOrder: 99 },
+      ],
+    };
+    const bigger = compileDeck(extra, lookupFrom([...sampleLibrary, holyHolyHoly]));
+    const group = bigger.groups.find((one) => one.itemId === "called");
+    return {
+      bigger,
+      groupId: group?.id ?? "",
+      firstGroup: deck.groups[0]?.id ?? "",
+    };
+  }
+
+  it("puts its cues straight after the group named", () => {
+    const { bigger, groupId, firstGroup } = withOneMore();
+    const after = withGroup(order, bigger, groupId, firstGroup);
+
+    const lastOfFirst = after.findLastIndex((entry) => entry.groupId === firstGroup);
+    expect(after[lastOfFirst + 1]?.groupId).toBe(groupId);
+  });
+
+  it("keeps a verse the operator skipped", () => {
+    const { bigger, groupId, firstGroup } = withOneMore();
+    const skipped = order[1] as RunEntry;
+    const changed = applyChange(order, skipped.id, "skip");
+    const after = withGroup(changed, bigger, groupId, firstGroup);
+
+    expect(after.find((entry) => entry.id === skipped.id)?.skipped).toBe(true);
+    expect(shown(after)).not.toContain(skipped.cueId);
+  });
+
+  it("keeps a chorus the operator added", () => {
+    const { bigger, groupId, firstGroup } = withOneMore();
+    const repeated = applyChange(order, (order[1] as RunEntry).id, "repeat");
+    const after = withGroup(repeated, bigger, groupId, firstGroup);
+
+    expect(after.filter((entry) => entry.repeat)).toHaveLength(1);
+    expect(after).toHaveLength(repeated.length + bigger.cues.length - deck.cues.length);
+  });
+
+  it("goes on the end when no group is named", () => {
+    const { bigger, groupId } = withOneMore();
+    const after = withGroup(order, bigger, groupId, null);
+    expect(after.at(-1)?.groupId).toBe(groupId);
+  });
+
+  it("changes nothing when the group has no cues", () => {
+    expect(withGroup(order, deck, "no-such-group", null)).toEqual(order);
+  });
+
+  it("leaves the run it was given alone", () => {
+    const { bigger, groupId, firstGroup } = withOneMore();
+    const before = order.length;
+    withGroup(order, bigger, groupId, firstGroup);
+    expect(order).toHaveLength(before);
   });
 });

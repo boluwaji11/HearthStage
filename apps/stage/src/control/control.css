@@ -765,3 +765,39 @@ body[data-workbench="open"] > .problems {
   color: oklch(0.142 0.008 75 / 0.75);
   font-size: 0.875rem;
 }
+
+/* The song the leader called, found by typing (STG-49, ST5.8). */
+.call-list {
+  list-style: none;
+  max-height: 18rem;
+  overflow-y: auto;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+}
+
+.call-row {
+  font: inherit;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  float: none;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.call-row:hover {
+  background: var(--sunk);
+}
+
+/* What Enter takes, said rather than left to a blind press. */
+.call-row[data-first="true"] {
+  border-color: var(--ember-500);
+}

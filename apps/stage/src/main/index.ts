@@ -28,6 +28,7 @@ import {
   nextUp,
   presentationPlan,
   setListPlan,
+  withItem,
   songPlan,
   type ServicePlan,
 } from "@hearth/songs";
@@ -268,6 +269,9 @@ function today(): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
+/** Counts the items called from the floor, so each one gets its own id. */
+let added = 0;
+
 function broadcast(): void {
   for (const [outputId, entry] of outputs) {
     if (entry.window.isDestroyed()) continue;
@@ -433,6 +437,33 @@ app.whenReady().then(() => {
         broadcast();
         return;
       }
+      /**
+       * The leader calls a song that is not in the set (STG-49, ST5.8).
+       *
+       * Compiled into the service that is running rather than written to the
+       * set list, because what a church planned is still what they planned and
+       * a change made in a hurry at 10:40 is not a plan.
+       */
+      case "addToDeck": {
+        const running = session.plannedNow();
+        if (running === null) return;
+        const lookup = presentations.lookup();
+        const one = planFor(payload.itemId, lookup);
+        const item = one?.items[0];
+        if (item === undefined) return;
+
+        // Its own id, so calling the same song twice puts it on twice rather
+        // than colliding with the copy already there.
+        const itemId = `added:${payload.itemId}:${added += 1}`;
+        const after = session.showingItemId();
+        const plan = withItem(running, { ...item, id: itemId }, after);
+        const deck = compileDeck(plan, songs(), { presentations: lookup });
+        const group = deck.groups.find((one) => one.itemId === itemId);
+        if (group === undefined) return;
+        if (session.insert(deck, plan, group.id, after)) broadcast();
+        return;
+      }
+
       case "presentNow":
         if (presentNow(payload.presentationId)) broadcast();
         return;

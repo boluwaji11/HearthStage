@@ -6,8 +6,16 @@
  * of it.
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import { compileDeck, lookupFrom, type Deck, type ServicePlan } from "@hearth/songs";
-import { sampleLibrary, sampleService } from "@hearth/songs/fixtures";
+import {
+  compileDeck,
+  lookupFrom,
+  songPlan,
+  withItem,
+  type Deck,
+  type ServicePlan,
+} from "@hearth/songs";
+import { holyHolyHoly, sampleLibrary, sampleService } from "@hearth/songs/fixtures";
+import { readFileSync } from "node:fs";
 import { REPEAT_GUARD_MS, Session, contentOf, DEFAULT_THEME } from "../src/main/session";
 
 /** A service with nothing in it, which is what the application starts on. */
@@ -620,5 +628,65 @@ describe("before anything is open", () => {
     expect(state.service?.title).toBe("Morning Service");
     expect(state.cues.length).toBeGreaterThan(0);
     expect(state.live).not.toBeNull();
+  });
+});
+
+/**
+ * STG-49, ST5.8. The leader calls a song that is not in the set.
+ *
+ * The design case is 10:41, mid introduction. The room is looking at a slide
+ * and must keep looking at it while this happens.
+ */
+describe("a song called from the floor", () => {
+  function called(): { deck: Deck; plan: ServicePlan; groupId: string } {
+    const item = { ...songPlan(holyHolyHoly).items[0]!, id: "called", sortOrder: 0 };
+    const plan = withItem(sampleService, item, session.showingItemId());
+    const bigger = compileDeck(plan, lookupFrom([...sampleLibrary, holyHolyHoly]));
+    return { deck: bigger, plan, groupId: bigger.groups.find((one) => one.itemId === "called")!.id };
+  }
+
+  it("leaves the room looking at the same slide", () => {
+    session.apply({ type: "advance" });
+    session.apply({ type: "advance" });
+    const before = session.controlState([]).live?.lines;
+
+    const { deck: bigger, plan, groupId } = called();
+    expect(session.insert(bigger, plan, groupId, session.showingItemId())).toBe(true);
+    expect(session.controlState([]).live?.lines).toEqual(before);
+  });
+
+  it("puts it next, so the following press walks into it", () => {
+    const after = session.showingItemId();
+    const { deck: bigger, plan, groupId } = called();
+    session.insert(bigger, plan, groupId, after);
+
+    const state = session.controlState([]);
+    const at = state.groups.findIndex((group) => group.id === groupId);
+    const was = state.groups.findIndex((group) => group.id === deck.groups[0]?.id);
+    expect(at).toBe(was + 1);
+  });
+
+  it("keeps a verse the operator skipped", () => {
+    const entryId = session.controlState([]).cues[1]?.entryId ?? "";
+    session.apply({ type: "runChange", entryId, change: "skip" });
+    const skipped = session.controlState([]).cues.filter((cue) => cue.skipped).length;
+
+    const { deck: bigger, plan, groupId } = called();
+    session.insert(bigger, plan, groupId, session.showingItemId());
+
+    expect(session.controlState([]).cues.filter((cue) => cue.skipped)).toHaveLength(skipped);
+  });
+
+  it("refuses a group the deck does not have", () => {
+    const { deck: bigger, plan } = called();
+    expect(session.insert(bigger, plan, "no-such-group", null)).toBe(false);
+  });
+
+  it("writes nothing, because the set list is what the church planned", () => {
+    const source = readFileSync(
+      new URL("../src/main/running.ts", import.meta.url),
+      "utf8",
+    );
+    expect(source).not.toMatch(/stage-store|save/i);
   });
 });
