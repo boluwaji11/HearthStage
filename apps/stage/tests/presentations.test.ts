@@ -949,6 +949,22 @@ describe("building a service", () => {
     expect(presentations.state().editingSet).not.toBeNull();
   });
 
+  it("uses last week's again, and leaves last week's alone", () => {
+    built();
+    const last = presentations.state().setLists[0]?.id ?? "";
+
+    expect(presentations.apply({ type: "duplicateSetList", setListId: last })).toBe(true);
+    const open = presentations.state().editingSet;
+    // Opened, because somebody who pressed it is about to change two things.
+    expect(open?.id).not.toBe(last);
+    expect(open?.entries.map((one) => one.title)).toEqual(["Welcome", "Amazing Grace", "Sermon"]);
+    expect(open?.date).toBe("2026-10-11");
+
+    const rows = presentations.state().setLists;
+    expect(rows).toHaveLength(2);
+    expect(opened.library.getSetList(last)?.date).toBe("2026-10-04");
+  });
+
   it("closes back to the list", () => {
     built();
     expect(presentations.apply({ type: "closeSetList" })).toBe(true);

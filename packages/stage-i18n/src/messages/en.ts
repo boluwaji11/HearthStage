@@ -223,6 +223,7 @@ export const en = {
   "service.entries.one": "{count} item",
   "service.entries.other": "{count} items",
   "service.noServices": "No services yet",
+  "service.duplicate": "Use this again next week",
 
   // This machine
   "library.settings": "Settings",

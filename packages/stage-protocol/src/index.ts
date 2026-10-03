@@ -473,6 +473,14 @@ export type Intent =
   | { type: "showServices" }
   | { type: "newSetList" }
   | { type: "openSetList"; setListId: string }
+  /**
+   * Last week's service, again (STG-47, ST2.9).
+   *
+   * A church's order is mostly the same from one Sunday to the next: a welcome,
+   * two songs, the notices, the sermon. Starting from the last one is the
+   * difference between two minutes and twenty.
+   */
+  | { type: "duplicateSetList"; setListId: string }
   | { type: "closeSetList" }
   | {
       type: "saveSetList";
@@ -638,6 +646,7 @@ export function isIntent(value: unknown): value is Intent {
     case "openItem":
       return typeof candidate.itemId === "string" && candidate.itemId.length > 0;
     case "openSetList":
+    case "duplicateSetList":
     case "presentSetList":
       return typeof candidate.setListId === "string" && candidate.setListId.length > 0;
     case "saveSetList":

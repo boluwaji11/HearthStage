@@ -1251,6 +1251,20 @@ function renderServices(): void {
 
     button.append(title, facts);
     item.append(button);
+
+    // A church's order is mostly the same from one Sunday to the next, so the
+    // fastest way to build next week's is to start from last week's (STG-47).
+    const again = document.createElement("button");
+    again.type = "button";
+    again.className = "icon";
+    again.setAttribute("aria-label", t("service.duplicate"));
+    again.title = t("service.duplicate");
+    again.append(icon("copy"));
+    again.addEventListener("click", () =>
+      send({ type: "duplicateSetList", setListId: row.id }),
+    );
+    item.append(again);
+
     el.services.append(item);
   }
 }

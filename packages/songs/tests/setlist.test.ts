@@ -10,6 +10,8 @@ import { describe, it, expect } from "vitest";
 import { compileDeck, lookupFrom } from "../src/deck";
 import { amazingGrace, holyHolyHoly } from "../src/fixtures";
 import {
+  aWeekAfter,
+  duplicateSetList,
   newSetList,
   orderedEntries,
   setListHasErrors,
@@ -143,5 +145,59 @@ describe("as the deck compiler takes it", () => {
     const welcome = deck.cues.find((cue) => cue.groupId === deck.groups[0]?.id);
     expect(welcome?.kind).toBe("marker");
     expect(welcome?.lines).toBeNull();
+  });
+});
+
+/**
+ * STG-47, ST2.9. Last week's service, again.
+ *
+ * A church's order is mostly the same from one Sunday to the next, so the
+ * fastest way to build next week's is to start from last week's and change two
+ * things. The part worth defending is that last week's is untouched by it.
+ */
+describe("using last week's again", () => {
+  it("carries the structure across", () => {
+    const next = duplicateSetList(MORNING, "set-2");
+    expect(next.entries.map((one) => one.title)).toEqual([
+      "Welcome",
+      "Holy, Holy, Holy",
+      "Amazing Grace",
+      "Sermon",
+    ]);
+    expect(next.entries.map((one) => one.itemId)).toEqual([
+      null,
+      "song-holy",
+      "song-amazing-grace",
+      null,
+    ]);
+  });
+
+  it("keeps the name, because a church calls it the same thing every week", () => {
+    expect(duplicateSetList(MORNING, "set-2").title).toBe("Morning Service");
+  });
+
+  it("moves the date on by a week, to the same weekday", () => {
+    expect(duplicateSetList(MORNING, "set-2").date).toBe("2026-10-11");
+    expect(aWeekAfter("2026-12-27")).toBe("2027-01-03");
+    // Across the end of February, and across a daylight saving change.
+    expect(aWeekAfter("2028-02-26")).toBe("2028-03-04");
+    expect(aWeekAfter("2026-03-25")).toBe("2026-04-01");
+  });
+
+  it("leaves last week's exactly as it was", () => {
+    const before = JSON.stringify(MORNING);
+    duplicateSetList(MORNING, "set-2");
+    expect(JSON.stringify(MORNING)).toBe(before);
+  });
+
+  it("gives every entry an identity of its own, so the two cannot collide", () => {
+    const next = duplicateSetList(MORNING, "set-2");
+    const ids = [...MORNING.entries, ...next.entries].map((one) => one.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(next.entries.every((one) => one.setListId === "set-2")).toBe(true);
+  });
+
+  it("is a service the store will take", () => {
+    expect(setListHasErrors(validateSetList(duplicateSetList(MORNING, "set-2")))).toBe(false);
   });
 });

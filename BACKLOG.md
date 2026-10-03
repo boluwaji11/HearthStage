@@ -174,7 +174,7 @@ The release a church with a 300 song ProPresenter library can actually adopt. No
 | STG-44 | Hold a ChordPro chart per order, transposable, and show it. Carries the key and the tempo fields STG-9 left off the screen | ST2.6 | New |
 | STG-45 | Attach reference audio and practice tracks to an arrangement | ST2.7 | New |
 | STG-46 | **Build a service**: named, dated, ordered items and headings, pointing at the library rather than copying it | ST2.8 | Resolved |
-| STG-47 | Duplicate a set list from a previous week, carrying structure | ST2.9 | New |
+| STG-47 | Duplicate a service from a previous week, carrying structure | ST2.9 | Resolved |
 | STG-48 | Choose a set list at launch, defaulting to the next one by date | ST12.5 | New |
 | STG-49 | Add a song to the live deck from the library by typing, in under five seconds | ST5.8 | New |
 | STG-50 | Jump to a cue by typing its label, and skip or repeat | ST5.9 | New |
@@ -472,8 +472,8 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 | | |
 |---|---|
 | **Active** | Nothing |
-| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do, **STG-26** the clock and the reading, **STG-27** the operator brief, **STG-28** the render harness, **STG-29** the latency measurement, **STG-46** building a service. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-47**, duplicating last week's service, then **STG-48** choosing one at launch and **STG-49** adding to a running deck. **STG-30**, the WCAG audit in CI, was skipped to get here and is queued behind them. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do, **STG-26** the clock and the reading, **STG-27** the operator brief, **STG-28** the render harness, **STG-29** the latency measurement, **STG-46** building a service, **STG-47** using last week's again. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
+| **Next** | **STG-48**, choosing a service at launch, then **STG-49** adding to a running deck. **STG-30**, the WCAG audit in CI, was skipped to get here and is queued behind them. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1809,3 +1809,24 @@ reports the gap by name.
 said "one dialog, never stacked" was asserting the wrong thing: the count rather than the stacking.
 There is now one `showModal` call in the window, inside a helper that closes whatever was open, so
 stacking is impossible rather than avoided.
+
+## STG-47, how to test it
+
+A church's order is mostly the same from one Sunday to the next: a welcome, two songs, the notices,
+the sermon. Starting from the last one is the difference between two minutes and twenty.
+
+```
+pnpm --filter @hearth/stage dev
+```
+
+- Press **Services**, build one and go back to the list.
+- Press the copy mark on its row. The copy opens straight away, because somebody who pressed it is
+  about to change two things in it and then present it.
+- It carries the name and every line of the order. The date has moved on by a week, to the same
+  weekday.
+- Go back. Last week's is still in the list, on its own date, untouched.
+
+**Thirteen new tests.** The date arithmetic is checked across the end of a year, the end of February
+in a leap year, and a daylight saving change, because a date held as text and moved by seven days is
+exactly where that kind of defect lives. Every entry of the copy gets an identity of its own, so the
+two orders cannot collide in the store.

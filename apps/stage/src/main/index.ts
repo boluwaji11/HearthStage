@@ -441,6 +441,7 @@ app.whenReady().then(() => {
       case "closeItem":
       case "addSamples":
       case "openSetList":
+      case "duplicateSetList":
       case "closeSetList":
       case "saveSetList":
       case "savePresentation":

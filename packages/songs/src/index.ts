@@ -100,6 +100,8 @@ export {
   type ItemKind,
   type SetListProblem,
   type SetListProblemCode,
+  aWeekAfter,
+  duplicateSetList,
   newSetList,
   orderedEntries,
   setListPlan,

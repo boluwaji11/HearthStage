@@ -14,6 +14,7 @@
 import {
   BUNDLED_HYMN_COUNT,
   bundledHymns,
+  duplicateSetList,
   newSetList,
   orderedEntries,
   newPresentation,
@@ -212,6 +213,22 @@ export class Presentations {
         this.closeOpen();
         this.tab = "services";
         this.setEditingId = intent.setListId;
+        this.setDrafting = false;
+        this.setSerial += 1;
+        this.revision += 1;
+        return true;
+      }
+
+      case "duplicateSetList": {
+        const last = this.library.getSetList(intent.setListId);
+        if (last === null) return false;
+        const copy = duplicateSetList(last, this.nextId("set"));
+        this.library.saveSetList(copy);
+        // Opened, because somebody who pressed it is about to change two things
+        // in it and then present it.
+        this.closeOpen();
+        this.tab = "services";
+        this.setEditingId = copy.id;
         this.setDrafting = false;
         this.setSerial += 1;
         this.revision += 1;

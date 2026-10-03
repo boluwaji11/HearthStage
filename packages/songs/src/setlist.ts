@@ -149,6 +149,37 @@ export function setListPlan(
   };
 }
 
+/**
+ * Last week's order, again (STG-47, ST2.9).
+ *
+ * The structure comes across and the date moves on by a week, because a church
+ * meeting on a Sunday meets again on the Sunday after. The name comes across
+ * too: a church calls it the same thing every week, and anybody who does not
+ * types over it.
+ */
+export function duplicateSetList(list: SetList, id: string): SetList {
+  return {
+    id,
+    title: list.title,
+    date: aWeekAfter(list.date),
+    updatedAt: null,
+    entries: orderedEntries(list).map((entry, index) => ({
+      ...entry,
+      id: `${id}:entry:${index}`,
+      setListId: id,
+      sortOrder: index,
+    })),
+  };
+}
+
+/** The same weekday, seven days on. */
+export function aWeekAfter(date: string): string {
+  if (!DATE.test(date)) return date;
+  const at = new Date(`${date}T12:00:00Z`);
+  at.setUTCDate(at.getUTCDate() + 7);
+  return at.toISOString().slice(0, 10);
+}
+
 /** A set list with nothing in it, for the day somebody starts next Sunday. */
 export function newSetList(id: string, options: { title?: string; date?: string } = {}): SetList {
   return {
