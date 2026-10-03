@@ -112,6 +112,15 @@ export {
   setListHasErrors,
 } from "./setlist";
 
+export {
+  usageReport,
+  usageCsv,
+  CCLI_COLUMNS,
+  type UsageRow,
+  type Report,
+  type ReportLine,
+} from "./ccli";
+export { CCLI_FIXTURE, CCLI_PERIOD, CCLI_EXPECTED_CSV } from "./ccli-fixture";
 export { bundledHymns, BUNDLED_HYMN_COUNT, type BundledHymn } from "./hymns";
 
 export {

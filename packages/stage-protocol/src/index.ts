@@ -407,6 +407,14 @@ export interface EditorState {
   /** Whether the church has given Stage a logo (STG-22, ST6.6). */
   hasLogo: boolean;
   /**
+   * The CCLI report, as a church sees it before exporting it (STG-53, ST2.11).
+   *
+   * The counts rather than the rows, because the window offers the file and
+   * does not draw the report. `missingNumbers` is songs sung with no CCLI
+   * number, which a church has to look at before it sends anything.
+   */
+  usage: { from: string; to: string; songs: number; services: number; missingNumbers: number };
+  /**
    * Hymns Stage can put in the library, that are not in it yet (STG-10).
    *
    * A count rather than the hymns, because the window only offers them. Zero
@@ -506,6 +514,9 @@ export type Intent =
   | { type: "showPlans" }
   | { type: "showLibrary" }
   | { type: "showSettings" }
+  /** The CCLI report, for a chosen period (STG-53, ST2.11, ST18.7). */
+  | { type: "setUsagePeriod"; from: string; to: string }
+  | { type: "exportUsage" }
   /**
    * One more item on a service that is running (STG-49, ST5.8).
    *
@@ -631,6 +642,8 @@ export function isIntent(value: unknown): value is Intent {
   const candidate = value as {
     type?: unknown;
     lines?: unknown;
+    from?: unknown;
+    to?: unknown;
     position?: unknown;
     cueId?: unknown;
     blank?: unknown;
@@ -667,6 +680,7 @@ export function isIntent(value: unknown): value is Intent {
     case "closeItem":
     case "showPlans":
     case "showLibrary":
+    case "exportUsage":
     case "showSettings":
     case "newPlanSlide":
     case "saveToLibrary":
@@ -707,6 +721,8 @@ export function isIntent(value: unknown): value is Intent {
     case "openItem":
     case "addToDeck":
       return typeof candidate.itemId === "string" && candidate.itemId.length > 0;
+    case "setUsagePeriod":
+      return typeof candidate.from === "string" && typeof candidate.to === "string";
     case "keepCorrection":
       return typeof candidate.cueId === "string" && candidate.cueId.length > 0;
     case "correctCue":

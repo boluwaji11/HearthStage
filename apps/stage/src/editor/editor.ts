@@ -90,6 +90,11 @@ const el = {
   newButton: document.getElementById("new") as HTMLButtonElement,
   settingsView: document.getElementById("settings-view") as HTMLElement,
   settingsBack: document.getElementById("settings-back") as HTMLButtonElement,
+  usageFrom: document.getElementById("usage-from") as HTMLInputElement,
+  usageTo: document.getElementById("usage-to") as HTMLInputElement,
+  usageCount: document.getElementById("usage-count") as HTMLParagraphElement,
+  usageMissing: document.getElementById("usage-missing") as HTMLParagraphElement,
+  usageExport: document.getElementById("usage-export") as HTMLButtonElement,
   deviceName: document.getElementById("device-name") as HTMLInputElement,
   devicePlatform: document.getElementById("device-platform") as HTMLParagraphElement,
   chooseLogo: document.getElementById("choose-logo") as HTMLButtonElement,
@@ -925,6 +930,32 @@ function paintPages(): void {
 }
 
 /** Shown on a song. A sheet of notices is written for one week. */
+/**
+ * The CCLI report, before a church exports it (STG-53, ST2.11).
+ *
+ * The counts on screen rather than the rows, so somebody can see the period is
+ * the one they meant before they send a file their licence is checked against.
+ * Songs with no CCLI number are named, because the church is the only one who
+ * can tell a hymn out of copyright from a song somebody typed in a hurry.
+ */
+function renderUsage(): void {
+  const usage = latest?.usage;
+  if (usage === undefined) return;
+
+  // Left alone while somebody is typing into it, so a repaint does not take the
+  // cursor out of a half-typed date.
+  if (document.activeElement !== el.usageFrom) el.usageFrom.value = usage.from;
+  if (document.activeElement !== el.usageTo) el.usageTo.value = usage.to;
+
+  el.usageCount.textContent = [
+    plural("usage.counted", usage.songs),
+    plural("usage.services", usage.services),
+  ].join(" ");
+  el.usageMissing.hidden = usage.missingNumbers === 0;
+  el.usageMissing.textContent = plural("usage.missing", usage.missingNumbers);
+  el.usageExport.disabled = usage.songs === 0;
+}
+
 function paintOrders(): void {
   const song = draft !== null && draft.kind === "song";
   el.orders.hidden = !song;
@@ -1227,6 +1258,7 @@ function paint(next: EditorState): void {
   el.planView.hidden = service === null || draft !== null || settingsOpen();
   el.settingsView.hidden = !settingsOpen();
   renderDevice();
+  renderUsage();
   renderPlans();
   paintPages();
 
@@ -1636,6 +1668,12 @@ el.paste.addEventListener("click", pasteSlide);
 el.addOrder.addEventListener("click", addOrder);
 el.addSamples.addEventListener("click", () => send({ type: "addSamples" }));
 el.settingsBack.addEventListener("click", () => send({ type: "showControl" }));
+for (const field of [el.usageFrom, el.usageTo]) {
+  field.addEventListener("change", () =>
+    send({ type: "setUsagePeriod", from: el.usageFrom.value, to: el.usageTo.value }),
+  );
+}
+el.usageExport.addEventListener("click", () => send({ type: "exportUsage" }));
 el.chooseLogo.addEventListener("click", () => send({ type: "chooseLogo" }));
 el.removeLogo.addEventListener("click", () => send({ type: "removeLogo" }));
 el.deviceName.addEventListener("blur", renameMachine);

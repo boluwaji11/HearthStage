@@ -140,6 +140,24 @@
               <button id="remove-logo" type="button" hidden data-t="settings.removeLogo"></button>
             </div>
           </div>
+
+          <!-- The CCLI report (STG-53, ST2.11, ST18.7). -->
+          <section class="usage" data-t-label="usage.title">
+            <h2 data-t="usage.title"></h2>
+            <div class="usage-period">
+              <div class="field">
+                <label for="usage-from" data-t="usage.from"></label>
+                <input id="usage-from" type="date" />
+              </div>
+              <div class="field">
+                <label for="usage-to" data-t="usage.to"></label>
+                <input id="usage-to" type="date" />
+              </div>
+            </div>
+            <p id="usage-count" class="quiet"></p>
+            <p id="usage-missing" class="quiet" hidden></p>
+            <button id="usage-export" type="button" data-t="usage.export"></button>
+          </section>
         </div>
       </section>
 

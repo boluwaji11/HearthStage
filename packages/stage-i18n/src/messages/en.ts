@@ -259,6 +259,16 @@ export const en = {
 
   // This machine
   "settings.title": "This machine",
+  "usage.title": "CCLI report",
+  "usage.from": "From",
+  "usage.to": "To",
+  "usage.export": "Export the report",
+  "usage.counted.one": "{count} song",
+  "usage.counted.other": "{count} songs",
+  "usage.services.one": "across {count} service",
+  "usage.services.other": "across {count} services",
+  "usage.missing.one": "{count} song has no CCLI number",
+  "usage.missing.other": "{count} songs have no CCLI number",
   "settings.name": "Name",
   "platform.darwin": "macOS",
   "platform.win32": "Windows",

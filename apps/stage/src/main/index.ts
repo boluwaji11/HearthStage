@@ -11,9 +11,9 @@
  * the deck compiler does not care which a service came from.
  */
 
-import { existsSync, mkdirSync, renameSync } from "node:fs";
+import { existsSync, mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { app, BrowserWindow, dialog, ipcMain, type OpenDialogOptions } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, shell, type OpenDialogOptions } from "electron";
 import {
   CHANNELS,
   isIntent,
@@ -27,6 +27,8 @@ import {
   lookupFrom,
   nextUp,
   correctSlide,
+  usageCsv,
+  usageReport,
   presentationPlan,
   setListPlan,
   withItem,
@@ -174,6 +176,26 @@ function sendLogo(): void {
     if (!entry.window.isDestroyed()) entry.window.webContents.send(CHANNELS.logo, logo);
   }
   if (control !== null && !control.isDestroyed()) control.webContents.send(CHANNELS.logo, logo);
+}
+
+/** The CCLI report, written where the church asks for it (STG-53, ST2.11). */
+async function exportUsage(): Promise<void> {
+  const period = presentations.reportPeriod();
+  const report = usageReport(store.library.usage(period), period.from, period.to);
+
+  const parent = control;
+  const options = {
+    defaultPath: `ccli-usage-${period.from}-to-${period.to}.csv`,
+    filters: [{ name: "CSV", extensions: ["csv"] }],
+  };
+  const chosen =
+    parent === null || parent.isDestroyed()
+      ? await dialog.showSaveDialog(options)
+      : await dialog.showSaveDialog(parent, options);
+
+  if (chosen.canceled || chosen.filePath === undefined) return;
+  writeFileSync(chosen.filePath, usageCsv(report), "utf8");
+  shell.showItemInFolder(chosen.filePath);
 }
 
 /** A church choosing their mark. Nothing ships one, because it is theirs. */
@@ -611,6 +633,18 @@ app.whenReady().then(() => {
       case "presentNow":
         if (presentNow(payload.presentationId)) broadcast();
         return;
+      /**
+       * The CCLI report, as a file (STG-53, ST2.11, ST18.7).
+       *
+       * Ungated, like every other export here. A church that leaves Stage takes
+       * its licence record with it, and a church that never pairs still meets
+       * the obligation.
+       */
+      case "exportUsage":
+        void exportUsage();
+        return;
+
+      case "setUsagePeriod":
       case "showPlans":
       case "showLibrary":
       case "showSettings":

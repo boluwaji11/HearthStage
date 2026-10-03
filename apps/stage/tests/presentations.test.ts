@@ -17,7 +17,7 @@ import {
   setListPlan,
   songPlan,
 } from "@hearth/songs";
-import { amazingGrace } from "@hearth/songs/fixtures";
+import { amazingGrace, holyHolyHoly } from "@hearth/songs/fixtures";
 import { openLibrary, type OpenLibrary } from "@hearth/stage-store";
 import { Presentations } from "../src/main/presentations";
 import { Session } from "../src/main/session";
@@ -1092,5 +1092,81 @@ describe("the plan behind the slide", () => {
     const after = presentations.state().editingSet;
     expect(after?.serial).toBeGreaterThan(before);
     expect(after?.entries.map((entry) => entry.title)).toEqual(["Notices"]);
+  });
+});
+
+/**
+ * STG-53, ST2.11. The period the report covers.
+ *
+ * The screen somebody visits once a year, so it opens on the answer rather than
+ * on two empty date boxes.
+ */
+describe("the CCLI report", () => {
+  function sang(date: string, setListId: string): void {
+    opened.library.logUsage({
+      songId: amazingGrace.song.id,
+      title: amazingGrace.song.title,
+      ccliNumber: "22025",
+      serviceDate: date,
+      setListId,
+      shownAt: `${date}T10:00:00Z`,
+    });
+  }
+
+  beforeEach(() => {
+    opened.library.save(amazingGrace);
+  });
+
+  it("opens on the last six months", () => {
+    const { from, to } = presentations.state().usage;
+    expect(from < to).toBe(true);
+    const months = (Date.parse(to) - Date.parse(from)) / (1000 * 60 * 60 * 24);
+    expect(months).toBeGreaterThan(175);
+    expect(months).toBeLessThan(190);
+  });
+
+  it("counts what the period holds", () => {
+    sang("2026-02-01", "a");
+    sang("2026-02-08", "b");
+    presentations.apply({ type: "setUsagePeriod", from: "2026-01-01", to: "2026-06-30" });
+
+    expect(presentations.state().usage).toMatchObject({
+      from: "2026-01-01",
+      to: "2026-06-30",
+      songs: 1,
+      services: 2,
+      missingNumbers: 0,
+    });
+  });
+
+  it("leaves out a service outside the period", () => {
+    sang("2026-02-01", "a");
+    presentations.apply({ type: "setUsagePeriod", from: "2026-03-01", to: "2026-06-30" });
+    expect(presentations.state().usage.songs).toBe(0);
+  });
+
+  it("puts a period typed backwards the right way round", () => {
+    expect(
+      presentations.apply({ type: "setUsagePeriod", from: "2026-06-30", to: "2026-01-01" }),
+    ).toBe(true);
+    expect(presentations.state().usage).toMatchObject({ from: "2026-01-01", to: "2026-06-30" });
+  });
+
+  it("refuses a period with an end missing", () => {
+    expect(presentations.apply({ type: "setUsagePeriod", from: "", to: "2026-06-30" })).toBe(false);
+  });
+
+  it("says how many songs have no CCLI number, because the church decides", () => {
+    opened.library.save(holyHolyHoly);
+    opened.library.logUsage({
+      songId: holyHolyHoly.song.id,
+      title: holyHolyHoly.song.title,
+      ccliNumber: null,
+      serviceDate: "2026-02-01",
+      setListId: "a",
+      shownAt: "2026-02-01T10:00:00Z",
+    });
+    presentations.apply({ type: "setUsagePeriod", from: "2026-01-01", to: "2026-06-30" });
+    expect(presentations.state().usage.missingNumbers).toBe(1);
   });
 });

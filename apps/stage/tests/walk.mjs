@@ -96,6 +96,11 @@ await new Promise(s=>setTimeout(s,600));
 console.log("-- settings");
 await check("settings page", "#settings-view", visible);
 await check("device name", "#device-name", visible);
+// STG-53. The CCLI report, on the screen a church visits once a year.
+await check("the report", "#usage-export", visible);
+console.log("   period:", await evalIn(`document.getElementById("usage-from").value + " to " + document.getElementById("usage-to").value`));
+console.log("   counts:", JSON.stringify(await evalIn(`document.getElementById("usage-count").textContent`)));
+console.log("   export disabled with nothing sung:", await evalIn(`document.getElementById("usage-export").disabled`));
 await evalIn(`document.getElementById("settings-back").click()`);
 await new Promise(s=>setTimeout(s,500));
 await check("landing back", "#start", visible);
@@ -243,6 +248,17 @@ db.close();
 for (const row of sung) console.log("  ", JSON.stringify(row));
 if (sung.length === 0) fail.push("nothing was written to the usage log");
 else console.log("ok    a song the room was shown is in the log");
+
+// STG-53. And the report counts it, on the screen the church exports from.
+await evalIn(`document.getElementById("home").click()`);
+await new Promise(s=>setTimeout(s,500));
+await evalIn(`document.getElementById("way-settings").click()`);
+await new Promise(s=>setTimeout(s,700));
+console.log("   report now:", JSON.stringify(await evalIn(`document.getElementById("usage-count").textContent`)));
+console.log("   no CCLI number:", JSON.stringify(await evalIn(`document.getElementById("usage-missing").hidden ? "" : document.getElementById("usage-missing").textContent`)));
+const canExport = await evalIn(`!document.getElementById("usage-export").disabled`);
+console.log((canExport?"ok  ":"FAIL")+"  the report can be exported");
+if (!canExport) fail.push("the report cannot be exported");
 
 const errs = noise.split("\n").filter(l=>/Uncaught|Refused|SecurityError/i.test(l));
 if (errs.length) { console.log("CONSOLE:", errs.slice(0,8).join("\n")); fail.push("console"); }

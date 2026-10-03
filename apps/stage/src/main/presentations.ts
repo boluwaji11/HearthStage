@@ -30,7 +30,14 @@ import {
   type WholeSong,
 } from "@hearth/songs";
 import type { LibraryItem as StoredItem, SetListSummary } from "@hearth/stage-store";
-import { hasErrors, setListHasErrors, validateSetList, validateWholeSong } from "@hearth/songs";
+import type { UsageRow } from "@hearth/songs";
+import {
+  hasErrors,
+  setListHasErrors,
+  usageReport,
+  validateSetList,
+  validateWholeSong,
+} from "@hearth/songs";
 import type {
   EditorState,
   Intent,
@@ -60,6 +67,8 @@ export interface PresentationLibrary {
   getSetList(setListId: string): SetList | null;
   setLists(): SetListSummary[];
   kindOf(itemId: string): ItemKind | undefined;
+  /** The usage log, for the CCLI report (STG-53). */
+  usage(period?: { from?: string; to?: string }): UsageRow[];
 }
 
 export interface PresentationsOptions {
@@ -77,6 +86,22 @@ function randomId(prefix: string): string {
   const stamp = Date.now().toString(36);
   const noise = Math.random().toString(36).slice(2, 10);
   return `${prefix}_${stamp}${noise}`;
+}
+
+/**
+ * Six months back to today (STG-53, ST2.11).
+ *
+ * The span a church reports, so the one screen somebody visits once a year
+ * opens on the answer rather than on two empty date boxes.
+ */
+function lastSixMonths(): { from: string; to: string } {
+  const day = (when: Date): string => {
+    const pad = (value: number): string => String(value).padStart(2, "0");
+    return `${when.getFullYear()}-${pad(when.getMonth() + 1)}-${pad(when.getDate())}`;
+  };
+  const today = new Date();
+  const back = new Date(today.getFullYear(), today.getMonth() - 6, today.getDate());
+  return { from: day(back), to: day(today) };
 }
 
 export class Presentations {
@@ -114,6 +139,14 @@ export class Presentations {
   /** Which page the window shows, and which kind the library is on (STG-46). */
   private page: "none" | "plans" | "library" | "settings" = "none";
   private libraryKind: "song" | "media" | "slides" | null = null;
+  /**
+   * The period the CCLI report covers (STG-53, ST2.11).
+   *
+   * Six months back to today when nothing is chosen, because that is the span
+   * a church reports and a sensible default saves two date pickers on the one
+   * screen somebody visits once a year.
+   */
+  private period = lastSixMonths();
 
   constructor(library: PresentationLibrary, options: PresentationsOptions = {}) {
     this.library = library;
@@ -250,6 +283,17 @@ export class Presentations {
         this.libraryKind = null;
         this.revision += 1;
         return true;
+
+      case "setUsagePeriod": {
+        const from = intent.from.trim();
+        const to = intent.to.trim();
+        // A period that runs backwards is a typo, so the ends are put in order
+        // rather than refused: the church meant the span between the two.
+        if (from === "" || to === "") return false;
+        this.period = from <= to ? { from, to } : { from: to, to: from };
+        this.revision += 1;
+        return true;
+      }
 
       case "showSettings":
         this.closeOpen();
@@ -581,11 +625,28 @@ export class Presentations {
       editingSet: this.openSet(),
       device: this.machine,
       hasLogo: this.logo,
+      usage: this.usage(),
       samples: this.samplesLeft(),
       problems: this.problems,
       presentingId,
       service,
     };
+  }
+
+  /** What the CCLI report would hold, for the period chosen (STG-53). */
+  private usage(): EditorState["usage"] {
+    const report = usageReport(this.library.usage(this.period), this.period.from, this.period.to);
+    return {
+      ...this.period,
+      songs: report.lines.length,
+      services: report.services,
+      missingNumbers: report.missingNumbers,
+    };
+  }
+
+  /** The period the report covers. */
+  reportPeriod(): { from: string; to: string } {
+    return this.period;
   }
 
   /** The running order in the window, where one is (STG-46). */

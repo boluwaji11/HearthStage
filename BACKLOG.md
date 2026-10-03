@@ -180,7 +180,7 @@ The release a church with a 300 song ProPresenter library can actually adopt. No
 | STG-50 | Jump to a cue by typing its label, and skip or repeat | ST5.9 | Resolved |
 | STG-51 | Correct a typo on a live slide, offering the fix to the library for a local song | ST6.8 | Resolved |
 | STG-52 | **Log usage when a song is actually shown**, with date, set list, arrangement and key | ST2.10, ST18.7 | Resolved |
-| STG-53 | **Export a CCLI usage report** for a period, validated against the same fixture as the platform's R12.10 | ST2.11, ST18.7 | New |
+| STG-53 | **Export a CCLI usage report** for a period, validated against the same fixture as the platform's R12.10 | ST2.11, ST18.7 | Resolved |
 | STG-54 | Export the whole library as OpenLyrics and as a Hearth-schema bundle, ungated | ST2.12 | New |
 | STG-150 | Collections in the library, so two hundred presentations are findable | ST2.18 | New |
 | STG-151 | **A media library**: images, video and audio added once and reusable anywhere | ST9.10 | New |
@@ -473,7 +473,7 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 |---|---|
 | **Active** | Nothing |
 | **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do, **STG-26** the clock and the reading, **STG-27** the operator brief, **STG-28** the render harness, **STG-29** the latency measurement, **STG-46** building a service, **STG-47** using last week's again. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-53**, the CCLI usage export. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Next** | **STG-54**, exporting the whole library as OpenLyrics and as a Hearth bundle. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -2124,3 +2124,38 @@ Migration 6 ran against the real library on disk: 185 songs, 2 presentations and
 | Story | What | Requirement | State |
 |---|---|---|---|
 | STG-52 | The local usage log, written when a song is actually shown | ST2.10, ST18.7 | Resolved |
+
+## STG-53, the CCLI report
+
+Small churches get fined for failing this report and no free presenter does it,
+so it is one of the few places Stage is the only answer a church has.
+
+**The fixture is the agreement with the platform.** `CCLI_FIXTURE` and
+`CCLI_EXPECTED_CSV` are in `packages/songs`, which the platform consumes as a
+package, so R12.10 asserts the same thing from the same facts. If the two ever
+disagree, one of them is wrong and a church gets a report its licence does not
+accept. Changing either is a change to both boards.
+
+The fixture is built to catch what a report gets wrong: a song sung across
+several services counting once each, two services on one day counting twice, both
+ends of the period being in it and a day outside it being out, a hymn with no
+CCLI number still being listed, and a comma or a quote in a title surviving the
+CSV. Writing it caught two things: a title with commas has to be quoted, and
+counting services by date alone is wrong for a church that meets twice in a day,
+so a use carries the plan it was sung in.
+
+**The screen says what it will export before it exports it**: how many songs,
+across how many services, and how many have no CCLI number. The church is the
+only one who can tell a hymn out of copyright from a song somebody typed in a
+hurry, so that count is named rather than fixed.
+
+**It opens on the last six months**, which is the span a church reports, so the
+one screen somebody visits once a year opens on the answer.
+
+The walk caught a routing defect introduced here: the export case landed in the
+middle of a fall-through group, so Presentation Plans and Library stopped
+opening. The unit tests could not see it.
+
+| Story | What | Requirement | State |
+|---|---|---|---|
+| STG-53 | The CCLI usage export, and the fixture the platform shares | ST2.11, ST18.7 | Resolved |
