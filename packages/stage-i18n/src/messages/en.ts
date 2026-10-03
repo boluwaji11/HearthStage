@@ -36,11 +36,10 @@ export const en = {
 
   // First run, the three ways in
   "start.name": "Hearth Stage",
-  "start.makeSlide": "Make a slide",
-  "start.openSong": "Open a song",
   "start.plans": "Service Plans",
   "start.library": "Library",
-  "start.trySample": "Try a service",
+  "start.settings": "Settings",
+  "nav.back": "Back",
 
   // What the output is doing
   "status.onScreen": "On screen",
@@ -128,9 +127,8 @@ export const en = {
    * things it lists.
    */
   "library.title": "Library",
-  "library.service": "Service",
   "library.search": "Search",
-  "library.new": "New",
+  "library.newSong": "New Song",
   "library.empty": "Nothing saved yet",
   "library.noMatch": "Nothing matches that",
   "library.addHymns": "Add {count} hymns",
@@ -239,9 +237,7 @@ export const en = {
   "library.kind.empty.slides": "No slides yet",
 
   // This machine
-  "library.settings": "Settings",
   "settings.title": "This machine",
-  "settings.back": "Library",
   "settings.name": "Name",
   "platform.darwin": "macOS",
   "platform.win32": "Windows",

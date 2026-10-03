@@ -103,7 +103,7 @@ export class Presentations {
   private setDrafting = false;
   private setSerial = 0;
   /** Which page the window shows, and which kind the library is on (STG-46). */
-  private page: "plans" | "library" = "plans";
+  private page: "plans" | "library" | "settings" = "plans";
   private libraryKind: "song" | "media" | "slides" | null = null;
 
   constructor(library: PresentationLibrary, options: PresentationsOptions = {}) {
@@ -200,6 +200,12 @@ export class Presentations {
         this.page = "library";
         // Back to the choice. A library shown whole is a list nobody can read.
         this.libraryKind = null;
+        this.revision += 1;
+        return true;
+
+      case "showSettings":
+        this.closeOpen();
+        this.page = "settings";
         this.revision += 1;
         return true;
 

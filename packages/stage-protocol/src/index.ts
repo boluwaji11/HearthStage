@@ -396,7 +396,7 @@ export interface EditorState {
    * window that presents as well as from in here, and a page the renderer
    * remembered for itself would arrive in the wrong state.
    */
-  page: "plans" | "library";
+  page: "plans" | "library" | "settings";
   /**
    * Which kind of thing the library is showing, or null for the choice.
    *
@@ -478,6 +478,7 @@ export type Intent =
   /** A running order for one service (STG-46, ST2.8). */
   | { type: "showPlans" }
   | { type: "showLibrary" }
+  | { type: "showSettings" }
   | { type: "showLibraryKind"; kind: "song" | "media" | "slides" }
   | { type: "newSetList" }
   | { type: "openSetList"; setListId: string }
@@ -618,6 +619,7 @@ export function isIntent(value: unknown): value is Intent {
     case "closeItem":
     case "showPlans":
     case "showLibrary":
+    case "showSettings":
     case "newSetList":
     case "closeSetList":
     case "closeService":

@@ -50,6 +50,8 @@ const SHAPES: Record<string, Shape[]> = {
     { d: "M21 13V15A4 4 0 0 1 17 19H3" },
   ],
   minus: [{ d: "M5 12H19" }],
+  /** Back, which is the way you came (STG-47). */
+  "arrow-left": [{ d: "M19 12H5" }, { d: "M12 19L5 12L12 5" }],
   close: [{ d: "M18 6L6 18" }, { d: "M6 6L18 18" }],
   grip: [
     { cx: 9, cy: 5 },

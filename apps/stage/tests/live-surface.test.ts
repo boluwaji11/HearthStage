@@ -51,6 +51,7 @@ const ALLOWED = new Set([
   // The two ways in (STG-46). Both open the other window and write nothing.
   "showPlans",
   "showLibrary",
+  "showSettings",
 ]);
 
 /** Anything that writes, removes or restyles. None of it belongs here. */

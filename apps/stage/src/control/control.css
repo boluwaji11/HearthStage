@@ -242,6 +242,22 @@ h2 {
   border-color: var(--stone-700);
 }
 
+/* This machine is reached from here, under the two ways a service is built. */
+.quiet-way {
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  background: none;
+  color: var(--quiet);
+  cursor: pointer;
+}
+
+.quiet-way:hover {
+  color: var(--text);
+}
+
 .way:first-child {
   background: var(--ember-500);
   border-color: var(--ember-500);

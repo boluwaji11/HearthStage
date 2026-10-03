@@ -51,6 +51,7 @@ const el = {
   start: document.getElementById("start") as HTMLElement,
   running: document.getElementById("running") as HTMLElement,
   wayLibrary: document.getElementById("way-library") as HTMLButtonElement,
+  waySettings: document.getElementById("way-settings") as HTMLButtonElement,
 };
 
 /**
@@ -623,6 +624,7 @@ el.briefClose.addEventListener("click", () => showBrief(false));
 // other window, change nothing on the wall, and are safe to press (ST12.3).
 el.wayPlans.addEventListener("click", () => send({ type: "showPlans" }));
 el.wayLibrary.addEventListener("click", () => send({ type: "showLibrary" }));
+el.waySettings.addEventListener("click", () => send({ type: "showSettings" }));
 el.home.addEventListener("click", () => send({ type: "closeService" }));
 el.resetRun.addEventListener("click", () => send({ type: "resetRun" }));
 window.addEventListener("keydown", onKey);

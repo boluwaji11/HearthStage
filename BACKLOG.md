@@ -1855,3 +1855,29 @@ about it in the middle of the screen. With plans in it, **New service plan** sit
 **Still to come, next:** a slide typed inside a service plan belongs to that plan rather than landing
 in the library, with **Save to the library** as a deliberate act. That is a storage change, so it is
 its own step.
+
+## The restructure, step 1b: a trail, and a page that says what it is
+
+The first pass moved the pages. This one makes them read as pages.
+
+| Was | Is |
+|---|---|
+| The window's title bar said "Library" | It says Hearth Stage, on every page |
+| Back was a word naming a fixed destination | Back is one arrow, and it goes where you came from |
+| Settings sat in the Service Plans header | Settings is on the landing page, with the two ways in |
+| Titles sat wherever the header's flex left them | A page's name is centred, the way out on the left, the one action on the right |
+| The three kinds huddled in the top left | They sit in the middle of the page as tiles |
+| **New** appeared under Slides | It appears under Songs |
+
+**Where a slide is born.** A song is typed into the library, because a song library is a shelf of
+songs. A slide is typed inside a service plan, belongs to that plan, and reaches the shelf only when
+someone saves it there. **Add from the library** inside a plan is a picker over the plan rather than
+a page you leave the plan for.
+
+**Settings is a page main owns.** It used to be a flag the editor window kept to itself, which was
+fine while the only door to it was in that window's own header. The landing page is in the other
+window, so the page moved into the state both windows read.
+
+**Still to come, next:** the storage half. `presentations.in_library`, items created inside a plan
+starting at 0, the library listing only what is on the shelf, and **Save to the library** flipping
+the flag.

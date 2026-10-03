@@ -30,7 +30,7 @@ describe("the catalogue", () => {
 
 describe("looking a message up", () => {
   it("returns it", () => {
-    expect(t("library.new")).toBe("New");
+    expect(t("library.newSong")).toBe("New Song");
   });
 
   it("fills in what it is given", () => {

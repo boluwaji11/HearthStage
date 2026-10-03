@@ -88,7 +88,6 @@ const el = {
   undoneWhat: document.getElementById("undone-what") as HTMLSpanElement,
   undo: document.getElementById("undo") as HTMLButtonElement,
   newButton: document.getElementById("new") as HTMLButtonElement,
-  settings: document.getElementById("settings") as HTMLButtonElement,
   settingsView: document.getElementById("settings-view") as HTMLElement,
   settingsBack: document.getElementById("settings-back") as HTMLButtonElement,
   deviceName: document.getElementById("device-name") as HTMLInputElement,
@@ -172,8 +171,10 @@ let logo: string | null = null;
 let service: { id: string | null; serial: number; title: string; date: string; entries: SetEntryDraft[] } | null =
   null;
 let serviceTimer: number | undefined;
-/** True while the machine's name is on screen (STG-14). */
-let settingsOpen = false;
+/** This machine is a page main owns, because the landing page reaches it too. */
+function settingsOpen(): boolean {
+  return latest?.page === "settings";
+}
 /** Slides whose note box is open although the note is still empty. */
 const noteOpen = new Set<number>();
 
@@ -885,7 +886,7 @@ const KIND_EMPTY: Record<string, MessageKey> = {
 function paintPages(): void {
   const page = latest?.page ?? "plans";
   const kind = latest?.libraryKind ?? null;
-  const open = draft !== null || service !== null || settingsOpen;
+  const open = draft !== null || service !== null || settingsOpen();
 
   el.plansView.hidden = open || page !== "plans";
   el.libraryView.hidden = open || page !== "library";
@@ -897,8 +898,9 @@ function paintPages(): void {
   el.libraryEmpty.hidden = true;
   el.libraryTitle.textContent = t(kind === null ? "library.kind.choose" : KIND_TITLE[kind] ?? "library.title");
 
-  // New belongs to the slides, which are the only kind a person types here.
-  el.newButton.hidden = kind !== "slides";
+  // A song is typed into the library. A slide is born inside a service plan
+  // and reaches the shelf only when someone saves it there.
+  el.newButton.hidden = kind !== "song";
   el.addSamples.hidden = kind !== "song" || (latest?.samples ?? 0) === 0;
 
   const plans = latest?.setLists ?? [];
@@ -1200,9 +1202,9 @@ function paint(next: EditorState): void {
   }
 
   // One view at a time. Opening something fills the window with it.
-  el.editView.hidden = draft === null || settingsOpen;
-  el.serviceView.hidden = service === null || settingsOpen;
-  el.settingsView.hidden = !settingsOpen;
+  el.editView.hidden = draft === null || settingsOpen();
+  el.serviceView.hidden = service === null || settingsOpen();
+  el.settingsView.hidden = !settingsOpen();
   renderDevice();
   renderServices();
   paintPages();
@@ -1502,22 +1504,14 @@ function renameMachine(): void {
   send({ type: "renameDevice", name });
 }
 
-function showSettings(open: boolean): void {
-  settingsOpen = open;
-  el.libraryView.hidden = open || draft !== null;
-  el.editView.hidden = open || draft === null;
-  el.settingsView.hidden = !open;
-  if (open) {
-    renderDevice();
-    el.deviceName.focus();
-  }
-}
-
 // Wiring
 
 // The words, before anything paints over them (STG-13).
 fillText();
 el.pickClose.append(icon("close"));
+for (const back of document.querySelectorAll<HTMLButtonElement>("button.back")) {
+  back.append(icon("arrow-left"));
+}
 
 el.title.addEventListener("input", () => {
   if (draft === null) return;
@@ -1568,8 +1562,8 @@ el.back.addEventListener("click", () => {
   send({ type: "closeItem" });
 });
 
-// The editor is its own window and covers the one that presents, so there has
-// to be a way back to it from in here.
+// The editor window covers the one that presents, so every page's back mark
+// walks out to it.
 el.toService.addEventListener("click", () => {
   commit();
   send({ type: "showControl" });
@@ -1586,8 +1580,7 @@ el.add.addEventListener("click", () => addSlide());
 el.paste.addEventListener("click", pasteSlide);
 el.addOrder.addEventListener("click", addOrder);
 el.addSamples.addEventListener("click", () => send({ type: "addSamples" }));
-el.settings.addEventListener("click", () => showSettings(true));
-el.settingsBack.addEventListener("click", () => showSettings(false));
+el.settingsBack.addEventListener("click", () => send({ type: "showControl" }));
 el.chooseLogo.addEventListener("click", () => send({ type: "chooseLogo" }));
 el.removeLogo.addEventListener("click", () => send({ type: "removeLogo" }));
 el.deviceName.addEventListener("blur", renameMachine);
