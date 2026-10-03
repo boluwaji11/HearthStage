@@ -174,6 +174,19 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX set_lists_archived ON set_lists(archived_at);
     `,
   },
+  {
+    version: 5,
+    name: "the shelf",
+    up: `
+      -- A slide typed inside a service plan belongs to that plan (STG-50).
+      -- The library is a shelf somebody puts a thing on, so the flag says
+      -- whether this row is on it. Everything written before this migration
+      -- was typed in the library, which is why the default is 1.
+      ALTER TABLE presentations ADD COLUMN in_library INTEGER NOT NULL DEFAULT 1;
+
+      CREATE INDEX presentations_shelf ON presentations(in_library);
+    `,
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.reduce(

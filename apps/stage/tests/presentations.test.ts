@@ -68,6 +68,7 @@ describe("the first ten minutes", () => {
       themeId: null,
       song: null,
       readOnly: false,
+      inLibrary: true,
     });
   });
 
@@ -969,5 +970,97 @@ describe("building a service", () => {
     built();
     expect(presentations.apply({ type: "closeSetList" })).toBe(true);
     expect(presentations.state().editingSet).toBeNull();
+  });
+});
+
+/**
+ * STG-50. Where a slide lives.
+ *
+ * A church types a term of one-off notices. None of them belong on the shelf
+ * somebody browses looking for a hymn, and the one that does belong there gets
+ * put there on purpose.
+ */
+describe("the shelf", () => {
+  /** Opens a plan and returns its id, which exists only after the first save. */
+  function planOpen(): string {
+    expect(presentations.apply({ type: "newSetList" })).toBe(true);
+    expect(
+      presentations.apply({
+        type: "saveSetList",
+        setListId: null,
+        title: "Morning Service",
+        date: "2026-10-04",
+        entries: [],
+      }),
+    ).toBe(true);
+    const id = presentations.state().editingSet?.id;
+    expect(id).toBeTypeOf("string");
+    return id as string;
+  }
+
+  function typeSlide(title: string): void {
+    expect(
+      presentations.apply({
+        type: "savePresentation",
+        presentationId: null,
+        title,
+        slides: [{ label: null, body: "Church lunch", note: null }],
+      }),
+    ).toBe(true);
+  }
+
+  it("keeps a slide typed inside a plan off the library", () => {
+    planOpen();
+    expect(presentations.apply({ type: "newPlanSlide" })).toBe(true);
+    expect(presentations.state().editing?.inLibrary).toBe(false);
+
+    typeSlide("Notices");
+    expect(presentations.state().library).toEqual([]);
+  });
+
+  it("puts that slide in the plan it was typed inside", () => {
+    const planId = planOpen();
+    presentations.apply({ type: "newPlanSlide" });
+    typeSlide("Notices");
+
+    const list = opened.library.getSetList(planId);
+    expect(list?.entries.map((entry) => entry.title)).toEqual(["Notices"]);
+    const itemId = list?.entries[0]?.itemId ?? "";
+    expect(opened.library.getPresentation(itemId)?.inLibrary).toBe(false);
+  });
+
+  it("puts it on the shelf when somebody says to", () => {
+    planOpen();
+    presentations.apply({ type: "newPlanSlide" });
+    typeSlide("Notices");
+
+    expect(presentations.apply({ type: "saveToLibrary" })).toBe(true);
+    expect(presentations.state().editing?.inLibrary).toBe(true);
+    expect(presentations.state().library.map((row) => row.title)).toEqual(["Notices"]);
+  });
+
+  it("leaves a slide typed in the library on the shelf", () => {
+    expect(presentations.apply({ type: "newPresentation" })).toBe(true);
+    typeSlide("Welcome");
+    expect(presentations.state().library.map((row) => row.title)).toEqual(["Welcome"]);
+  });
+
+  it("refuses a plan slide when no plan is open", () => {
+    expect(presentations.apply({ type: "newPlanSlide" })).toBe(false);
+  });
+
+  it("still presents a slide that is off the shelf", () => {
+    const planId = planOpen();
+    presentations.apply({ type: "newPlanSlide" });
+    typeSlide("Notices");
+
+    const list = opened.library.getSetList(planId);
+    const deck = compileDeck(
+      setListPlan(list!, (id) => opened.library.kindOf(id)),
+      lookupFrom([]),
+      { presentations: presentations.lookup() },
+    );
+    expect(deck.problems).toEqual([]);
+    expect(deck.cues.some((cue) => cue.lines?.[0] === "Church lunch")).toBe(true);
   });
 });

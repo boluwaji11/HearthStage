@@ -70,12 +70,20 @@ export interface Presentation {
   reference: string | null;
   /** RFC 3339. Maintained from usage rather than typed. */
   lastUsedAt: string | null;
+  /**
+   * Whether this sits on the library shelf (STG-50).
+   *
+   * A slide typed inside a service plan belongs to that plan and starts false,
+   * so a term of one-off notices stays out of the shelf a church browses.
+   * Saving it to the library is a deliberate act and sets this true.
+   */
+  inLibrary: boolean;
 }
 
 /** An empty presentation, which is what a person starts from. */
 export function newPresentation(
   id: string,
-  options: { title?: string; kind?: PresentationKind } = {},
+  options: { title?: string; kind?: PresentationKind; inLibrary?: boolean } = {},
 ): Presentation {
   return {
     id,
@@ -86,6 +94,7 @@ export function newPresentation(
     themeId: null,
     reference: null,
     lastUsedAt: null,
+    inLibrary: options.inLibrary ?? true,
   };
 }
 

@@ -86,6 +86,15 @@ export class Presentations {
   /** True after "New", before the first save, when there is no row yet. */
   private drafting = false;
   /**
+   * Where the thing being drafted is going (STG-50).
+   *
+   * A slide typed inside a service plan belongs to that plan, so it is written
+   * off the shelf and its id is appended to the plan on the first save. A slide
+   * typed in the library goes on the shelf, which is what the library is.
+   */
+  private draftShelf = true;
+  private draftIntoSet: string | null = null;
+  /**
    * Bumped when a different presentation is opened. A save leaves it alone.
    *
    * The window replaces its boxes when this changes, so storing what somebody
@@ -137,10 +146,41 @@ export class Presentations {
       case "newPresentation":
         this.editingId = null;
         this.drafting = true;
+        this.draftShelf = true;
+        this.draftIntoSet = null;
         this.problems = [];
         this.serial += 1;
         this.revision += 1;
         return true;
+
+      /**
+       * A slide typed inside the open service plan (STG-50, ST2.8).
+       *
+       * Nothing is written yet. The row appears on the first save, off the
+       * shelf, and its id is appended to the plan at the same moment, so a
+       * plan never names a slide that does not exist.
+       */
+      case "newPlanSlide": {
+        if (this.setEditingId === null) return false;
+        this.editingId = null;
+        this.drafting = true;
+        this.draftShelf = false;
+        this.draftIntoSet = this.setEditingId;
+        this.problems = [];
+        this.serial += 1;
+        this.revision += 1;
+        return true;
+      }
+
+      /** Onto the shelf, as a deliberate act (STG-50). */
+      case "saveToLibrary": {
+        if (this.editingId === null) return false;
+        const open = this.library.getPresentation(this.editingId);
+        if (open === null || open.inLibrary) return false;
+        this.library.savePresentation({ ...open, inLibrary: true });
+        this.revision += 1;
+        return true;
+      }
 
       case "openItem": {
         // One list, so the window asks for a row rather than for a kind. Which
@@ -282,6 +322,8 @@ export class Presentations {
   private closeOpen(): void {
     this.editingId = null;
     this.drafting = false;
+    this.draftShelf = true;
+    this.draftIntoSet = null;
     this.problems = [];
     this.serial += 1;
   }
@@ -376,7 +418,7 @@ export class Presentations {
           : (existing?.themeId ?? null);
 
     const presentation: Presentation = {
-      ...(existing ?? newPresentation(id)),
+      ...(existing ?? newPresentation(id, { inLibrary: this.draftShelf })),
       id,
       title: title.trim(),
       slides: slidesFrom(id, slides),
@@ -403,11 +445,34 @@ export class Presentations {
     }
 
     this.library.savePresentation(presentation);
+    if (existing === null && this.draftIntoSet !== null) this.intoSet(this.draftIntoSet, presentation);
+    this.draftIntoSet = null;
     this.editingId = id;
     this.drafting = false;
     this.problems = [];
     this.revision += 1;
     return true;
+  }
+
+  /** Appends a freshly written slide to the plan it was typed inside. */
+  private intoSet(setListId: string, presentation: Presentation): void {
+    const list = this.library.getSetList(setListId);
+    if (list === null) return;
+    this.library.saveSetList({
+      ...list,
+      entries: [
+        ...orderedEntries(list),
+        {
+          id: `${list.id}:entry:${list.entries.length}`,
+          setListId: list.id,
+          sortOrder: list.entries.length,
+          kind: "item",
+          itemId: presentation.id,
+          title: presentation.title,
+          notes: null,
+        },
+      ],
+    });
   }
 
   /**
@@ -565,6 +630,7 @@ export class Presentations {
           // A synced presentation belongs to the platform, so the laptop shows
           // it and does not write it.
           readOnly: presentation.origin !== "local",
+          inLibrary: presentation.inLibrary,
         };
       }
 
@@ -583,6 +649,7 @@ export class Presentations {
           // A synced song belongs to the platform, so the laptop shows it and
           // does not write it (PRD section 2, the two-writer rule).
           readOnly: song.song.origin !== "local",
+          inLibrary: true,
         };
       }
     }
@@ -599,6 +666,7 @@ export class Presentations {
         song: null,
         orders: [],
         readOnly: false,
+        inLibrary: this.draftShelf,
       };
     }
 

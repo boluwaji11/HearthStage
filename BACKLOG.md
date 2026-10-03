@@ -1881,3 +1881,31 @@ window, so the page moved into the state both windows read.
 **Still to come, next:** the storage half. `presentations.in_library`, items created inside a plan
 starting at 0, the library listing only what is on the shelf, and **Save to the library** flipping
 the flag.
+
+## STG-50, where a slide lives
+
+A church types a term of one-off notices. None of them belong on the shelf
+somebody browses looking for a hymn.
+
+`presentations.in_library` is migration 5, defaulting to 1, because everything
+written before it was typed in the library. A slide typed inside a service plan
+is written with 0 and its id is appended to the plan in the same save, so a plan
+never names a slide that does not exist. The library lists what is on the shelf.
+The deck compiler reads every presentation, so an off-shelf slide presents like
+anything else.
+
+**Save to the library** sits on the slide editor and shows only on a slide that
+is off the shelf and has been written once.
+
+**The picker narrows first.** Songs, Media, Slides, the same three the library
+page offers. Somebody building a service knows whether they want a hymn or a
+notice before they know its name, and one list of two hundred rows makes them
+scroll to find out.
+
+**Still to come, next:** the two pages open in their own window, and they should
+be tabs of the window that presents. That is a window change, so it is its own
+step.
+
+| Story | What | Requirement | State |
+|---|---|---|---|
+| STG-50 | Where a slide lives, and the shelf it reaches on purpose | ST2.8 | Resolved |

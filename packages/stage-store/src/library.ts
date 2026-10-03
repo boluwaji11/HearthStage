@@ -112,6 +112,7 @@ interface PresentationRow {
   theme_id: string | null;
   reference: string | null;
   last_used_at: string | null;
+  in_library: number;
   archived_at: string | null;
 }
 
@@ -145,6 +146,7 @@ function toPresentation(row: PresentationRow, slides: PresentationSlide[]): Pres
     themeId: row.theme_id,
     reference: row.reference,
     lastUsedAt: row.last_used_at,
+    inLibrary: row.in_library !== 0,
   };
 }
 
@@ -589,9 +591,9 @@ export class Library {
       this.db
         .prepare(
           `INSERT INTO presentations
-             (id, origin, kind, title, theme_id, reference, last_used_at, archived_at, created_at, updated_at)
+             (id, origin, kind, title, theme_id, reference, last_used_at, in_library, archived_at, created_at, updated_at)
            VALUES (
-             @id, @origin, @kind, @title, @theme_id, @reference, @last_used_at,
+             @id, @origin, @kind, @title, @theme_id, @reference, @last_used_at, @in_library,
              COALESCE((SELECT archived_at FROM presentations WHERE id = @id), NULL),
              @created_at, @updated_at
            )
@@ -601,6 +603,7 @@ export class Library {
              theme_id = excluded.theme_id,
              reference = excluded.reference,
              last_used_at = excluded.last_used_at,
+             in_library = excluded.in_library,
              updated_at = excluded.updated_at`,
         )
         .run({
@@ -611,6 +614,7 @@ export class Library {
           theme_id: presentation.themeId,
           reference: presentation.reference,
           last_used_at: presentation.lastUsedAt,
+          in_library: presentation.inLibrary ? 1 : 0,
           created_at: existing?.created_at ?? timestamp,
           updated_at: timestamp,
         });
@@ -761,6 +765,7 @@ export class Library {
                   p.archived_at AS archived_at,
                   p.updated_at AS updated_at
              FROM presentations p
+            WHERE p.in_library = 1
          )
          ${all ? "" : "WHERE archived_at IS NULL"}
          ORDER BY title COLLATE NOCASE

@@ -52,6 +52,8 @@ const ALLOWED = new Set([
   "showPlans",
   "showLibrary",
   "showSettings",
+  "newPlanSlide",
+  "saveToLibrary",
 ]);
 
 /** Anything that writes, removes or restyles. None of it belongs here. */

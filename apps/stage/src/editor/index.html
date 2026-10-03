@@ -98,7 +98,8 @@
         <ol id="entries" class="entries"></ol>
         <p id="entries-empty" class="quiet" data-t="service.empty"></p>
         <div class="add">
-          <button id="entry-add" type="button" class="primary" data-t="service.add"></button>
+          <button id="entry-slide" type="button" class="primary" data-t="service.newSlide"></button>
+          <button id="entry-add" type="button" data-t="service.add"></button>
           <button id="entry-heading" type="button" data-t="service.heading"></button>
         </div>
         <ul id="service-problems" class="problems"></ul>
@@ -157,6 +158,7 @@
         <div class="add">
           <button id="add" type="button" class="primary" data-t="editor.addSlide"></button>
           <button id="paste" type="button" hidden data-t="editor.pasteSlide"></button>
+          <button id="to-library" type="button" hidden data-t="editor.toLibrary"></button>
         </div>
 
         <!-- The ways a song is sung (STG-9). Absent on a sheet of slides. -->
@@ -198,11 +200,17 @@
         <h2 data-t="service.pick"></h2>
         <button id="pick-close" type="button" class="icon" data-t-label="card.close"></button>
       </div>
+      <div class="pick-kinds">
+        <button id="pick-song" type="button" class="pick-kind" data-t="library.kind.song"></button>
+        <button id="pick-media" type="button" class="pick-kind" data-t="library.kind.media"></button>
+        <button id="pick-slides" type="button" class="pick-kind" data-t="library.kind.slides"></button>
+      </div>
       <div class="field">
         <label for="pick-search" data-t="library.search"></label>
         <input id="pick-search" type="search" autocomplete="off" />
       </div>
       <ol id="pick-list" class="pick-list"></ol>
+      <p id="pick-empty" class="quiet" hidden></p>
     </dialog>
 
     <script type="module" src="./editor.ts"></script>

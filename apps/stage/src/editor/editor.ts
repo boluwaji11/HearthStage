@@ -118,6 +118,9 @@ const el = {
   pickClose: document.getElementById("pick-close") as HTMLButtonElement,
   pickSearch: document.getElementById("pick-search") as HTMLInputElement,
   pickList: document.getElementById("pick-list") as HTMLOListElement,
+  pickEmpty: document.getElementById("pick-empty") as HTMLParagraphElement,
+  entrySlide: document.getElementById("entry-slide") as HTMLButtonElement,
+  toLibrary: document.getElementById("to-library") as HTMLButtonElement,
   ask: document.getElementById("ask") as HTMLDialogElement,
   askTitle: document.getElementById("ask-title") as HTMLHeadingElement,
   askDetail: document.getElementById("ask-detail") as HTMLParagraphElement,
@@ -137,6 +140,8 @@ interface Draft {
   song: SongFields | null;
   orders: OrderDraft[];
   readOnly: boolean;
+  /** Whether this is on the library shelf (STG-50). */
+  inLibrary: boolean;
 }
 
 let draft: Draft | null = null;
@@ -941,6 +946,9 @@ function paintStatus(): void {
 
   el.add.disabled = draft === null || draft.readOnly;
   el.paste.hidden = copied === null;
+  // A slide that belongs to a service plan can be put on the shelf, once it
+  // has a row to put there (STG-50).
+  el.toLibrary.hidden = draft === null || draft.inLibrary || draft.id === null || draft.readOnly;
   el.paste.disabled = draft === null || draft.readOnly;
   el.present.disabled = draft === null || draft.id === null || slides === 0;
   el.title.readOnly = draft?.readOnly ?? false;
@@ -1165,6 +1173,7 @@ function paint(next: EditorState): void {
       song: next.editing.song,
       orders: next.editing.orders.map((order) => ({ ...order, sequence: [...order.sequence] })),
       readOnly: next.editing.readOnly,
+      inLibrary: next.editing.inLibrary,
     };
     removed = null;
     noteOpen.clear();
@@ -1179,6 +1188,7 @@ function paint(next: EditorState): void {
     draft.id = next.editing.id;
     draft.kind = next.editing.kind;
     draft.readOnly = next.editing.readOnly;
+    draft.inLibrary = next.editing.inLibrary;
   }
 
   // A running order, built the same way: replaced only when the serial says a
@@ -1203,7 +1213,7 @@ function paint(next: EditorState): void {
 
   // One view at a time. Opening something fills the window with it.
   el.editView.hidden = draft === null || settingsOpen();
-  el.serviceView.hidden = service === null || settingsOpen();
+  el.serviceView.hidden = service === null || draft !== null || settingsOpen();
   el.settingsView.hidden = !settingsOpen();
   renderDevice();
   renderServices();
@@ -1399,12 +1409,34 @@ function addEntry(entry: SetEntryDraft): void {
   commitService();
 }
 
-/** The library, as a list to add from. */
+/**
+ * The shelf, as a list to add from (STG-50).
+ *
+ * The same three kinds the library page offers, because somebody building a
+ * service knows whether they want a hymn or a notice before they know its name,
+ * and one list of two hundred rows makes them scroll to find out.
+ */
+let pickKind: "song" | "media" | "slides" = "song";
+
 function renderPick(): void {
   const query = el.pickSearch.value.trim().toLowerCase();
-  const rows = (latest?.library ?? []).filter(
-    (row) => query === "" || `${row.title} ${row.subtitle ?? ""}`.toLowerCase().includes(query),
-  );
+  const rows = (latest?.library ?? [])
+    .filter((row) =>
+      pickKind === "song"
+        ? row.kind === "song"
+        : pickKind === "media"
+          ? row.kind === "media"
+          : row.kind === "plain" || row.kind === "reading",
+    )
+    .filter(
+      (row) => query === "" || `${row.title} ${row.subtitle ?? ""}`.toLowerCase().includes(query),
+    );
+
+  for (const [button, kind] of pickKinds) {
+    button.setAttribute("aria-pressed", String(kind === pickKind));
+  }
+  el.pickEmpty.hidden = rows.length > 0;
+  el.pickEmpty.textContent = t("library.pickEmpty");
 
   el.pickList.replaceChildren();
   for (const row of rows.slice(0, 200)) {
@@ -1511,6 +1543,18 @@ fillText();
 el.pickClose.append(icon("close"));
 for (const back of document.querySelectorAll<HTMLButtonElement>("button.back")) {
   back.append(icon("arrow-left"));
+}
+
+const pickKinds: [HTMLButtonElement, "song" | "media" | "slides"][] = [
+  [document.getElementById("pick-song") as HTMLButtonElement, "song"],
+  [document.getElementById("pick-media") as HTMLButtonElement, "media"],
+  [document.getElementById("pick-slides") as HTMLButtonElement, "slides"],
+];
+for (const [button, kind] of pickKinds) {
+  button.addEventListener("click", () => {
+    pickKind = kind;
+    renderPick();
+  });
 }
 
 el.title.addEventListener("input", () => {
@@ -1636,6 +1680,15 @@ el.servicePresent.addEventListener("click", () => {
 });
 el.entryHeading.addEventListener("click", () => {
   addEntry({ kind: "marker", itemId: null, title: t("service.headingTitle") });
+});
+el.entrySlide.addEventListener("click", () => {
+  // The plan needs a row before a slide can point at it.
+  commitService();
+  send({ type: "newPlanSlide" });
+});
+el.toLibrary.addEventListener("click", () => {
+  commit();
+  send({ type: "saveToLibrary" });
 });
 el.entryAdd.addEventListener("click", () => {
   el.pickSearch.value = "";

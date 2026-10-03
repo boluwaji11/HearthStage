@@ -371,6 +371,14 @@ export interface EditorState {
     /** The ways it can be sung (STG-9). Empty on a presentation. */
     orders: OrderDraft[];
     readOnly: boolean;
+    /**
+     * Whether this sits on the library shelf (STG-50).
+     *
+     * False on a slide typed inside a service plan, which is what puts **Save
+     * to the library** on the screen. True on a song, because a song library
+     * is the shelf.
+     */
+    inLibrary: boolean;
   } | null;
   /**
    * This laptop (STG-14, ST1.9).
@@ -479,6 +487,10 @@ export type Intent =
   | { type: "showPlans" }
   | { type: "showLibrary" }
   | { type: "showSettings" }
+  /** A slide typed inside the open service plan (STG-50). */
+  | { type: "newPlanSlide" }
+  /** The open slide, onto the library shelf (STG-50). */
+  | { type: "saveToLibrary" }
   | { type: "showLibraryKind"; kind: "song" | "media" | "slides" }
   | { type: "newSetList" }
   | { type: "openSetList"; setListId: string }
@@ -620,6 +632,8 @@ export function isIntent(value: unknown): value is Intent {
     case "showPlans":
     case "showLibrary":
     case "showSettings":
+    case "newPlanSlide":
+    case "saveToLibrary":
     case "newSetList":
     case "closeSetList":
     case "closeService":
