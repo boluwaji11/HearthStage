@@ -28,6 +28,7 @@ export {
   LIBRARY_KINDS,
   type LibraryKind,
   type LibraryItem,
+  type SongUse,
 } from "./library";
 export { backup, backups, isUsable, restore, type BackupInfo, type BackupOptions } from "./backup";
 export { openLibrary, type OpenLibrary } from "./open-library";

@@ -16,7 +16,13 @@ import {
 } from "@hearth/songs";
 import { holyHolyHoly, sampleLibrary, sampleService } from "@hearth/songs/fixtures";
 import { readFileSync } from "node:fs";
-import { REPEAT_GUARD_MS, Session, contentOf, DEFAULT_THEME } from "../src/main/session";
+import {
+  REPEAT_GUARD_MS,
+  Session,
+  contentOf,
+  DEFAULT_THEME,
+  type SongShown,
+} from "../src/main/session";
 
 /** A service with nothing in it, which is what the application starts on. */
 const EMPTY: ServicePlan = {
@@ -778,5 +784,88 @@ describe("correcting the slide on the wall", () => {
     expect(
       session.controlState([], { correction: () => ({ canKeep: true, kept: false }) }).correcting,
     ).toMatchObject({ cueId, canKeep: true, kept: false });
+  });
+});
+
+/**
+ * STG-52, ST2.10. When a song counts as sung.
+ *
+ * A small church gets fined for a CCLI report that does not match what happened,
+ * so what matters here is the boundary: reaching a cue is not singing it if the
+ * screen is covered, and going back to the chorus is not a second use.
+ */
+describe("writing down that a song was sung", () => {
+  let shown: SongShown[];
+
+  function freshSession(): void {
+    shown = [];
+    session = new Session(deck, sampleService, { now: tick, onShown: (one) => shown.push(one) });
+  }
+
+  /** The groups a church sings. The service opens on a welcome slide. */
+  function sungGroups(): string[] {
+    return deck.groups
+      .filter((group) => deck.cues.some((cue) => cue.groupId === group.id && cue.kind === "lyric"))
+      .map((group) => group.id);
+  }
+
+  beforeEach(freshSession);
+
+  it("counts nothing for a welcome slide, which is not a song", () => {
+    expect(shown).toEqual([]);
+  });
+
+  it("counts the song as it reaches the wall", () => {
+    const first = sungGroups()[0];
+    session.apply({ type: "goToCue", cueId: deck.cues.find((cue) => cue.groupId === first)?.id ?? "" });
+    expect(shown.map((one) => one.groupId)).toEqual([first]);
+  });
+
+  it("counts a song once, however often the chorus comes back", () => {
+    const first = sungGroups()[0];
+    for (let at = 0; at < deck.cues.length; at += 1) session.apply({ type: "advance" });
+    expect(shown.filter((one) => one.groupId === first)).toHaveLength(1);
+  });
+
+  it("counts each song of the service", () => {
+    for (let at = 0; at < deck.cues.length; at += 1) session.apply({ type: "advance" });
+    const sung = deck.groups.filter((group) =>
+      deck.cues.some((cue) => cue.groupId === group.id && cue.kind === "lyric"),
+    );
+    expect(new Set(shown.map((one) => one.groupId))).toEqual(new Set(sung.map((one) => one.id)));
+  });
+
+  it("does not count a song reached behind a black", () => {
+    session.apply({ type: "setBlank", blank: "black" });
+    const before = shown.length;
+    for (let at = 0; at < deck.cues.length; at += 1) session.apply({ type: "advance" });
+    expect(shown).toHaveLength(before);
+  });
+
+  it("counts it the moment the cover comes off", () => {
+    session.apply({ type: "setBlank", blank: "black" });
+    for (let at = 0; at < deck.cues.length; at += 1) session.apply({ type: "advance" });
+    const before = shown.length;
+    session.apply({ type: "setBlank", blank: "none" });
+    expect(shown.length).toBeGreaterThan(before);
+  });
+
+  it("carries the key the room actually heard", () => {
+    for (let at = 0; at < deck.cues.length; at += 1) session.apply({ type: "advance" });
+    const group = deck.groups.find((one) => one.id === shown[0]?.groupId);
+    expect(shown[0]?.key).toBe(group?.key ?? null);
+  });
+
+  it("carries the plan, so the report can name the service", () => {
+    for (let at = 0; at < deck.cues.length; at += 1) session.apply({ type: "advance" });
+    expect(shown[0]?.plan?.id).toBe(sampleService.id);
+  });
+
+  it("starts the count again on the next service", () => {
+    for (let at = 0; at < deck.cues.length; at += 1) session.apply({ type: "advance" });
+    const sungOnce = shown.length;
+    session.open(compileDeck(sampleService, lookupFrom(sampleLibrary)), sampleService);
+    for (let at = 0; at < deck.cues.length; at += 1) session.apply({ type: "advance" });
+    expect(shown.length).toBeGreaterThan(sungOnce);
   });
 });

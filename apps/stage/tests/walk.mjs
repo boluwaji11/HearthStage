@@ -16,13 +16,14 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const electron = require("electron");
+const Database = require("better-sqlite3");
 const APP = process.argv[2] ?? resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PORT = 9300 + Math.floor(Math.random() * 600);
 const data = mkdtempSync(join(tmpdir(), "hearth-walk-"));
 const env = { ...process.env }; delete env["ELECTRON_RUN_AS_NODE"];
 const app = spawn(electron, [APP, `--remote-debugging-port=${PORT}`, `--user-data-dir=${data}`], { stdio: ["ignore","pipe","pipe"], env });
 let noise = ""; app.stdout.on("data", c => noise += c); app.stderr.on("data", c => noise += c);
-function stop(code){ app.kill(); rmSync(data,{recursive:true,force:true}); process.exit(code); }
+function stop(code){ app.kill(); if (process.env["HEARTH_KEEP"] === undefined) rmSync(data,{recursive:true,force:true}); else console.log("profile:", data); process.exit(code); }
 async function targets(){ for(let i=0;i<60;i++){ try{ const r=await fetch(`http://127.0.0.1:${PORT}/json/list`); const l=await r.json(); if(l.some(o=>o.url.includes("control/index.html"))) return l; }catch{} await new Promise(s=>setTimeout(s,250)); } throw new Error("no debugging port"); }
 function connect(url){ const s=new WebSocket(url); const waiting=new Map(); let next=1;
   s.addEventListener("message",e=>{ const m=JSON.parse(e.data); if(m.id!==undefined){ waiting.get(m.id)?.(m); waiting.delete(m.id);} });
@@ -232,6 +233,16 @@ await new Promise(s=>setTimeout(s,900));
 const kept = await evalIn(`[...document.querySelectorAll("#slides textarea")].some(t=>t.value.includes("A line somebody corrected"))`);
 console.log((kept?"ok  ":"FAIL")+"  the correction is in the library");
 if (!kept) fail.push("the correction did not reach the library");
+
+// STG-52. The log a CCLI report is built out of, read off the library the
+// application actually wrote rather than off anything the window says.
+console.log("-- the usage log (STG-52)");
+const db = new Database(join(data, "library.db"), { readonly: true });
+const sung = db.prepare("SELECT title, service_date, set_list_title, song_key FROM song_usage").all();
+db.close();
+for (const row of sung) console.log("  ", JSON.stringify(row));
+if (sung.length === 0) fail.push("nothing was written to the usage log");
+else console.log("ok    a song the room was shown is in the log");
 
 const errs = noise.split("\n").filter(l=>/Uncaught|Refused|SecurityError/i.test(l));
 if (errs.length) { console.log("CONSOLE:", errs.slice(0,8).join("\n")); fail.push("console"); }

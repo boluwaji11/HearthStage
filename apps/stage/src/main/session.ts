@@ -29,6 +29,16 @@ import { applyChange, asPlanned, runFrom, withGroup, type RunEntry } from "./run
 
 export { DEFAULT_THEME };
 
+/** A song that went on the wall, as much as the session knows about it. */
+export interface SongShown {
+  groupId: string;
+  itemId: string;
+  title: string;
+  key: string | null;
+  plan: ServicePlan | null;
+  at: number;
+}
+
 export interface SessionOptions {
   /** The service's theme, used by anything that does not name its own. */
   theme?: ThemeState;
@@ -39,6 +49,14 @@ export interface SessionOptions {
    * hand it two themes it made up.
    */
   themes?: (themeId: string | null) => ThemeState;
+  /**
+   * Called when a song reaches the wall (STG-52, ST2.10).
+   *
+   * Handed in rather than written here, because the session owns the deck on
+   * the screen and the log is the library's. Called once per song per service:
+   * the operator going back to the chorus is the same use.
+   */
+  onShown?: (shown: SongShown) => void;
   /**
    * The clock the repeat guard reads (STG-23, ST12.4).
    *
@@ -85,6 +103,9 @@ export class Session {
    * recompiles the deck and a correction made before it has to survive that.
    */
   private corrected = new Map<string, string[]>();
+  /** Song groups already written to the usage log this service (STG-52). */
+  private logged = new Set<string>();
+  private readonly onShown: ((shown: SongShown) => void) | undefined;
   /** When the deck last moved on a key, for the repeat guard (STG-23). */
   private movedAt = Number.NEGATIVE_INFINITY;
 
@@ -94,7 +115,9 @@ export class Session {
     this.theme = options.theme ?? DEFAULT_THEME;
     this.themes = options.themes ?? themeFor;
     this.now = options.now ?? Date.now;
+    this.onShown = options.onShown;
     this.order = runFrom(deck);
+    this.showed();
   }
 
   /** The cue an entry in the running order stands for. */
@@ -128,8 +151,10 @@ export class Session {
     const liveId = this.cueAt(this.position)?.id;
     this.deck = deck;
     this.plan = plan;
-    // A new service, so a correction made during the last one goes with it.
+    // A new service, so a correction made during the last one goes with it,
+    // and the next service's uses are its own.
     this.corrected = new Map();
+    this.logged = new Set();
     // A new deck is a new service, so the run starts as the church planned it.
     // Carrying a skipped verse across a recompile would hide a verse somebody
     // has just put back into the set list.
@@ -138,6 +163,7 @@ export class Session {
       liveId === undefined ? -1 : this.order.findIndex((entry) => entry.cueId === liveId);
     this.position = found === -1 ? 0 : found;
     this.revision += 1;
+    this.showed();
   }
 
   /**
@@ -361,13 +387,46 @@ export class Session {
     if (clamped === this.position) return false;
     this.position = clamped;
     this.revision += 1;
+    this.showed();
     return true;
+  }
+
+  /**
+   * Writes down that a song is on the wall (STG-52, ST2.10).
+   *
+   * Only while the screen is uncovered, because a cue reached behind a black
+   * is not a song the church sang. Taking the cover off asks again, so the
+   * usual order of covering the screen and then moving is still recorded.
+   *
+   * Once per group, so a chorus the operator goes back to is one use and the
+   * report does not count it twice.
+   */
+  private showed(): void {
+    if (this.blank !== "none") return;
+    const cue = this.cueAt(this.position);
+    if (cue === undefined || cue.kind !== "lyric") return;
+    if (this.logged.has(cue.groupId)) return;
+
+    const group = this.deck.groups.find((one) => one.id === cue.groupId);
+    if (group === undefined) return;
+
+    this.logged.add(cue.groupId);
+    this.onShown?.({
+      groupId: group.id,
+      itemId: group.itemId,
+      title: group.title,
+      key: group.key,
+      plan: this.plan,
+      at: this.now(),
+    });
   }
 
   private setBlank(blank: Blank): boolean {
     if (blank === this.blank) return false;
     this.blank = blank;
     this.revision += 1;
+    // A song reached behind a black is sung the moment the cover comes off.
+    if (blank === "none") this.showed();
     return true;
   }
 

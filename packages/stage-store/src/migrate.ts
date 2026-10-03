@@ -187,6 +187,47 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX presentations_shelf ON presentations(in_library);
     `,
   },
+  {
+    version: 6,
+    name: "the usage log",
+    up: `
+      -- Every song a church actually put on the wall (STG-52, ST2.10).
+      --
+      -- Written when a song is shown rather than when a plan is opened, so the
+      -- CCLI report reflects the service instead of the intention. A small
+      -- church gets fined for failing that report, so this is the record the
+      -- fine turns on.
+      --
+      -- No foreign key on song_id. The log outlives the song: a church that
+      -- archives a hymn in March still has to report the February service it
+      -- was sung in.
+      CREATE TABLE song_usage (
+        id             TEXT PRIMARY KEY,
+        song_id        TEXT NOT NULL,
+        -- Copied rather than joined, for the same reason. A report run next
+        -- year has to name what was sung even if the row has since gone.
+        title          TEXT NOT NULL,
+        author         TEXT,
+        ccli_number    TEXT,
+        -- The service date in the church's timezone, YYYY-MM-DD. What CCLI
+        -- asks for, and what a period is filtered on.
+        service_date   TEXT NOT NULL,
+        set_list_id    TEXT,
+        set_list_title TEXT,
+        arrangement_id TEXT,
+        song_key       TEXT,
+        -- RFC 3339, the moment it went on the wall.
+        shown_at       TEXT NOT NULL
+      );
+
+      -- One row per song per service. A chorus the operator goes back to is
+      -- the same use, and a report that counted it twice would be wrong.
+      CREATE UNIQUE INDEX song_usage_once
+        ON song_usage(song_id, service_date, COALESCE(set_list_id, ''));
+
+      CREATE INDEX song_usage_period ON song_usage(service_date);
+    `,
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.reduce(

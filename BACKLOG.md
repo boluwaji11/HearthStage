@@ -179,7 +179,7 @@ The release a church with a 300 song ProPresenter library can actually adopt. No
 | STG-49 | Add a song to the live deck from the library by typing, in under five seconds | ST5.8 | Resolved |
 | STG-50 | Jump to a cue by typing its label, and skip or repeat | ST5.9 | Resolved |
 | STG-51 | Correct a typo on a live slide, offering the fix to the library for a local song | ST6.8 | Resolved |
-| STG-52 | **Log usage when a song is actually shown**, with date, set list, arrangement and key | ST2.10, ST18.7 | New |
+| STG-52 | **Log usage when a song is actually shown**, with date, set list, arrangement and key | ST2.10, ST18.7 | Resolved |
 | STG-53 | **Export a CCLI usage report** for a period, validated against the same fixture as the platform's R12.10 | ST2.11, ST18.7 | New |
 | STG-54 | Export the whole library as OpenLyrics and as a Hearth-schema bundle, ungated | ST2.12 | New |
 | STG-150 | Collections in the library, so two hundred presentations are findable | ST2.18 | New |
@@ -473,7 +473,7 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 |---|---|
 | **Active** | Nothing |
 | **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do, **STG-26** the clock and the reading, **STG-27** the operator brief, **STG-28** the render harness, **STG-29** the latency measurement, **STG-46** building a service, **STG-47** using last week's again. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-52**, logging usage when a song is actually shown. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Next** | **STG-53**, the CCLI usage export. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -2092,3 +2092,35 @@ the card says it when main has done it.
 | Story | What | Requirement | State |
 |---|---|---|---|
 | STG-51 | A typo corrected on the wall, and offered to the library | ST6.8 | Resolved |
+
+## STG-52, what the church actually sang
+
+A small church gets fined for a CCLI report that does not match what happened, so
+this is the record the fine turns on. `song_usage` is migration 6.
+
+**A row is written when a song reaches the wall**, not when a plan is opened. The
+session calls `onShown` as the live cue changes, and main writes the row, because
+the session owns the deck on the screen and the log is the library's.
+
+**Covered is not sung.** A cue reached behind a black writes nothing, and taking
+the cover off writes it then. The usual order, cover the screen and then move, is
+still recorded.
+
+**One service is one use.** The operator going back to the chorus is the same use,
+held both in the session, which logs once per group, and in the store, where the
+unique index makes it true whatever calls it.
+
+**The log outlives the song.** The title, author and CCLI number are copied in
+rather than joined, because a church that archives a hymn in March still has to
+report the February service it was sung in. There is no foreign key on `song_id`
+for the same reason.
+
+A song put up on its own with no plan open still counts. CCLI does not care that
+nobody typed a plan.
+
+Migration 6 ran against the real library on disk: 185 songs, 2 presentations and
+2 plans intact.
+
+| Story | What | Requirement | State |
+|---|---|---|---|
+| STG-52 | The local usage log, written when a song is actually shown | ST2.10, ST18.7 | Resolved |

@@ -39,7 +39,7 @@ import { openLibrary } from "@hearth/stage-store";
 import { Presentations } from "./presentations";
 import { restoredOrders } from "./repair";
 import { APP_NAME, OLD_FOLDER, relocation } from "./userdata";
-import { Session } from "./session";
+import { Session, type SongShown } from "./session";
 import { hostname } from "node:os";
 import { openDevice, renameDevice } from "./device";
 import { readLogo, removeLogo, setLogo } from "./branding";
@@ -229,7 +229,48 @@ const NOTHING_OPEN: ServicePlan = {
  * explaining itself before it has been asked. The control surface shows the
  * three ways in while no service is open, and the sample is one of them.
  */
-const session = new Session(compileDeck(NOTHING_OPEN, songs()), null);
+const session = new Session(compileDeck(NOTHING_OPEN, songs()), null, { onShown: writeUse });
+
+/**
+ * A song reached the wall, so the log says so (STG-52, ST2.10, ST18.7).
+ *
+ * Written here rather than in the session, because the session owns the deck on
+ * the screen and the log is the library's. The song's name and CCLI number go
+ * in with it, so a report run next year still names what was sung after
+ * somebody archives the song.
+ *
+ * A church with no plan open still gets a row. A hymn called from the floor and
+ * put up on its own was sung, and CCLI does not care that nobody typed a plan.
+ */
+function writeUse(shown: SongShown): void {
+  const item = shown.plan?.items.find((one) => one.id === shown.itemId);
+  if (item === undefined || item.type !== "song") return;
+
+  const whole = store.library.get(item.songId);
+  if (whole === null) return;
+
+  store.library.logUsage({
+    songId: item.songId,
+    title: whole.song.title,
+    author: whole.song.author,
+    ccliNumber: whole.song.ccliNumber,
+    // The service's own date, so a service that runs past midnight is still
+    // the service it was planned for.
+    serviceDate: shown.plan?.date ?? dayOf(shown.at),
+    setListId: shown.plan?.source === "set_list" ? shown.plan.id : null,
+    setListTitle: shown.plan?.title ?? null,
+    arrangementId: item.arrangementId,
+    key: shown.key,
+    shownAt: new Date(shown.at).toISOString(),
+  });
+}
+
+/** A moment as the day it fell on, where this church is. */
+function dayOf(at: number): string {
+  const when = new Date(at);
+  const pad = (value: number): string => String(value).padStart(2, "0");
+  return `${when.getFullYear()}-${pad(when.getMonth() + 1)}-${pad(when.getDate())}`;
+}
 
 /** Which presentation is on the wall, where one is. */
 let presenting: string | null = null;

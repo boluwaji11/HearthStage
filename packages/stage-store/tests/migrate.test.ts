@@ -104,6 +104,7 @@ describe("migrate", () => {
       "set_entries",
       "set_lists",
       "song_sections",
+      "song_usage",
       "songs",
     ]);
     expect(objects.filter((o) => o.type === "index").map((o) => o.name)).toContain(

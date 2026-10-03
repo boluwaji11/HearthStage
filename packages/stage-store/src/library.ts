@@ -104,6 +104,29 @@ interface MediaRow {
   duration_seconds: number | null;
 }
 
+/**
+ * One song, on one service, as the usage log holds it (STG-52, ST2.10).
+ *
+ * The song's name and CCLI number are copied rather than joined, because the
+ * log outlives the song: a church that archives a hymn in March still has to
+ * report the February service it was sung in.
+ */
+export interface SongUse {
+  songId: string;
+  title: string;
+  author?: string | null;
+  ccliNumber?: string | null;
+  /** The service date in the church's timezone, YYYY-MM-DD. */
+  serviceDate: string;
+  setListId?: string | null;
+  setListTitle?: string | null;
+  arrangementId?: string | null;
+  /** The key it was actually played in. */
+  key?: string | null;
+  /** RFC 3339. Filled in from the clock when it is not given. */
+  shownAt?: string;
+}
+
 interface PresentationRow {
   id: string;
   origin: string;
@@ -930,6 +953,104 @@ export class Library {
   }
 
   /** Which table a library item is in, for `setListPlan`. */
+  /**
+   * Writes that a song went on the wall (STG-52, ST2.10).
+   *
+   * Idempotent per song per service, because the operator going back to the
+   * chorus is the same use and a report that counted it twice would be wrong.
+   * The song's name and CCLI number are copied in rather than joined, so a
+   * report run next year still names what was sung after somebody archives it.
+   *
+   * Also moves the song's `last_used_at`, which is what the library sorts on.
+   */
+  logUsage(use: SongUse): boolean {
+    const timestamp = use.shownAt ?? this.now();
+    const written = this.db.transaction(() => {
+      const result = this.db
+        .prepare(
+          `INSERT INTO song_usage
+             (id, song_id, title, author, ccli_number, service_date,
+              set_list_id, set_list_title, arrangement_id, song_key, shown_at)
+           VALUES (@id, @song_id, @title, @author, @ccli_number, @service_date,
+                   @set_list_id, @set_list_title, @arrangement_id, @song_key, @shown_at)
+           ON CONFLICT DO NOTHING`,
+        )
+        .run({
+          id: `use:${use.songId}:${use.serviceDate}:${use.setListId ?? ""}`,
+          song_id: use.songId,
+          title: use.title,
+          author: use.author ?? null,
+          ccli_number: use.ccliNumber ?? null,
+          service_date: use.serviceDate,
+          set_list_id: use.setListId ?? null,
+          set_list_title: use.setListTitle ?? null,
+          arrangement_id: use.arrangementId ?? null,
+          song_key: use.key ?? null,
+          shown_at: timestamp,
+        });
+
+      if (result.changes === 0) return false;
+      this.db
+        .prepare("UPDATE songs SET last_used_at = ?, updated_at = ? WHERE id = ?")
+        .run(timestamp, timestamp, use.songId);
+      return true;
+    })();
+
+    if (written) this.afterWrite?.();
+    return written;
+  }
+
+  /**
+   * The log, for a period (STG-52, STG-53, ST2.11).
+   *
+   * Both ends are inclusive, because a church asked for January to June means
+   * the whole of June. Ordered by date, which is the order a report reads in.
+   */
+  usage(period: { from?: string; to?: string } = {}): SongUse[] {
+    const where: string[] = [];
+    const values: string[] = [];
+    if (period.from !== undefined) {
+      where.push("service_date >= ?");
+      values.push(period.from);
+    }
+    if (period.to !== undefined) {
+      where.push("service_date <= ?");
+      values.push(period.to);
+    }
+
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM song_usage
+          ${where.length === 0 ? "" : `WHERE ${where.join(" AND ")}`}
+          ORDER BY service_date, title COLLATE NOCASE`,
+      )
+      .all(...values) as {
+      song_id: string;
+      title: string;
+      author: string | null;
+      ccli_number: string | null;
+      service_date: string;
+      set_list_id: string | null;
+      set_list_title: string | null;
+      arrangement_id: string | null;
+      song_key: string | null;
+      shown_at: string;
+    }[];
+
+    return rows.map((row) => ({
+      songId: row.song_id,
+      title: row.title,
+      author: row.author,
+      ccliNumber: row.ccli_number,
+      serviceDate: row.service_date,
+      setListId: row.set_list_id,
+      setListTitle: row.set_list_title,
+      arrangementId: row.arrangement_id,
+      key: row.song_key,
+      shownAt: row.shown_at,
+    }));
+  }
+
   kindOf(itemId: string): ItemKind | undefined {
     const song = this.db.prepare("SELECT 1 FROM songs WHERE id = ?").get(itemId);
     if (song !== undefined) return "song";
