@@ -373,6 +373,16 @@ app.whenReady().then(() => {
         openEditor();
         broadcast();
         return;
+      case "showItems":
+      case "showServices":
+      case "newSetList":
+        // The window opens whether or not the half it is being asked for is
+        // already the one on screen, because this is also how the service
+        // window reaches the services.
+        openEditor();
+        presentations.apply(payload);
+        broadcast();
+        return;
       case "openSample":
         // The service is made of two songs, so pressing it is what puts them
         // in the library. Nothing arrives before somebody asks for something.
@@ -430,7 +440,6 @@ app.whenReady().then(() => {
       case "openItem":
       case "closeItem":
       case "addSamples":
-      case "newSetList":
       case "openSetList":
       case "closeSetList":
       case "saveSetList":

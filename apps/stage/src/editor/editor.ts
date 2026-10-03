@@ -156,8 +156,6 @@ let copied: SlideDraft | null = null;
 let proposal: { index: number; split: SplitProposal; text: string } | null = null;
 /** The church's logo, pushed on its own channel (STG-22). */
 let logo: string | null = null;
-/** Which half of the library is on screen (STG-46). */
-let tab: "items" | "services" = "items";
 /**
  * The running order being built, held here while somebody types it.
  *
@@ -862,7 +860,7 @@ function removeOrder(index: number): void {
 
 /** Items or services. One library, two halves of it (STG-46). */
 function paintTabs(): void {
-  const services = tab === "services";
+  const services = (latest?.tab ?? "items") === "services";
   el.tabItems.dataset["on"] = String(!services);
   el.tabServices.dataset["on"] = String(services);
   el.tiles.hidden = services;
@@ -872,12 +870,6 @@ function paintTabs(): void {
     el.libraryEmpty.hidden = (latest?.setLists ?? []).length > 0;
     el.libraryEmpty.textContent = t("service.noServices");
   }
-}
-
-function showTab(which: "items" | "services"): void {
-  tab = which;
-  paintTabs();
-  renderLibrary();
 }
 
 /** Shown on a song. A sheet of notices is written for one week. */
@@ -1031,7 +1023,7 @@ function renderLibrary(): void {
   el.tiles.replaceChildren();
   for (const row of shown) el.tiles.append(tileFor(row, themes));
 
-  if (tab === "items") {
+  if ((latest?.tab ?? "items") === "items") {
     el.libraryEmpty.hidden = shown.length > 0;
     el.libraryEmpty.textContent = t(rows.length === 0 ? "library.empty" : "library.noMatch");
   }
@@ -1473,6 +1465,7 @@ function showSettings(open: boolean): void {
 
 // The words, before anything paints over them (STG-13).
 fillText();
+el.pickClose.append(icon("close"));
 
 el.title.addEventListener("input", () => {
   if (draft === null) return;
@@ -1554,11 +1547,11 @@ el.deviceName.addEventListener("keydown", (event) => {
 el.undo.addEventListener("click", undoRemoval);
 el.newButton.addEventListener("click", () => {
   commit();
-  send({ type: tab === "services" ? "newSetList" : "newPresentation" });
+  send({ type: latest?.tab === "services" ? "newSetList" : "newPresentation" });
 });
 
-el.tabItems.addEventListener("click", () => showTab("items"));
-el.tabServices.addEventListener("click", () => showTab("services"));
+el.tabItems.addEventListener("click", () => send({ type: "showItems" }));
+el.tabServices.addEventListener("click", () => send({ type: "showServices" }));
 
 el.serviceBack.addEventListener("click", () => {
   commitService();

@@ -101,6 +101,8 @@ export class Presentations {
   private setEditingId: string | null = null;
   private setDrafting = false;
   private setSerial = 0;
+  /** Which half of the library the window shows (STG-46). */
+  private tab: "items" | "services" = "items";
 
   constructor(library: PresentationLibrary, options: PresentationsOptions = {}) {
     this.library = library;
@@ -185,10 +187,20 @@ export class Presentations {
         return true;
       }
 
+      case "showItems":
+      case "showServices": {
+        const want = intent.type === "showServices" ? "services" : "items";
+        if (this.tab === want) return false;
+        this.tab = want;
+        this.revision += 1;
+        return true;
+      }
+
       case "newSetList":
         // A running order and an item are never open at once. The window shows
         // one thing, and a church building Sunday is not also typing a hymn.
         this.closeOpen();
+        this.tab = "services";
         this.setEditingId = null;
         this.setDrafting = true;
         this.setSerial += 1;
@@ -198,6 +210,7 @@ export class Presentations {
       case "openSetList": {
         if (this.library.getSetList(intent.setListId) === null) return false;
         this.closeOpen();
+        this.tab = "services";
         this.setEditingId = intent.setListId;
         this.setDrafting = false;
         this.setSerial += 1;
@@ -433,6 +446,7 @@ export class Presentations {
         }),
       ),
       editing: this.open(),
+      tab: this.tab,
       setLists: this.library.setLists().map(
         (row): SetListRow => ({
           id: row.id,

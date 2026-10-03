@@ -16,6 +16,7 @@ export const en = {
   // The window that presents
   "control.home": "Home",
   "control.slides": "Library",
+  "control.services": "Services",
   "control.start": "Start",
   "control.deck": "Deck",
   "control.stage": "What is live",
@@ -37,6 +38,7 @@ export const en = {
   "start.name": "Hearth Stage",
   "start.makeSlide": "Make a slide",
   "start.openSong": "Open a song",
+  "start.buildService": "Build a service",
   "start.trySample": "Try a service",
 
   // What the output is doing

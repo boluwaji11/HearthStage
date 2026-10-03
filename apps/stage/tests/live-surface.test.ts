@@ -46,6 +46,10 @@ const ALLOWED = new Set([
   "makeSlide",
   "openLibrary",
   "openSample",
+  // The services, which are a way in rather than a thing buried in the library
+  // (STG-46). Both open the other window and write nothing.
+  "showServices",
+  "newSetList",
   // A clock over the top of whatever is open, and taking it away again
   // (STG-26). It writes nothing and the slide underneath is untouched, the
   // same as the covers.

@@ -47,6 +47,8 @@ const el = {
   countdownLeft: document.getElementById("countdown-left") as HTMLParagraphElement,
   slides: document.getElementById("slides") as HTMLButtonElement,
   home: document.getElementById("home") as HTMLButtonElement,
+  services: document.getElementById("services") as HTMLButtonElement,
+  wayService: document.getElementById("way-service") as HTMLButtonElement,
   problems: document.getElementById("problems") as HTMLUListElement,
   start: document.getElementById("start") as HTMLElement,
   running: document.getElementById("running") as HTMLElement,
@@ -626,6 +628,10 @@ el.briefClose.addEventListener("click", () => showBrief(false));
 el.slides.addEventListener("click", () => send({ type: "openEditor" }));
 el.home.addEventListener("click", () => send({ type: "closeService" }));
 el.resetRun.addEventListener("click", () => send({ type: "resetRun" }));
+el.services.addEventListener("click", () => send({ type: "showServices" }));
+// A service is a thing a church builds, so it is a way in rather than something
+// found inside the library (STG-46).
+el.wayService.addEventListener("click", () => send({ type: "newSetList" }));
 el.waySlide.addEventListener("click", () => send({ type: "makeSlide" }));
 el.wayLibrary.addEventListener("click", () => send({ type: "openLibrary" }));
 el.waySample.addEventListener("click", () => send({ type: "openSample" }));

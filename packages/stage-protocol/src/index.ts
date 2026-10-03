@@ -389,6 +389,14 @@ export interface EditorState {
    * means a church that already has them, and the offer goes.
    */
   samples: number;
+  /**
+   * Which half of the library is on screen (STG-46).
+   *
+   * Main's, rather than the window's, because a service is reached from the
+   * window that presents as well as from in here, and a tab the renderer
+   * remembered for itself would be in the wrong state when it arrived.
+   */
+  tab: "items" | "services";
   /** The running orders a church has typed, newest service first (STG-46). */
   setLists: SetListRow[];
   /** The one open in the window, where one is. */
@@ -461,6 +469,8 @@ export type Intent =
   /** Back to the library, with nothing open (STG-149). */
   | { type: "closeItem" }
   /** A running order for one service (STG-46, ST2.8). */
+  | { type: "showItems" }
+  | { type: "showServices" }
   | { type: "newSetList" }
   | { type: "openSetList"; setListId: string }
   | { type: "closeSetList" }
@@ -589,6 +599,8 @@ export function isIntent(value: unknown): value is Intent {
     case "openLibrary":
     case "openSample":
     case "closeItem":
+    case "showItems":
+    case "showServices":
     case "newSetList":
     case "closeSetList":
     case "closeService":
