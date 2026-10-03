@@ -271,7 +271,7 @@ function broadcast(): void {
 /**
  * Brings the window forward (STG-149).
  *
- * The workbench is a page of this window rather than a second one (STG-51), so
+ * The workbench is a page of this window rather than a second one (STG-170), so
  * leaving it is a page change. Focus is still taken, because a church reaching
  * the service from the dock expects the window in front.
  */
@@ -452,7 +452,7 @@ app.whenReady().then(() => {
     if (entry !== undefined) {
       return { output: session.outputState(entry[0]), control: null, editor: null };
     }
-    // One window, so it is handed both halves of what it paints (STG-51).
+    // One window, so it is handed both halves of what it paints (STG-170).
     return {
       output: null,
       control: session.controlState(outputViews()),

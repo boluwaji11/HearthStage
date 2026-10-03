@@ -372,7 +372,7 @@ export interface EditorState {
     orders: OrderDraft[];
     readOnly: boolean;
     /**
-     * Whether this sits on the library shelf (STG-50).
+     * Whether this sits on the library shelf (STG-169).
      *
      * False on a slide typed inside a service plan, which is what puts **Save
      * to the library** on the screen. True on a song, because a song library
@@ -398,7 +398,7 @@ export interface EditorState {
    */
   samples: number;
   /**
-   * Which page the window is on (STG-46, STG-51).
+   * Which page the window is on (STG-46, STG-170).
    *
    * "none" is the workbench closed, which is the window showing the service it
    * is running. The rest are the pages inside it.
@@ -490,9 +490,9 @@ export type Intent =
   | { type: "showPlans" }
   | { type: "showLibrary" }
   | { type: "showSettings" }
-  /** A slide typed inside the open service plan (STG-50). */
+  /** A slide typed inside the open service plan (STG-169). */
   | { type: "newPlanSlide" }
-  /** The open slide, onto the library shelf (STG-50). */
+  /** The open slide, onto the library shelf (STG-169). */
   | { type: "saveToLibrary" }
   | { type: "showLibraryKind"; kind: "song" | "media" | "slides" }
   | { type: "newSetList" }

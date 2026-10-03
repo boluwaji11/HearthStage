@@ -178,7 +178,7 @@ export const MIGRATIONS: Migration[] = [
     version: 5,
     name: "the shelf",
     up: `
-      -- A slide typed inside a service plan belongs to that plan (STG-50).
+      -- A slide typed inside a service plan belongs to that plan (STG-169).
       -- The library is a shelf somebody puts a thing on, so the flag says
       -- whether this row is on it. Everything written before this migration
       -- was typed in the library, which is why the default is 1.

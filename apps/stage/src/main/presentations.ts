@@ -86,7 +86,7 @@ export class Presentations {
   /** True after "New", before the first save, when there is no row yet. */
   private drafting = false;
   /**
-   * Where the thing being drafted is going (STG-50).
+   * Where the thing being drafted is going (STG-169).
    *
    * A slide typed inside a service plan belongs to that plan, so it is written
    * off the shelf and its id is appended to the plan on the first save. A slide
@@ -154,7 +154,7 @@ export class Presentations {
         return true;
 
       /**
-       * A slide typed inside the open service plan (STG-50, ST2.8).
+       * A slide typed inside the open service plan (STG-169, ST2.8).
        *
        * Nothing is written yet. The row appears on the first save, off the
        * shelf, and its id is appended to the plan at the same moment, so a
@@ -172,7 +172,7 @@ export class Presentations {
         return true;
       }
 
-      /** Onto the shelf, as a deliberate act (STG-50). */
+      /** Onto the shelf, as a deliberate act (STG-169). */
       case "saveToLibrary": {
         if (this.editingId === null) return false;
         const open = this.library.getPresentation(this.editingId);

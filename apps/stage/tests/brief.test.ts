@@ -71,7 +71,7 @@ describe("the card", () => {
 
   it("is one of two cards, both opened from the same corner", () => {
     // The live surface's own cards. The workbench holds its own, and since
-    // STG-51 they share a document, so this counts the ones outside it.
+    // STG-170 they share a document, so this counts the ones outside it.
     const live = liveMarkup();
     expect([...live.matchAll(/<dialog/g)]).toHaveLength(2);
     const footer = live.slice(live.indexOf("<footer>"), live.indexOf("</footer>"));

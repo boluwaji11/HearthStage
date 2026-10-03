@@ -141,7 +141,7 @@ interface Draft {
   song: SongFields | null;
   orders: OrderDraft[];
   readOnly: boolean;
-  /** Whether this is on the library shelf (STG-50). */
+  /** Whether this is on the library shelf (STG-169). */
   inLibrary: boolean;
 }
 
@@ -891,7 +891,7 @@ const KIND_EMPTY: Record<string, MessageKey> = {
 
 function paintPages(): void {
   const page = latest?.page ?? "none";
-  // The workbench is a page of the window that presents (STG-51). The body
+  // The workbench is a page of the window that presents (STG-170). The body
   // says so, and control.css puts the service away underneath it, so neither
   // half has to know when the other painted.
   el.workbench.hidden = page === "none";
@@ -953,7 +953,7 @@ function paintStatus(): void {
   el.add.disabled = draft === null || draft.readOnly;
   el.paste.hidden = copied === null;
   // A slide that belongs to a service plan can be put on the shelf, once it
-  // has a row to put there (STG-50).
+  // has a row to put there (STG-169).
   el.toLibrary.hidden = draft === null || draft.inLibrary || draft.id === null || draft.readOnly;
   el.paste.disabled = draft === null || draft.readOnly;
   el.present.disabled = draft === null || draft.id === null || slides === 0;
@@ -1416,7 +1416,7 @@ function addEntry(entry: SetEntryDraft): void {
 }
 
 /**
- * The shelf, as a list to add from (STG-50).
+ * The shelf, as a list to add from (STG-169).
  *
  * The same three kinds the library page offers, because somebody building a
  * service knows whether they want a hymn or a notice before they know its name,

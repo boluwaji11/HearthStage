@@ -1,5 +1,5 @@
 /**
- * STG-51. Walks the one window, in the built application.
+ * STG-170. Walks the one window, in the built application.
  *
  * The merge of the editor into the window that presents is a layout change, and
  * neither the unit tests nor the smoke run can see a page that paints behind

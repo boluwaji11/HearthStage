@@ -1,5 +1,5 @@
 /**
- * STG-51. The window's markup, split where the workbench begins.
+ * STG-170. The window's markup, split where the workbench begins.
  *
  * One document holds the live surface and the workbench, so a test about what
  * an operator can reach at 10:28 has to say which half it means. Balanced on

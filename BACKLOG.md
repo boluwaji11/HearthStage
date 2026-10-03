@@ -1882,7 +1882,7 @@ window, so the page moved into the state both windows read.
 starting at 0, the library listing only what is on the shelf, and **Save to the library** flipping
 the flag.
 
-## STG-50, where a slide lives
+## STG-169, where a slide lives
 
 A church types a term of one-off notices. None of them belong on the shelf
 somebody browses looking for a hymn.
@@ -1908,9 +1908,9 @@ step.
 
 | Story | What | Requirement | State |
 |---|---|---|---|
-| STG-50 | Where a slide lives, and the shelf it reaches on purpose | ST2.8 | Resolved |
+| STG-169 | Where a slide lives, and the shelf it reaches on purpose | ST2.8 | Resolved |
 
-## STG-51, one window
+## STG-170, one window
 
 The service plans, the library and the slide editor opened in a second window.
 On a laptop with one screen that window covered the service a church was
@@ -1934,4 +1934,4 @@ a copy of itself from before the slide typed inside it existed.
 
 | Story | What | Requirement | State |
 |---|---|---|---|
-| STG-51 | One window: the plans and the library as pages of it | ST1.2, ST12.3 | Resolved |
+| STG-170 | One window: the plans and the library as pages of it | ST1.2, ST12.3 | Resolved |

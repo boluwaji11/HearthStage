@@ -5,7 +5,7 @@
  * room filling up. Everything they can reach has to be safe to press by
  * accident, so the library, the editing, the importing and the theme picking
  * live in the workbench, which is a page that covers the live surface rather
- * than anything reachable beside it (STG-51), and nothing on the live surface
+ * than anything reachable beside it (STG-170), and nothing on the live surface
  * can delete anything.
  *
  * Enforced by a test rather than by discipline, because the person who puts a
@@ -92,7 +92,7 @@ describe("the live surface", () => {
   });
 
   /**
-   * STG-51. The workbench is one window with the live surface, so what keeps
+   * STG-170. The workbench is one window with the live surface, so what keeps
    * the library out of an operator's reach is that the two are never on screen
    * together. That is one rule in one stylesheet, and this is it.
    */

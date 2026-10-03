@@ -974,7 +974,7 @@ describe("building a service", () => {
 });
 
 /**
- * STG-50. Where a slide lives.
+ * STG-169. Where a slide lives.
  *
  * A church types a term of one-off notices. None of them belong on the shelf
  * somebody browses looking for a hymn, and the one that does belong there gets
@@ -1066,7 +1066,7 @@ describe("the shelf", () => {
 });
 
 /**
- * STG-50, STG-51. The plan is open behind the slide being typed, so the window
+ * STG-169, STG-170. The plan is open behind the slide being typed, so the window
  * is holding a copy of it from before the slide existed.
  */
 describe("the plan behind the slide", () => {

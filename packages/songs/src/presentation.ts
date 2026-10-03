@@ -71,7 +71,7 @@ export interface Presentation {
   /** RFC 3339. Maintained from usage rather than typed. */
   lastUsedAt: string | null;
   /**
-   * Whether this sits on the library shelf (STG-50).
+   * Whether this sits on the library shelf (STG-169).
    *
    * A slide typed inside a service plan belongs to that plan and starts false,
    * so a term of one-off notices stays out of the shelf a church browses.

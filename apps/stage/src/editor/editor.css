@@ -1,5 +1,5 @@
 /*
- * STG-145, STG-51. The service plans, the library and the slide editor.
+ * STG-145, STG-170. The service plans, the library and the slide editor.
  *
  * Every rule here is scoped to #workbench, because this loads into the window
  * that presents alongside control.css and the two stylesheets name some of the
@@ -935,7 +935,7 @@ body[data-themed="true"] #workbench .card-body {
   gap: var(--space-3);
 }
 
-/* The shelf, narrowed to one kind before a name is typed (STG-50). */
+/* The shelf, narrowed to one kind before a name is typed (STG-169). */
 #workbench .pick-kinds {
   display: flex;
   gap: var(--space-2);

@@ -722,7 +722,7 @@ footer button:hover {
 }
 
 /*
- * The workbench covers the service it is running (STG-51).
+ * The workbench covers the service it is running (STG-170).
  *
  * Set on the body by the editor half, read here, so the two halves of this
  * window paint from their own state without either waiting on the other.
