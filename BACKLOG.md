@@ -193,6 +193,13 @@ not technical: it is who holds the right to put the words on a wall.
   church at once, of words it has no right to. Stage is the thing a church puts
   on a wall in front of two hundred people.
 
+**OpenSong's API is not one of these.** It is a local remote-control interface
+the OpenSong application exposes on port 8082, for driving a running copy and
+reading the library on that same machine. As an import route it is worse than
+reading the files on disk, which is **STG-33** and needs nothing running. It is
+useful prior art for Stage's own remote (**STG-108**, **STG-109**), and that is
+where the link belongs.
+
 Two more routes carry no licensing question at all, and both are already on the
 board: what the church owns on disk (**STG-32** to **STG-41**, a ProPresenter
 folder a church leaving already has) and the public domain (**STG-10**, 183
