@@ -3,9 +3,9 @@
  *
  * The failure this is written against is not a bug, it is drift: a key that
  * works and is written down nowhere, or written down and no longer working.
- * One table in the window drives what the keys do, the strip along the bottom
- * and the card, so the three cannot disagree. These tests hold that shape in
- * place, because the shape is the whole guarantee.
+ * One table in the window drives both what the keys do and what the card says,
+ * so the two cannot disagree. These tests hold that shape in place, because the
+ * shape is the whole guarantee.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -48,12 +48,12 @@ describe("the keys", () => {
     expect(new Set(spellings).size).toBe(spellings.length);
   });
 
-  it("put every one on the card, and the most used ones in the strip too", () => {
-    const rows = [...table().matchAll(/inStrip:\s*(true|false)/g)].map((match) => match[1]);
+  it("put every one on the card, with nothing left along the bottom", () => {
+    const rows = [...table().matchAll(/label:\s*"keys\./g)];
     expect(rows.length).toBeGreaterThan(6);
-    // The strip is the glanceable few. The card is all of them.
-    expect(rows.filter((shown) => shown === "true").length).toBeLessThan(rows.length);
-    expect(rows.filter((shown) => shown === "false").length).toBeGreaterThan(0);
+    // The card is the one place the keys are written down. A strip along the
+    // bottom was a second place, and a second place is a place to drift from.
+    expect(markup).not.toContain('id="keys"');
   });
 });
 
@@ -64,8 +64,15 @@ describe("the card", () => {
   });
 
   it("closes on Escape without uncovering the screen behind it", () => {
-    expect(source).toMatch(/if \(el\.brief\.open\)/);
+    expect(source).toMatch(/el\.brief\.open \|\| el\.countdown\.open/);
     expect(markup).toMatch(/<dialog id="brief"/);
+  });
+
+  it("is one of two cards, both opened from the same corner", () => {
+    expect([...markup.matchAll(/<dialog/g)]).toHaveLength(2);
+    const footer = markup.slice(markup.indexOf("<footer>"), markup.indexOf("</footer>"));
+    expect(footer).toContain('id="brief-open"');
+    expect(footer).toContain('id="countdown-open"');
   });
 
   it("says the thing a held key does, which is the question somebody asks", () => {

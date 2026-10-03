@@ -35,9 +35,11 @@ const el = {
   next: document.getElementById("next") as HTMLElement,
   nextMeta: document.getElementById("next-meta") as HTMLElement,
   notes: document.getElementById("notes") as HTMLUListElement,
-  keys: document.getElementById("keys") as HTMLElement,
   resetRun: document.getElementById("reset-run") as HTMLButtonElement,
   countdownSet: document.getElementById("countdown-set") as HTMLElement,
+  countdown: document.getElementById("countdown") as HTMLDialogElement,
+  countdownOpen: document.getElementById("countdown-open") as HTMLButtonElement,
+  countdownClose: document.getElementById("countdown-close") as HTMLButtonElement,
   brief: document.getElementById("brief") as HTMLDialogElement,
   briefKeys: document.getElementById("brief-keys") as HTMLElement,
   briefOpen: document.getElementById("brief-open") as HTMLButtonElement,
@@ -98,20 +100,17 @@ interface KeyRow {
   /** The one shown, which is the one a person would say. */
   label: MessageKey;
   meaning: MessageKey;
-  /** The other spellings, named on the brief rather than in the strip. */
+  /** The other spellings, named under the one a person would say. */
   also?: MessageKey;
-  /** Along the bottom of the service window, where it is always in view. */
-  inStrip: boolean;
   run: () => void;
 }
 
 /**
  * Every key the service window answers to (STG-27, ST12.10).
  *
- * One table drives three things: what the keys do, the strip along the bottom
- * and the brief a volunteer opens at 10:28. A key that works and is written
- * down nowhere, or written down and no longer working, is the failure this
- * shape makes impossible rather than tests.
+ * One table drives both what the keys do and the card a volunteer opens at
+ * 10:28. A key that works and is written down nowhere, or written down and no
+ * longer working, is the failure this shape makes impossible rather than tests.
  */
 const KEYS: KeyRow[] = [
   {
@@ -119,7 +118,6 @@ const KEYS: KeyRow[] = [
     label: "keys.next",
     meaning: "keys.next.meaning",
     also: "keys.next.also",
-    inStrip: true,
     run: () => send({ type: "advance" }),
   },
   {
@@ -127,49 +125,42 @@ const KEYS: KeyRow[] = [
     label: "keys.back",
     meaning: "keys.back.meaning",
     also: "keys.back.also",
-    inStrip: true,
     run: () => send({ type: "reverse" }),
   },
   {
     keys: ["Home"],
     label: "keys.first",
     meaning: "keys.first.meaning",
-    inStrip: false,
     run: () => send({ type: "goTo", position: 0 }),
   },
   {
     keys: ["b", "B"],
     label: "keys.black",
     meaning: "keys.black.meaning",
-    inStrip: true,
     run: () => send({ type: "toggleBlank", blank: "black" }),
   },
   {
     keys: ["c", "C"],
     label: "keys.clear",
     meaning: "keys.clear.meaning",
-    inStrip: true,
     run: () => send({ type: "toggleBlank", blank: "clear" }),
   },
   {
     keys: ["l", "L"],
     label: "keys.logo",
     meaning: "keys.logo.meaning",
-    inStrip: true,
     run: () => send({ type: "toggleBlank", blank: "logo" }),
   },
   {
     keys: ["Escape"],
     label: "keys.escape",
     meaning: "keys.escape.meaning",
-    inStrip: true,
     run: () => send({ type: "setBlank", blank: "none" }),
   },
   {
     keys: ["?"],
     label: "keys.brief",
     meaning: "keys.brief.meaning",
-    inStrip: false,
     run: () => showBrief(true),
   },
 ];
@@ -475,6 +466,8 @@ function paint(state: ControlState): void {
 
   // One timer in this window, started when there is a clock and stopped when
   // there is not, so nothing runs a loop through a service.
+  // One press to take it down again, without going through the card, because
+  // that is a thing an operator does with a service already running.
   el.countdownStop.hidden = state.countdownEndsAt === null;
   ticking?.();
   ticking = state.countdownEndsAt === null ? null : tickClocks();
@@ -520,17 +513,6 @@ function runButtons(cue: CueView): HTMLElement {
 }
 
 function brief(): void {
-  el.keys.replaceChildren();
-  for (const row of KEYS) {
-    if (!row.inStrip) continue;
-    const term = document.createElement("dt");
-    term.textContent = t(row.label);
-    const detail = document.createElement("dd");
-    detail.textContent = t(row.meaning);
-    el.keys.append(term, detail);
-  }
-
-  // The brief is every key, including the ones the strip has no room for.
   el.briefKeys.replaceChildren();
   for (const row of KEYS) {
     const term = document.createElement("dt");
@@ -560,6 +542,17 @@ function showBrief(open: boolean): void {
   }
 }
 
+/** How long to put a clock up for, asked the same way (STG-26, ST5.10). */
+function showCountdown(open: boolean): void {
+  if (open === el.countdown.open) return;
+  if (open) {
+    el.countdown.showModal();
+    el.countdownSet.querySelector("button")?.focus();
+  } else {
+    el.countdown.close();
+  }
+}
+
 /**
  * The keys.
  *
@@ -569,10 +562,12 @@ function showBrief(open: boolean): void {
 function onKey(event: KeyboardEvent): void {
   if (event.repeat) return;
 
-  // Escape belongs to the brief while it is open, because a person pressing it
-  // is closing what is in front of them rather than uncovering a screen.
-  if (el.brief.open) {
-    if (event.key === "Escape") showBrief(false);
+  // Escape belongs to whatever card is open, because a person pressing it is
+  // closing what is in front of them rather than uncovering a screen.
+  if (el.brief.open || el.countdown.open) {
+    if (event.key !== "Escape") return;
+    showBrief(false);
+    showCountdown(false);
     return;
   }
 
@@ -590,11 +585,16 @@ for (const minutes of COUNTDOWNS) {
   const button = document.createElement("button");
   button.type = "button";
   button.textContent = t("countdown.minutes", { count: minutes });
-  button.addEventListener("click", () => send({ type: "startCountdown", minutes }));
+  button.addEventListener("click", () => {
+    send({ type: "startCountdown", minutes });
+    showCountdown(false);
+  });
   el.countdownSet.append(button);
 }
 el.countdownStop.addEventListener("click", () => send({ type: "stopCountdown" }));
 el.briefOpen.addEventListener("click", () => showBrief(true));
+el.countdownOpen.addEventListener("click", () => showCountdown(true));
+el.countdownClose.addEventListener("click", () => showCountdown(false));
 el.briefClose.addEventListener("click", () => showBrief(false));
 // The one thing on this surface that is not an advance. It opens a window and
 // changes nothing on the wall, so it is safe to have in reach (ST12.3).

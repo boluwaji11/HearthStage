@@ -69,8 +69,8 @@ export const en = {
   "keys.brief.meaning": "What the keys do",
 
   // The operator brief (STG-27, ST12.10)
-  "brief.title": "The keys",
-  "brief.open": "Keys",
+  "brief.title": "Shortcuts",
+  "brief.open": "Shortcuts",
   "brief.close": "Close",
   "brief.holding": "Held down, any of them moves one cue.",
 

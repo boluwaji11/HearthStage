@@ -133,7 +133,7 @@ thing a person does with Stage and until now there was no way to do it. See
 | STG-24 | Reorder, skip and repeat a cue for this run, leaving the set list untouched | ST5.7 | Resolved |
 | STG-25 | Keep the library, import and theme editing out of the live surface, enforced by a test, and ask before replacing a running service | ST12.3, ST2.15 | Resolved |
 | STG-26 | Present a song, a reading and a countdown with no service open | ST5.10 | Resolved |
-| STG-27 | Write the operator brief: one card saying what every key does, driven by the same table the keys are | ST12.10 | Resolved |
+| STG-27 | Write the operator brief: one card saying what every shortcut does, driven by the same table the keys are | ST12.10 | Resolved |
 
 ### SF21. The measurements
 
@@ -1687,18 +1687,22 @@ key written on a card that stopped working two releases ago.
 pnpm --filter @hearth/stage dev
 ```
 
-- Press **?** anywhere on the service window, or **Keys** at the bottom right. The card lists every
-  key, with the alternate spellings underneath the ones that have them.
+- Along the bottom left: **Shortcuts** and **Countdown**. Nothing else.
+- Press **Shortcuts**, or the **?** key anywhere on the service window. The card lists every shortcut,
+  with the alternate spellings underneath the ones that have them.
 - Press **Escape**. The card closes and the screen behind it is untouched, because Escape belongs to
-  the card while the card is up rather than uncovering the wall.
+  whatever card is up rather than uncovering the wall.
 - Press **Home** during a service. Back to the first cue. It was always there and the strip had no
   room to say so.
-- Hold any of them. One cue, which the card says in a line underneath.
+- Press **Countdown**, then **10 min**. The card closes and the clock goes up. **Stop** appears beside
+  the two buttons, so taking it down again is one press rather than two.
+- Hold any key down. One cue, which the card says in a line underneath.
 
-**One table, three jobs.** `KEYS` in the control window holds every spelling, what it does and whether
-it is glanceable enough for the strip. The handler looks the pressed key up in it, the strip is built
-from it, and so is the card. The three cannot disagree, because there is nothing to keep in step.
+**One table, one card.** `KEYS` in the control window holds every spelling and what it does. The
+handler looks a press up in it and the card is built from it, so the two cannot disagree, because
+there is nothing to keep in step. The strip was a second place the shortcuts were written down, and a
+second place is a place to drift from.
 
-**Seven new tests** hold that shape: one keydown listener and no second switch on a key anywhere in the
-window, no key with two meanings, every meaning in the catalogue, and the strip a proper subset of the
-card.
+**Eight tests** hold that shape: one keydown listener and no second switch on a key anywhere in the
+window, no key with two meanings, every meaning in the catalogue, two cards and both opened from the
+same corner.

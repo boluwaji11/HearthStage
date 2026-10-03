@@ -464,37 +464,32 @@ main {
   font-weight: 600;
 }
 
+/* Two ways in, on the left, and nothing else along the bottom. */
 footer {
   flex: none;
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-2);
   border-top: 1px solid var(--line);
   padding: var(--space-2) var(--space-4);
 }
 
-footer dl {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-  font-size: 0.75rem;
-}
-
-footer dt {
-  padding: 2px var(--space-2);
+footer button {
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--text);
+  background: var(--raised);
   border: 1px solid var(--line);
-  border-radius: 4px;
-  color: var(--stone-200);
-  font-variant-numeric: tabular-nums;
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-3);
 }
 
-footer dd {
-  color: var(--quiet);
-  margin-right: var(--space-3);
+footer button:hover {
+  background: var(--sunk);
 }
+
+
+
 
 @media (prefers-reduced-motion: reduce) {
   * {
@@ -571,38 +566,10 @@ footer dd {
 
 /* The clock before a service starts (STG-26). */
 
-.countdown-bar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-left: auto;
-}
 
-.countdown-label {
-  color: var(--quiet);
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
 
-.countdown-bar button {
-  font: inherit;
-  font-size: 0.8125rem;
-  color: var(--text);
-  background: var(--raised);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 2px var(--space-2);
-}
 
-.countdown-bar button:hover {
-  background: var(--sunk);
-}
 
-#countdown-set {
-  display: flex;
-  gap: 2px;
-}
 
 /*
  * What the keys do, on one card (STG-27, ST12.10).
@@ -611,7 +578,7 @@ footer dd {
  * has never run a service, at 10:28, with nobody to ask.
  */
 
-.brief {
+.card {
   margin: auto;
   width: min(30rem, calc(100vw - 2 * var(--space-4)));
   padding: var(--space-4);
@@ -622,17 +589,17 @@ footer dd {
   box-shadow: 0 1.5rem 3rem oklch(0 0 0 / 0.55);
 }
 
-.brief::backdrop {
+.card::backdrop {
   background: oklch(0 0 0 / 0.65);
 }
 
-.brief h2 {
+.card h2 {
   margin: 0 0 var(--space-3);
   font-size: 1.0625rem;
   font-weight: 600;
 }
 
-.brief dl {
+.card dl {
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: baseline;
@@ -640,7 +607,7 @@ footer dd {
   margin: 0;
 }
 
-.brief dt {
+.card dt {
   justify-self: start;
   padding: 2px var(--space-2);
   color: var(--text);
@@ -652,7 +619,7 @@ footer dd {
   white-space: nowrap;
 }
 
-.brief dd {
+.card dd {
   margin: 0;
 }
 
@@ -662,11 +629,33 @@ footer dd {
   font-size: 0.75rem;
 }
 
-.brief p {
+.card p {
   margin: var(--space-3) 0 0;
 }
 
-.brief button {
+.card button {
   margin-top: var(--space-4);
   float: right;
+}
+
+/* The choices on a card: how long to put a clock up for. */
+.card-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.card-choices button {
+  font: inherit;
+  margin: 0;
+  float: none;
+  color: var(--text);
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+}
+
+.card-choices button:hover {
+  border-color: var(--ember-500);
 }
