@@ -283,7 +283,29 @@
       <button id="countdown-open" type="button" data-t="countdown.label"></button>
       <button id="call-open" type="button" hidden data-t="call.open"></button>
       <button id="jump-open" type="button" hidden data-t="jump.open"></button>
+      <button id="fix-open" type="button" hidden data-t="fix.open"></button>
     </footer>
+
+    <!--
+      A typo on the wall (STG-51, ST6.8). Correct it, and the room sees the
+      correction. Keeping it in the library is the press after, and on a synced
+      song there is no offer.
+    -->
+    <dialog id="fix" class="card" data-t-label="fix.open">
+      <div class="card-head">
+        <h2 data-t="fix.open"></h2>
+        <button id="fix-close" type="button" class="icon" data-t-label="card.close"></button>
+      </div>
+      <div class="field">
+        <label for="fix-lines" data-t="fix.words"></label>
+        <textarea id="fix-lines" rows="4" spellcheck="false"></textarea>
+      </div>
+      <div class="card-choices">
+        <button id="fix-apply" type="button" class="primary" data-t="fix.apply"></button>
+        <button id="fix-keep" type="button" hidden data-t="fix.keep"></button>
+      </div>
+      <p id="fix-said" class="quiet" aria-live="polite"></p>
+    </dialog>
 
     <!--
       "Back to the chorus" (STG-50, ST5.9). Type the label, see what it will

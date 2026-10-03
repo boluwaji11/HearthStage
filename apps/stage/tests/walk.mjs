@@ -196,6 +196,43 @@ console.log("   live:", JSON.stringify(liveBefore), "->", JSON.stringify(liveAft
 if (says !== "" && liveAfter === liveBefore) fail.push("the jump did not move the deck");
 else console.log("ok    the jump moved the deck");
 
+console.log("-- a typo on the wall (STG-51)");
+await check("correct offered", "#fix-open", visible);
+const wasLive = await evalIn(`document.querySelector("#live")?.textContent?.trim()`);
+await evalIn(`document.getElementById("fix-open").click()`);
+await new Promise(s=>setTimeout(s,500));
+await check("the card", "#fix", visible);
+console.log("   box holds:", JSON.stringify((await evalIn(`document.getElementById("fix-lines").value`)).slice(0,40)));
+console.log("   keep offered:", await evalIn(`!document.getElementById("fix-keep").hidden`));
+await evalIn(`(()=>{const t=document.getElementById("fix-lines"); t.value="A line somebody corrected"; })()`);
+await evalIn(`document.getElementById("fix-apply").click()`);
+await new Promise(s=>setTimeout(s,700));
+const nowLive = await evalIn(`document.querySelector("#live")?.textContent?.trim()`);
+console.log("   live:", JSON.stringify((wasLive ?? "").slice(0,30)), "->", JSON.stringify((nowLive ?? "").slice(0,30)));
+if (!(nowLive ?? "").includes("A line somebody corrected")) fail.push("the correction did not reach the screen");
+else console.log("ok    the correction reached the screen");
+await evalIn(`document.getElementById("fix-keep").click()`);
+await new Promise(s=>setTimeout(s,900));
+console.log("   it says:", JSON.stringify(await evalIn(`document.getElementById("fix-said").textContent`)));
+await evalIn(`document.getElementById("fix-close").click()`);
+await new Promise(s=>setTimeout(s,400));
+await check("card closed", "#fix", hidden);
+// And it is in the library, which is the half of this that outlives the run.
+await evalIn(`document.getElementById("home").click()`);
+await new Promise(s=>setTimeout(s,500));
+await evalIn(`document.getElementById("way-library").click()`);
+await new Promise(s=>setTimeout(s,400));
+await evalIn(`document.getElementById("kind-song").click()`);
+await new Promise(s=>setTimeout(s,600));
+// The tile previews the first verse, so the song is opened and read instead.
+await evalIn(`(()=>{const s=document.getElementById("search"); s.value="Take Up Thy Cross"; s.dispatchEvent(new Event("input"));})()`);
+await new Promise(s=>setTimeout(s,500));
+await evalIn(`document.querySelector("#tiles button")?.click()`);
+await new Promise(s=>setTimeout(s,900));
+const kept = await evalIn(`[...document.querySelectorAll("#slides textarea")].some(t=>t.value.includes("A line somebody corrected"))`);
+console.log((kept?"ok  ":"FAIL")+"  the correction is in the library");
+if (!kept) fail.push("the correction did not reach the library");
+
 const errs = noise.split("\n").filter(l=>/Uncaught|Refused|SecurityError/i.test(l));
 if (errs.length) { console.log("CONSOLE:", errs.slice(0,8).join("\n")); fail.push("console"); }
 console.log(fail.length ? `\nFAILED: ${fail.join(", ")}` : "\nAll good.");

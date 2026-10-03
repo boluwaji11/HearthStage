@@ -217,6 +217,14 @@ export interface ControlState {
   /** When the countdown reaches zero, where one is running (STG-26). */
   countdownEndsAt: number | null;
   /**
+   * The slide on the wall, as something that can be corrected (STG-51, ST6.8).
+   *
+   * `canKeep` is false on a synced song, where the correction stays with the
+   * run because the library copy belongs to the platform. Null where there is
+   * nothing on the wall to correct.
+   */
+  correcting: { cueId: string; lines: string[]; canKeep: boolean; kept: boolean } | null;
+  /**
    * The plan to open on, offered before anything is running (STG-48, ST12.5).
    *
    * The soonest one that has not happened yet, so a volunteer arriving on the
@@ -506,6 +514,14 @@ export type Intent =
    * church planned is still what they planned.
    */
   | { type: "addToDeck"; itemId: string }
+  /**
+   * A typo corrected on the wall (STG-51, ST6.8).
+   *
+   * It stays with the run. Keeping it is `keepCorrection`, which is a second
+   * press, and on a synced song it is never offered.
+   */
+  | { type: "correctCue"; cueId: string; lines: string[] }
+  | { type: "keepCorrection"; cueId: string }
   /** A slide typed inside the open presentation plan (STG-169). */
   | { type: "newPlanSlide" }
   /** The open slide, onto the library shelf (STG-169). */
@@ -614,6 +630,7 @@ export function isIntent(value: unknown): value is Intent {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as {
     type?: unknown;
+    lines?: unknown;
     position?: unknown;
     cueId?: unknown;
     blank?: unknown;
@@ -690,6 +707,15 @@ export function isIntent(value: unknown): value is Intent {
     case "openItem":
     case "addToDeck":
       return typeof candidate.itemId === "string" && candidate.itemId.length > 0;
+    case "keepCorrection":
+      return typeof candidate.cueId === "string" && candidate.cueId.length > 0;
+    case "correctCue":
+      return (
+        typeof candidate.cueId === "string" &&
+        candidate.cueId.length > 0 &&
+        Array.isArray(candidate.lines) &&
+        candidate.lines.every((line: unknown) => typeof line === "string")
+      );
     case "showLibraryKind":
       return (
         candidate.kind === "song" || candidate.kind === "media" || candidate.kind === "slides"

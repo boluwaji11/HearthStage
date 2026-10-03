@@ -60,6 +60,13 @@ const ALLOWED = new Set([
   // It appends to the service on the screen and writes nothing, so the set list
   // a church planned is still what they planned.
   "addToDeck",
+  // A typo corrected on the wall (STG-51, ST6.8). The correction itself is the
+  // run and nothing else.
+  "correctCue",
+  // The one intent on this surface that writes, and the requirement asks for
+  // it by name. It is a second press, it reaches one slide of one item, and
+  // main refuses it on anything this laptop does not own.
+  "keepCorrection",
   "newPlanSlide",
   "saveToLibrary",
 ]);
@@ -206,5 +213,42 @@ describe("the plan on the landing page", () => {
     // half can be the one that happens second.
     expect([...source.matchAll(/startNext\.focus\(\)/g)]).toHaveLength(1);
     expect(source).toMatch(/MutationObserver[\s\S]*?attributeFilter: \["data-workbench"\]/);
+  });
+});
+
+/**
+ * STG-51, ST6.8. The one write this surface can make.
+ *
+ * Everything else here is the run. This reaches the library, so what keeps it
+ * safe is written down in three places and checked in all three.
+ */
+describe("correcting a typo on the wall", () => {
+  const source = readFileSync(join(root, "src/main/index.ts"), "utf8");
+
+  it("is refused by main on anything this laptop does not own", () => {
+    const handler = source.slice(source.indexOf('case "keepCorrection"'));
+    // The first line of it, before anything is read or written.
+    expect(handler.slice(0, handler.indexOf("\n", handler.indexOf("{") + 1) + 120)).toContain(
+      "if (!canKeep(",
+    );
+    expect(source).toContain('=== "local"');
+  });
+
+  it("reaches one slide of one item, through the deck it is showing", () => {
+    // Not an arbitrary id from the window: the cue is looked up in the deck on
+    // the screen, and the item it belongs to is read off the plan being run.
+    const resolve = source.slice(source.indexOf("function sourceOf"), source.indexOf("function canKeep"));
+    expect(resolve).toContain("session.deckNow()");
+    expect(resolve).toContain("session.plannedNow()");
+  });
+
+  it("puts the words back without reflowing what is around them", () => {
+    expect(source).toContain("correctSlide(");
+  });
+
+  it("stays with the run until somebody keeps it", () => {
+    const session = readFileSync(join(root, "src/main/session.ts"), "utf8");
+    const correct = session.slice(session.indexOf("correct(cueId"), session.indexOf("deckNow()"));
+    expect(correct).not.toMatch(/library|store|save/i);
   });
 });

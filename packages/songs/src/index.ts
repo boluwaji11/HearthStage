@@ -124,6 +124,7 @@ export {
 } from "./paste";
 
 export {
+  correctSlide,
   splitSection,
   splitLines,
   splitBilingual,

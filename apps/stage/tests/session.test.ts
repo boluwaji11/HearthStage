@@ -690,3 +690,93 @@ describe("a song called from the floor", () => {
     expect(source).not.toMatch(/stage-store|save/i);
   });
 });
+
+/**
+ * STG-51, ST6.8. A typo on the wall.
+ *
+ * The design case is a word misspelled in a verse the room is about to sing.
+ * The correction has to reach the screen now, and reach nothing else until
+ * somebody says so.
+ */
+describe("correcting the slide on the wall", () => {
+  /** The first cue with words on it. A marker puts nothing on the wall. */
+  function firstWords(): { id: string; lines: string[] } {
+    const cue = deck.cues.find((candidate) => candidate.lines !== null);
+    if (cue === undefined) throw new Error("the sample service puts no words on the wall");
+    return { id: cue.id, lines: cue.lines ?? [] };
+  }
+
+  function liveLines(): string[] {
+    const content = session.controlState([]).live?.content;
+    return content !== undefined && "lines" in content ? content.lines : [];
+  }
+
+  it("puts the correction on the screen", () => {
+    const { id } = firstWords();
+    session.apply({ type: "goToCue", cueId: id });
+    expect(session.correct(id, ["Corrected line"])).toBe(true);
+    expect(liveLines()).toEqual(["Corrected line"]);
+  });
+
+  it("measures the rest of the section against the corrected words", () => {
+    // Every slide of a section shares one size, so the section the renderer is
+    // handed has to be the corrected one or the words jump as the fix lands.
+    const { id } = firstWords();
+    session.apply({ type: "goToCue", cueId: id });
+    session.correct(id, ["Corrected line"]);
+    const content = session.controlState([]).live?.content;
+    const slides = content !== undefined && "fitSlides" in content ? content.fitSlides : [];
+    expect(slides[0]).toEqual(["Corrected line"]);
+  });
+
+  it("says nothing changed when the words are the same", () => {
+    const { id, lines } = firstWords();
+    expect(session.correct(id, lines)).toBe(false);
+  });
+
+  it("refuses a cue that is not in the deck", () => {
+    expect(session.correct("no-such-cue", ["x"])).toBe(false);
+  });
+
+  it("holds the correction across moving through the service", () => {
+    const { id } = firstWords();
+    session.apply({ type: "goToCue", cueId: id });
+    session.correct(id, ["Corrected line"]);
+    session.apply({ type: "advance" });
+    session.apply({ type: "reverse" });
+    expect(liveLines()).toEqual(["Corrected line"]);
+  });
+
+  it("holds it through a song called from the floor", () => {
+    const { id: cueId } = firstWords();
+    session.apply({ type: "goToCue", cueId });
+    session.correct(cueId, ["Corrected line"]);
+
+    const item = { ...songPlan(holyHolyHoly).items[0]!, id: "called", sortOrder: 0 };
+    const plan = withItem(sampleService, item, session.showingItemId());
+    const bigger = compileDeck(plan, lookupFrom([...sampleLibrary, holyHolyHoly]));
+    const groupId = bigger.groups.find((one) => one.itemId === "called")?.id ?? "";
+    session.insert(bigger, plan, groupId, session.showingItemId());
+
+    expect(liveLines()).toEqual(["Corrected line"]);
+    expect(session.corrections()).toEqual([cueId]);
+  });
+
+  it("goes with the service, because the next one is not this one", () => {
+    const { id, lines } = firstWords();
+    session.apply({ type: "goToCue", cueId: id });
+    session.correct(id, ["Corrected line"]);
+    session.open(compileDeck(sampleService, lookupFrom(sampleLibrary)), sampleService);
+    expect(session.corrections()).toEqual([]);
+    expect(liveLines()).toEqual(lines);
+  });
+
+  it("offers nothing to keep unless the library says it may", () => {
+    const { id: cueId } = firstWords();
+    session.apply({ type: "goToCue", cueId });
+    expect(session.controlState([]).correcting?.canKeep).toBe(false);
+    expect(
+      session.controlState([], { correction: () => ({ canKeep: true, kept: false }) }).correcting,
+    ).toMatchObject({ cueId, canKeep: true, kept: false });
+  });
+});

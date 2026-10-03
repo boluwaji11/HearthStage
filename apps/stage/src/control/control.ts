@@ -67,6 +67,13 @@ const el = {
   jumpClose: document.getElementById("jump-close") as HTMLButtonElement,
   jumpLabel: document.getElementById("jump-label") as HTMLInputElement,
   jumpFound: document.getElementById("jump-found") as HTMLParagraphElement,
+  fixOpen: document.getElementById("fix-open") as HTMLButtonElement,
+  fix: document.getElementById("fix") as HTMLDialogElement,
+  fixClose: document.getElementById("fix-close") as HTMLButtonElement,
+  fixLines: document.getElementById("fix-lines") as HTMLTextAreaElement,
+  fixApply: document.getElementById("fix-apply") as HTMLButtonElement,
+  fixKeep: document.getElementById("fix-keep") as HTMLButtonElement,
+  fixSaid: document.getElementById("fix-said") as HTMLParagraphElement,
 };
 
 /**
@@ -380,10 +387,16 @@ function paint(state: ControlState): void {
   // Nothing to add to until something is running (STG-49).
   el.callOpen.hidden = !open;
   el.jumpOpen.hidden = !open;
+  // Nothing to correct unless there are words on the wall (STG-51).
+  el.fixOpen.hidden = state.correcting === null;
   if (!open) {
     showCall(false);
     showJump(false);
+    showFix(false);
   }
+  // The deck moved under the card, so the card is about a different slide now.
+  if (el.fix.open && state.correcting?.cueId !== fixing) showFix(false);
+  else if (el.fix.open) renderFix();
   // The deck moved under an open card, so what it says it will do is restated.
   if (el.jump.open) renderJump();
   // After the landing page's own visibility, because taking the focus depends
@@ -701,6 +714,58 @@ function addCalled(row: { id: string; title: string }): void {
 }
 
 /**
+ * A typo on the wall (STG-51, ST6.8).
+ *
+ * The words as they are, in a box. Correcting them puts the correction on the
+ * screen and nowhere else, which is what makes this safe on a live surface.
+ * Keeping it in the library is the press after, and it is offered only on
+ * something this laptop owns.
+ */
+let fixing: string | null = null;
+
+function showFix(open: boolean): void {
+  if (open === el.fix.open) return;
+  if (!open) {
+    el.fix.close();
+    fixing = null;
+    return;
+  }
+  const slide = latest?.correcting ?? null;
+  if (slide === null) return;
+  fixing = slide.cueId;
+  el.fixLines.value = slide.lines.join("\n");
+  renderFix();
+  el.fix.showModal();
+  el.fixLines.focus();
+}
+
+function renderFix(): void {
+  const slide = latest?.correcting ?? null;
+  const canKeep = slide !== null && slide.canKeep;
+  el.fixKeep.hidden = !canKeep || (slide?.kept ?? false);
+  // A synced song says so, because the offer missing should read as a decision
+  // rather than as a button somebody forgot. And the library confirms the keep,
+  // rather than this card reporting a write it was never told happened.
+  el.fixSaid.textContent =
+    slide === null ? "" : slide.kept ? t("fix.kept") : canKeep ? "" : t("fix.run");
+}
+
+function applyFix(): void {
+  const cueId = fixing;
+  if (cueId === null) return;
+  send({ type: "correctCue", cueId, lines: el.fixLines.value.split("\n") });
+}
+
+function keepFix(): void {
+  const cueId = fixing;
+  if (cueId === null) return;
+  applyFix();
+  send({ type: "keepCorrection", cueId });
+  // What it says next comes back from main. A card that reports a write it has
+  // not been told happened is a card that lies the one time it matters.
+}
+
+/**
  * "Back to the chorus" (STG-50, ST5.9).
  *
  * G, type the label, press Enter. What it will put on the wall is shown while
@@ -801,6 +866,12 @@ function onKey(event: KeyboardEvent): void {
 
   // Escape belongs to whatever card is open, because a person pressing it is
   // closing what is in front of them rather than uncovering a screen.
+  if (el.fix.open) {
+    // Everything belongs to the box, because the words being corrected are
+    // words. Escape is the way out, which is the dialog's own behaviour.
+    if (event.key === "Escape") showFix(false);
+    return;
+  }
   if (el.jump.open) {
     if (event.key === "Escape") {
       showJump(false);
@@ -855,7 +926,7 @@ new MutationObserver(() => focusNextUp()).observe(document.body, {
 
 // The words, before anything paints over them (STG-13).
 fillText();
-for (const button of [el.briefClose, el.countdownClose, el.callClose, el.jumpClose])
+for (const button of [el.briefClose, el.countdownClose, el.callClose, el.jumpClose, el.fixClose])
   button.append(icon("close"));
 brief();
 
@@ -866,6 +937,10 @@ el.callSearch.addEventListener("input", renderCall);
 el.jumpOpen.addEventListener("click", () => showJump(true));
 el.jumpClose.addEventListener("click", () => showJump(false));
 el.jumpLabel.addEventListener("input", renderJump);
+el.fixOpen.addEventListener("click", () => showFix(true));
+el.fixClose.addEventListener("click", () => showFix(false));
+el.fixApply.addEventListener("click", applyFix);
+el.fixKeep.addEventListener("click", keepFix);
 el.countdownOpen.addEventListener("click", () => showCountdown(true));
 el.countdownClose.addEventListener("click", () => showCountdown(false));
 renderCountdown(null);

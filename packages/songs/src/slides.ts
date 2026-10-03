@@ -172,3 +172,40 @@ export function splitBilingual(
     count: primarySlides.length,
   }));
 }
+
+/**
+ * A block of lines with one of its slides rewritten (STG-51, ST6.8).
+ *
+ * The operator sees a typo on the wall and corrects the slide. Putting that back
+ * into the section it came from is not a matter of index, because the splitter
+ * drops blank lines and regroups what is left: the slide holds the words, and
+ * the section holds the words plus the shape somebody typed.
+ *
+ * So the split is run again and walked alongside the original. Each slide's
+ * lines are the next run of non-blank lines, in order, which is the one thing
+ * the splitter guarantees. The run belonging to the slide named is replaced and
+ * everything around it, blank lines included, is left exactly as it was.
+ *
+ * Returns the lines unchanged where the slide is not one of this block's.
+ */
+export function correctSlide(
+  lines: string[],
+  slideIndex: number,
+  replacement: string[],
+  limits: SlideLimits = DEFAULT_LIMITS,
+): string[] {
+  const groups = splitLines(lines, limits);
+  if (slideIndex < 0 || slideIndex >= groups.length) return lines;
+
+  let at = 0;
+  for (const [index, group] of groups.entries()) {
+    while (at < lines.length && (lines[at] ?? "").trim() === "") at += 1;
+    const from = at;
+    at += group.lines.length;
+    if (index === slideIndex) {
+      return [...lines.slice(0, from), ...replacement, ...lines.slice(at)];
+    }
+  }
+
+  return lines;
+}

@@ -26,10 +26,12 @@ import {
   compileDeck,
   lookupFrom,
   nextUp,
+  correctSlide,
   presentationPlan,
   setListPlan,
   withItem,
   songPlan,
+  type Cue,
   type ServicePlan,
 } from "@hearth/songs";
 import { sampleLibrary, sampleService } from "@hearth/songs/fixtures";
@@ -272,6 +274,54 @@ function today(): string {
 /** Counts the items called from the floor, so each one gets its own id. */
 let added = 0;
 
+/**
+ * What a corrected cue came from (STG-51, ST6.8).
+ *
+ * A cue belongs to a group, a group names a plan item, and the item names the
+ * song or presentation it was compiled out of. Null where that chain breaks,
+ * which is a cue nothing can be written back to.
+ */
+function sourceOf(
+  cueId: string,
+): { cue: Cue; songId: string | null; presentationId: string | null } | null {
+  const plan = session.plannedNow();
+  const cue = session.deckNow().cues.find((one) => one.id === cueId);
+  if (plan === null || cue === undefined) return null;
+
+  const group = session.deckNow().groups.find((one) => one.id === cue.groupId);
+  const item = plan.items.find((one) => one.id === group?.itemId);
+  if (item === undefined) return null;
+
+  return {
+    cue,
+    songId: item.type === "song" ? item.songId : null,
+    presentationId: item.type === "presentation" ? item.presentationId : null,
+  };
+}
+
+/**
+ * Whether a correction can be offered to the library (ST6.8).
+ *
+ * Only on something this laptop owns. A synced song belongs to the platform,
+ * and the correction stays with the run (PRD section 2, the two-writer rule).
+ */
+function canKeep(cueId: string): boolean {
+  const source = sourceOf(cueId);
+  if (source === null) return false;
+  if (source.songId !== null) return store.library.get(source.songId)?.song.origin === "local";
+  if (source.presentationId !== null) {
+    return store.library.getPresentation(source.presentationId)?.origin === "local";
+  }
+  return false;
+}
+
+/** Corrections written back to the library, so the card can say so (STG-51). */
+const kept = new Set<string>();
+
+function correction(cueId: string): { canKeep: boolean; kept: boolean } {
+  return { canKeep: canKeep(cueId), kept: kept.has(cueId) };
+}
+
 function broadcast(): void {
   for (const [outputId, entry] of outputs) {
     if (entry.window.isDestroyed()) continue;
@@ -279,7 +329,7 @@ function broadcast(): void {
     entry.window.webContents.send(CHANNELS.outputState, state);
   }
   if (control !== null && !control.isDestroyed()) {
-    const state: ControlState = session.controlState(outputViews(), comingUp());
+    const state: ControlState = session.controlState(outputViews(), { nextUp: comingUp(), correction });
     control.webContents.send(CHANNELS.controlState, state);
   }
   if (control !== null && !control.isDestroyed()) {
@@ -464,6 +514,59 @@ app.whenReady().then(() => {
         return;
       }
 
+      /**
+       * The typo on the wall, corrected (STG-51, ST6.8).
+       *
+       * Only the run, which is why it is safe on this surface. Keeping it is
+       * the press after.
+       */
+      case "correctCue":
+        if (session.correct(payload.cueId, payload.lines)) broadcast();
+        return;
+
+      /** The same correction, offered to the library (ST6.8). */
+      case "keepCorrection": {
+        if (!canKeep(payload.cueId)) return;
+        const source = sourceOf(payload.cueId);
+        if (source === null || source.cue.lines === null) return;
+
+        const lines = source.cue.lines;
+        if (source.songId !== null) {
+          const whole = store.library.get(source.songId);
+          if (whole === null) return;
+          const section = whole.sections.find(
+            (candidate) => candidate.label === source.cue.label,
+          );
+          if (section === undefined) return;
+          store.library.save({
+            ...whole,
+            sections: whole.sections.map((candidate) =>
+              candidate.id === section.id
+                ? {
+                    ...candidate,
+                    lines: correctSlide(candidate.lines, source.cue.slideIndex, lines),
+                  }
+                : candidate,
+            ),
+          });
+        } else if (source.presentationId !== null) {
+          const whole = store.library.getPresentation(source.presentationId);
+          if (whole === null) return;
+          const slide = whole.slides[source.cue.slideIndex];
+          if (slide === undefined) return;
+          store.library.savePresentation({
+            ...whole,
+            slides: whole.slides.map((candidate) =>
+              candidate.id === slide.id ? { ...candidate, lines } : candidate,
+            ),
+          });
+        }
+
+        kept.add(payload.cueId);
+        broadcast();
+        return;
+      }
+
       case "presentNow":
         if (presentNow(payload.presentationId)) broadcast();
         return;
@@ -505,7 +608,7 @@ app.whenReady().then(() => {
     // One window, so it is handed both halves of what it paints (STG-170).
     return {
       output: null,
-      control: session.controlState(outputViews(), comingUp()),
+      control: session.controlState(outputViews(), { nextUp: comingUp(), correction }),
       editor: presentations.state(presenting, session.controlState([]).service?.title ?? null),
     };
   });

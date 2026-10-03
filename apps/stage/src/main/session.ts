@@ -78,6 +78,13 @@ export class Session {
    * through the render path.
    */
   private countdownEndsAt: number | null = null;
+  /**
+   * The cues this run has corrected, and what they were corrected to (STG-51).
+   *
+   * The words rather than the ids, because a song called from the floor
+   * recompiles the deck and a correction made before it has to survive that.
+   */
+  private corrected = new Map<string, string[]>();
   /** When the deck last moved on a key, for the repeat guard (STG-23). */
   private movedAt = Number.NEGATIVE_INFINITY;
 
@@ -121,6 +128,8 @@ export class Session {
     const liveId = this.cueAt(this.position)?.id;
     this.deck = deck;
     this.plan = plan;
+    // A new service, so a correction made during the last one goes with it.
+    this.corrected = new Map();
     // A new deck is a new service, so the run starts as the church planned it.
     // Carrying a skipped verse across a recompile would hide a verse somebody
     // has just put back into the set list.
@@ -131,9 +140,65 @@ export class Session {
     this.revision += 1;
   }
 
+  /**
+   * A typo corrected on the wall (STG-51, ST6.8).
+   *
+   * Written into this session's copy of the deck rather than kept beside it, so
+   * every other slide of the section measures against the corrected words and
+   * the one on the screen does not jump size as the correction lands.
+   *
+   * It stays with the run. Offering it to the library is a second, deliberate
+   * act, and on a synced song there is no offer at all.
+   */
+  correct(cueId: string, lines: string[]): boolean {
+    const at = this.deck.cues.findIndex((cue) => cue.id === cueId);
+    const cue = this.deck.cues[at];
+    if (cue === undefined || cue.lines === null) return false;
+
+    const kept = lines.map((line) => line.replace(/\s+$/, ""));
+    if (kept.join("\n") === cue.lines.join("\n")) return false;
+
+    this.corrected.set(cueId, kept);
+    this.deck = this.withCorrections(this.deck);
+    this.revision += 1;
+    return true;
+  }
+
+  /** The slide on the wall, as something that can be corrected (STG-51). */
+  private correcting(
+    correction?: (cueId: string) => { canKeep: boolean; kept: boolean },
+  ): ControlState["correcting"] {
+    const cue = this.cueAt(this.position);
+    if (cue === undefined || cue.lines === null) return null;
+    const says = correction === undefined ? { canKeep: false, kept: false } : correction(cue.id);
+    return { cueId: cue.id, lines: cue.lines, ...says };
+  }
+
+  /** A deck with this run's corrections put back into it. */
+  private withCorrections(deck: Deck): Deck {
+    if (this.corrected.size === 0) return deck;
+    return {
+      ...deck,
+      cues: deck.cues.map((cue) => {
+        const fixed = this.corrected.get(cue.id);
+        return fixed === undefined ? cue : { ...cue, lines: fixed };
+      }),
+    };
+  }
+
+  /** The cues this run has corrected, so the window can offer to keep them. */
+  corrections(): string[] {
+    return [...this.corrected.keys()];
+  }
+
   /** The plan on the screen, where there is one. */
   plannedNow(): ServicePlan | null {
     return this.plan;
+  }
+
+  /** The deck on the screen, corrections and all (STG-51). */
+  deckNow(): Deck {
+    return this.deck;
   }
 
   /** The item the group on the screen belongs to, for inserting beside it. */
@@ -161,7 +226,7 @@ export class Session {
         ? null
         : (this.deck.groups.find((one) => one.itemId === afterItemId)?.id ?? null);
 
-    this.deck = deck;
+    this.deck = this.withCorrections(deck);
     this.plan = plan;
     this.order = withGroup(this.order, deck, groupId, after);
     const found =
@@ -369,10 +434,18 @@ export class Session {
   }
 
   /**
-   * `nextUp` is handed in rather than read here, because the session owns the
-   * deck on the screen and the plans live in the library (STG-48).
+   * The two fields the library answers are handed in rather than read here,
+   * because the session owns the deck on the screen and the library is main's
+   * (STG-48, STG-51).
    */
-  controlState(outputs: OutputView[], nextUp: ControlState["nextUp"] = null): ControlState {
+  controlState(
+    outputs: OutputView[],
+    extras: {
+      nextUp?: ControlState["nextUp"];
+      /** What the library says about a correction: may it be kept, and was it. */
+      correction?: (cueId: string) => { canKeep: boolean; kept: boolean };
+    } = {},
+  ): ControlState {
     return {
       revision: this.revision,
       live: this.liveView(),
@@ -427,7 +500,8 @@ export class Session {
       outputs,
       asPlanned: asPlanned(this.order, this.deck),
       countdownEndsAt: this.countdownEndsAt,
-      nextUp,
+      nextUp: extras.nextUp ?? null,
+      correcting: this.correcting(extras.correction),
       problems: this.deck.problems.map((problem) => ({
         code: problem.code,
         // What the item is called, which is the only part of a compile problem
