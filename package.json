@@ -9,7 +9,9 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "smoke": "pnpm --filter @hearth/stage run smoke",
-    "demo": "node scripts/stage-demo.mjs"
+    "demo": "node scripts/stage-demo.mjs",
+    "a11y": "pnpm --filter @hearth/stage run a11y",
+    "walk": "pnpm --filter @hearth/stage run walk"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

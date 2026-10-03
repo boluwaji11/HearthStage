@@ -141,7 +141,7 @@ thing a person does with Stage and until now there was no way to do it. See
 |---|---|---|---|
 | STG-28 | Build the render harness: lay out every slide in the bundled library at three resolutions, assert the safe area and the cap height floor | ST6.4, ST20.4 | Resolved |
 | STG-29 | Measure advance latency by frame capture and record it per release. The run on reference hardware is still owed | ST21.1, ST21.5 | Resolved |
-| STG-30 | Audit the control surface to WCAG 2.2 AA in CI, the same bar as the platform | ST20.1, ST20.2 | New |
+| STG-30 | Audit the control surface to WCAG 2.2 AA in CI, the same bar as the platform | ST20.1, ST20.2 | Resolved |
 | STG-31 | Add the architecture test that fails the build if the render path can reach the network | ST21.8 | Resolved |
 
 ---
@@ -473,7 +473,7 @@ are gone. The only blocked epic is SE4, and nothing before it waits on anybody.
 |---|---|
 | **Active** | Nothing |
 | **Waiting on a test** | **STG-1** to **STG-6** the domain and the library, **STG-11** to **STG-20** and **STG-31** the application and its typography, **STG-145** building a presentation, **STG-146** one library list, **STG-147** duplicating, copying and slide notes, **STG-148** the four looks, **STG-21** the live and next panes, **STG-149** first run, **STG-168** the application's name, **STG-7** typing a song in, **STG-8** the pasted block, **STG-9** orders on a song, **STG-10** the hymns on offer, **STG-13** the catalogue, **STG-14** no sign-in and the machine's name, **STG-22** the three covers and the church's logo, **STG-23** the key held down, **STG-24** the order this run goes in, **STG-25** what the live surface cannot do, **STG-26** the clock and the reading, **STG-27** the operator brief, **STG-28** the render harness, **STG-29** the latency measurement, **STG-46** building a service, **STG-47** using last week's again. `pnpm --filter @hearth/stage native` once, then `pnpm --filter @hearth/stage dev`. |
-| **Next** | **STG-30**, the WCAG audit of the control surface in CI. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
+| **Next** | **STG-50**, jumping to a cue by typing its label. Stories are built in the order this table lists them, and a skip is named with its reason before it starts. |
 | **Parity** | [docs/parity.md](docs/parity.md) is the inventory against ProPresenter, EasyWorship, OpenLP and FreeShow. It added 18 stories and rewrote PRD domain 2 around presentations rather than songs. |
 | **Repository** | Stage left the platform's repository on 1 October 2026 and is its own. `packages/songs` lives here, so the platform's 0.4 consumes it as a published package. |
 | **Deferred past S1.0** | **STG-166** timecode, slides following a recorded track. **STG-167** several machines triggering each other. Both are real ProPresenter features and both belong to churches with a production team, which is not the target in section 4 of the PRD. |
@@ -1988,3 +1988,36 @@ down behind every keypress.
 | Story | What | Requirement | State |
 |---|---|---|---|
 | STG-49 | A song called from the floor, onto the deck that is running | ST5.8 | Resolved |
+
+## STG-30, WCAG 2.2 AA, audited
+
+`pnpm --filter @hearth/stage a11y` runs axe-core against the real window in
+thirteen states, from the landing page to a service running with the shortcuts
+card open. Against the real window rather than the markup, because half of what
+this catches is computed: contrast is a colour over a colour after the tokens
+resolve, and a name is whatever `fillText` put there. A jsdom audit would pass a
+window nobody can read.
+
+`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa`. `best-practice` is left
+out, because a rule nobody agreed to is the rule that gets disabled in a hurry
+the first time it fails a release.
+
+**It found a regression on its first run.** The navigation restructure moved the
+library header and dropped the line that gave the hymns button its words, so
+"Add 183 hymns" had been an unnamed button since. It was still clickable, which
+is why nothing else caught it.
+
+**This repository had no CI.** `.github/workflows/ci.yml` now runs typecheck,
+the tests, the build, the Electron binding, and then the four rigs that need a
+display under xvfb: the smoke run, this audit, the walk through the window and
+the output legibility harness.
+
+**What a file can hold is held in `tests/access.test.ts`**, so a broken rule
+fails in a second rather than after Electron starts: the focus ring is never
+styled away and is declared once for the whole window, nothing does something on
+a click without being a real control, and every button carries a name from the
+markup or from the window.
+
+| Story | What | Requirement | State |
+|---|---|---|---|
+| STG-30 | WCAG 2.2 AA audited in CI, and the CI to run it in | ST20.1, ST20.2 | Resolved |

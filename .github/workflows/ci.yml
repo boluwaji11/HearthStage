@@ -1,0 +1,61 @@
+# The checks every change runs, which is the same set a release runs.
+#
+# The accessibility audit (STG-30, ST20.1) and the render harness (STG-28) both
+# drive a real Electron window, so they need a display. xvfb gives them one.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      # Electron and Node use different module ABIs, and one install of
+      # better-sqlite3 has room for one binding.
+      - name: The Electron binding
+        run: pnpm --filter @hearth/stage native
+
+      - name: Install xvfb
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      - name: It starts and stays up
+        run: xvfb-run --auto-servernum pnpm smoke
+
+      # WCAG 2.2 AA, the same bar the platform holds (ST20.1, ST20.2).
+      - name: Accessibility
+        run: xvfb-run --auto-servernum pnpm --filter @hearth/stage a11y
+
+      # Every page of the one window, in the application a church installs.
+      - name: Walk the window
+        run: xvfb-run --auto-servernum pnpm --filter @hearth/stage walk
+
+      # The legibility floor on every bundled look (ST20.4).
+      - name: Output legibility
+        run: xvfb-run --auto-servernum pnpm --filter @hearth/stage render

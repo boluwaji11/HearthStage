@@ -912,7 +912,12 @@ function paintPages(): void {
   // A song is typed into the library. A slide is born inside a service plan
   // and reaches the shelf only when someone saves it there.
   el.newButton.hidden = kind !== "song";
-  el.addSamples.hidden = kind !== "song" || (latest?.samples ?? 0) === 0;
+  const samples = latest?.samples ?? 0;
+  el.addSamples.hidden = kind !== "song" || samples === 0;
+  // Named with its count, so the button says what it will do. A button whose
+  // words are set somewhere else is a button that loses them in a refactor,
+  // which is what happened (STG-30).
+  el.addSamples.textContent = t("library.addHymns", { count: samples });
 
   const plans = latest?.setLists ?? [];
   el.plansEmpty.hidden = plans.length > 0;
